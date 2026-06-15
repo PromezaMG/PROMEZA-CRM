@@ -70,18 +70,14 @@
 <script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      // Force-clear stale caches on every load, then register SW
-      caches.keys().then(keys => {
-        const stale = keys.filter(k => !k.includes('promeza-v44'));
-        return Promise.all(stale.map(k => caches.delete(k)));
-      }).then(() => {
-        navigator.serviceWorker.getRegistrations().then(regs => {
-          const old = regs.filter(r => r.active && r.active.scriptURL && !r.active.scriptURL.includes('v43'));
-          return Promise.all(old.map(r => r.unregister()));
-        }).then(() => {
-          navigator.serviceWorker.register('./sw.js?v=44').then(r => console.log('SW registered v43')).catch(e => console.warn('SW failed:', e));
-        });
-      });
+      const SW_VER = 'promeza-v44';
+      // Clear any cache that isn't the current version, then re-register SW
+      caches.keys().then(keys => Promise.all(keys.filter(k => k !== SW_VER).map(k => caches.delete(k))))
+        .then(() => navigator.serviceWorker.getRegistrations())
+        .then(regs => Promise.all(regs.filter(r => r.active && !r.active.scriptURL.includes(SW_VER)).map(r => r.unregister())))
+        .then(() => navigator.serviceWorker.register('./sw.js?v=44'))
+        .then(() => console.log('SW registered', SW_VER))
+        .catch(e => console.warn('SW failed:', e));
       navigator.serviceWorker.addEventListener('controllerchange', () => window.location.reload());
     });
   }
