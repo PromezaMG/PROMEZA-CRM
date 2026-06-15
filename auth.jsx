@@ -163,14 +163,6 @@ const AuthScreen = ({ onLogin }) => {
         return;
       }
 
-      const authorized = (cfg.authorizedEmails || "")
-        .split(",").map(e => e.trim().toLowerCase()).filter(Boolean);
-      if (authorized.length > 0 && !authorized.includes(email)) {
-        setError("Esta cuenta no está autorizada. Contacta al administrador.");
-        setLoading(false);
-        return;
-      }
-
       const key = await deriveSharedKey(cfg.clientId, cfg.tenantId, cfg.extraKey || "");
       await storeSessionKey(key);
       saveSession(email);
