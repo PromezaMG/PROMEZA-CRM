@@ -717,7 +717,7 @@ const App = () => {
   // Periodic Airtable sync every 60 seconds to pick up teammate changes
   useEffect(() => {
     if (!dataReady || !data) return;
-    const interval = setInterval(syncFromAirtable, 60000);
+    const interval = setInterval(syncFromAirtable, 30000);
     return () => clearInterval(interval);
   }, [dataReady]);
 

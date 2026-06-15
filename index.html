@@ -22,11 +22,11 @@
 
 
 <!-- MSAL.js for Microsoft Entra ID login (hosted locally) -->
-<script src="msal-browser.min.js?v=43"
+<script src="msal-browser.min.js?v=44"
   onload="console.log('MSAL loaded OK, window.msal=', typeof window.msal)"
   onerror="console.error('MSAL LOCAL FILE FAILED TO LOAD')"></script>
 
-<link rel="stylesheet" href="styles.css?v=43" />
+<link rel="stylesheet" href="styles.css?v=44" />
 <link rel="manifest" href="manifest.json" />
 <meta name="theme-color" content="#4f46e5" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -42,44 +42,44 @@
 <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
 
 <!-- Data + utilities -->
-<script src="data.js?v=43"></script>
-<script src="i18n.js?v=43"></script>
-<script src="airtable.js?v=43"></script>
+<script src="data.js?v=44"></script>
+<script src="i18n.js?v=44"></script>
+<script src="airtable.js?v=44"></script>
 
 <!-- React JSX components -->
-<script type="text/babel" src="ui.jsx?v=43"></script>
-<script type="text/babel" src="auth.jsx?v=43"></script>
-<script type="text/babel" src="shell.jsx?v=43"></script>
-<script type="text/babel" src="map.jsx?v=43"></script>
-<script type="text/babel" src="home.jsx?v=43"></script>
-<script type="text/babel" src="lists.jsx?v=43"></script>
-<script type="text/babel" src="profile.jsx?v=43"></script>
-<script type="text/babel" src="forms.jsx?v=43"></script>
-<script type="text/babel" src="duplicates.jsx?v=43"></script>
-<script type="text/babel" src="interactions.jsx?v=43"></script>
-<script type="text/babel" src="tasks.jsx?v=43"></script>
-<script type="text/babel" src="pipeline.jsx?v=43"></script>
-<script type="text/babel" src="projects.jsx?v=43"></script>
-<script type="text/babel" src="attachments.jsx?v=43"></script>
-<script type="text/babel" src="campaigns.jsx?v=43"></script>
-<script type="text/babel" src="calendar.jsx?v=43"></script>
-<script type="text/babel" src="goals.jsx?v=43"></script>
-<script type="text/babel" src="county.jsx?v=43"></script>
-<script type="text/babel" src="app.jsx?v=43"></script>
+<script type="text/babel" src="ui.jsx?v=44"></script>
+<script type="text/babel" src="auth.jsx?v=44"></script>
+<script type="text/babel" src="shell.jsx?v=44"></script>
+<script type="text/babel" src="map.jsx?v=44"></script>
+<script type="text/babel" src="home.jsx?v=44"></script>
+<script type="text/babel" src="lists.jsx?v=44"></script>
+<script type="text/babel" src="profile.jsx?v=44"></script>
+<script type="text/babel" src="forms.jsx?v=44"></script>
+<script type="text/babel" src="duplicates.jsx?v=44"></script>
+<script type="text/babel" src="interactions.jsx?v=44"></script>
+<script type="text/babel" src="tasks.jsx?v=44"></script>
+<script type="text/babel" src="pipeline.jsx?v=44"></script>
+<script type="text/babel" src="projects.jsx?v=44"></script>
+<script type="text/babel" src="attachments.jsx?v=44"></script>
+<script type="text/babel" src="campaigns.jsx?v=44"></script>
+<script type="text/babel" src="calendar.jsx?v=44"></script>
+<script type="text/babel" src="goals.jsx?v=44"></script>
+<script type="text/babel" src="county.jsx?v=44"></script>
+<script type="text/babel" src="app.jsx?v=44"></script>
 
 <script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
       // Force-clear stale caches on every load, then register SW
       caches.keys().then(keys => {
-        const stale = keys.filter(k => !k.includes('promeza-v43'));
+        const stale = keys.filter(k => !k.includes('promeza-v44'));
         return Promise.all(stale.map(k => caches.delete(k)));
       }).then(() => {
         navigator.serviceWorker.getRegistrations().then(regs => {
           const old = regs.filter(r => r.active && r.active.scriptURL && !r.active.scriptURL.includes('v43'));
           return Promise.all(old.map(r => r.unregister()));
         }).then(() => {
-          navigator.serviceWorker.register('./sw.js?v=43').then(r => console.log('SW registered v43')).catch(e => console.warn('SW failed:', e));
+          navigator.serviceWorker.register('./sw.js?v=44').then(r => console.log('SW registered v43')).catch(e => console.warn('SW failed:', e));
         });
       });
       navigator.serviceWorker.addEventListener('controllerchange', () => window.location.reload());
