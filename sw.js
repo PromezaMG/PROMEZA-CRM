@@ -1,4 +1,4 @@
-const CACHE = "promeza-v40";
+const CACHE = "promeza-v41";
 const ASSETS = [
   "./", "./index.html", "./styles.css",
   "./data.js", "./i18n.js", "./airtable.js",
@@ -19,6 +19,8 @@ self.addEventListener("activate", e => {
 
 self.addEventListener("fetch", e => {
   if (e.request.method !== "GET") return;
+  // Never cache external API calls — they must always go to the network
+  if (!e.request.url.startsWith(self.location.origin)) return;
   e.respondWith(
     caches.match(e.request).then(cached => cached || fetch(e.request).then(res => {
       if (res.ok) { const clone = res.clone(); caches.open(CACHE).then(c => c.put(e.request, clone)); }

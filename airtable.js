@@ -272,7 +272,8 @@ window.AIRTABLE = (function () {
     const personasTable = cfg.personasTable || DEFAULT_PERSONAS_TABLE;
     const entidadesTable = cfg.entidadesTable || DEFAULT_ENTIDADES_TABLE;
 
-    await setupTables(cfg.baseId, cfg.pat, personasTable, entidadesTable);
+    // setupTables is best-effort (needs schema permissions) — don't let it block sync
+    try { await setupTables(cfg.baseId, cfg.pat, personasTable, entidadesTable); } catch (e) { console.warn("setupTables skipped:", e.message); }
 
     const pResult = await syncPersonas(data.personas, data.entities, cfg.baseId, personasTable, cfg.pat);
     const eResult = await syncEntities(data.entities, cfg.baseId, entidadesTable, cfg.pat);
