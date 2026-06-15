@@ -256,6 +256,7 @@ const NewEntityForm = ({ t, lang, data, onClose, onSave, initialData, editMode }
     name: initialData.name || "",
     type: initialData.type || "iglesia",
     typeOther: initialData.typeOther || "",
+    denominacion: initialData.denominacion || "",
     email: initialData.email || "",
     phone: initialData.phone || "",
     address: initialData.address || "",
@@ -271,7 +272,7 @@ const NewEntityForm = ({ t, lang, data, onClose, onSave, initialData, editMode }
     parent: initialData.parent || "",
     tags: Array.isArray(initialData.tags) ? initialData.tags.join(", ") : (initialData.tags || ""),
   } : {
-    name: "", type: "iglesia", typeOther: "",
+    name: "", type: "iglesia", typeOther: "", denominacion: "",
     email: "", phone: "",
     address: "", zip: "", city: "", state: "", country: "", county: "",
     website: "",
@@ -317,6 +318,14 @@ const NewEntityForm = ({ t, lang, data, onClose, onSave, initialData, editMode }
           <div className="form-grid">
             <TextField full label={t.forms.entityName} value={form.name} onChange={v => set("name", v)} placeholder={lang === "es" ? "Iglesia / Fundación / Estudio…" : "Church / Foundation / Studio…"} />
             <SelectField label={t.common.type} value={form.type} onChange={v => set("type", v)} options={typeOpts} />
+            {(form.type === "iglesia" || form.type === "sinagoga") && (
+              <TextField
+                label={lang === "es" ? "Denominación · Opcional" : "Denomination · Optional"}
+                value={form.denominacion}
+                onChange={v => set("denominacion", v)}
+                placeholder={lang === "es" ? "Ej: Bautista, Católica, Adventista…" : "E.g. Baptist, Catholic, Adventist…"}
+              />
+            )}
             {form.type === "otro" && <TextField label={lang === "es" ? "Especificar tipo" : "Specify type"} value={form.typeOther} onChange={v => set("typeOther", v)} />}
             <SelectField label={t.common.parent + " · " + t.common.optional} value={form.parent} onChange={v => set("parent", v)} options={parentOpts} />
           </div>

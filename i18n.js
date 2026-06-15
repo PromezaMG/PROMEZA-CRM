@@ -36,8 +36,9 @@ window.PROMEZA_I18N = {
       ujiere: "Ujier", influencer: "Influencer", otro: "Otro",
     },
     types: {
-      iglesia: "Iglesia", ong: "Organización sin fines de lucro",
-      escuela: "Escuela", universidad: "Universidad", sinagoga: "Sinagoga",
+      iglesia: "Iglesia", sinagoga: "Sinagoga", universidad: "Universidad",
+      escuela: "Escuela", ong: "Organización sin fines de lucro",
+      entidad_gubernamental: "Entidad Gubernamental", comedor: "Comedor",
       estudio: "Estudio de grabación", oficina: "Oficina", casa: "Casa / Domicilio", otro: "Otro",
     },
     home: {
@@ -172,8 +173,9 @@ window.PROMEZA_I18N = {
       ujiere: "Usher", influencer: "Influencer", otro: "Other",
     },
     types: {
-      iglesia: "Church", ong: "Nonprofit",
-      escuela: "School", universidad: "University", sinagoga: "Synagogue",
+      iglesia: "Church", sinagoga: "Synagogue", universidad: "University",
+      escuela: "School", ong: "Nonprofit",
+      entidad_gubernamental: "Government Entity", comedor: "Food pantry / Dining",
       estudio: "Recording studio", oficina: "Office", casa: "Home / House", otro: "Other",
     },
     home: {

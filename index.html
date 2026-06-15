@@ -70,7 +70,7 @@
 <script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      const SW_VER = 'promeza-v44';
+      const SW_VER = 'promeza-v45';
       // Clear any cache that isn't the current version, then re-register SW
       caches.keys().then(keys => Promise.all(keys.filter(k => k !== SW_VER).map(k => caches.delete(k))))
         .then(() => navigator.serviceWorker.getRegistrations())

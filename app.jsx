@@ -383,7 +383,7 @@ const PERSON_FIELD_LABELS = {
 };
 
 const ENTITY_FIELD_LABELS = {
-  name: "Nombre", type: "Tipo", email: "Email", phone: "Teléfono",
+  name: "Nombre", type: "Tipo", denominacion: "Denominación", email: "Email", phone: "Teléfono",
   address: "Dirección", city: "Ciudad", state: "Estado/Prov.", country: "País",
   zip: "ZIP", website: "Sitio web", founded: "Año fundación",
   size: "Tamaño", tags: "Etiquetas", status: "Estado",
@@ -884,7 +884,7 @@ const App = () => {
     const id = "e" + (data.entities.length + 1);
     const tags = form.tags ? form.tags.split(",").map(s => s.trim()).filter(Boolean) : [];
     const newE = {
-      id, name: form.name, type: form.type,
+      id, name: form.name, type: form.type, denominacion: form.denominacion || "",
       email: form.email, phone: form.phone,
       address: form.address, zip: form.zip, city: form.city, state: form.state, country: form.country,
       lat: 0, lng: 0,
