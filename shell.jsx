@@ -293,18 +293,29 @@ const Topbar = ({ t, lang, setLang, query, setQuery, onSearchSubmit, onSettings,
       return { personas, entities, projects: [], total: personas.length + entities.length };
     }
 
+    // VID search: format P15-388031 or E5-123456
+    const vidP = (p) => (p.id.toUpperCase() + "-" + Math.abs(p.id.charCodeAt(1) * 7919) % 999999);
+    const vidE = (e) => (e.id.toUpperCase() + "-" + Math.abs(e.id.charCodeAt(1) * 8819) % 999999);
+    if (/^[pe]\d+-\d+$/i.test(q)) {
+      const personas = data.personas.filter(p => vidP(p).toLowerCase() === q).slice(0, 5);
+      const entities = data.entities.filter(e => vidE(e).toLowerCase() === q).slice(0, 5);
+      return { personas, entities, projects: [], total: personas.length + entities.length };
+    }
+
     const matchP = (p) =>
       norm(p.first + " " + p.last).includes(q) ||
       norm(p.email).includes(q) ||
       norm((p.phone || "").replace(/\D/g, "")).includes(q.replace(/\D/g, "")) ||
       norm(p.city).includes(q) ||
       norm(p.role).includes(q) ||
+      vidP(p).toLowerCase().includes(q) ||
       (p.tags || []).some(tg => norm(tg).includes(q));
     const matchE = (e) =>
       norm(e.name).includes(q) ||
       norm(e.email).includes(q) ||
       norm(e.city).includes(q) ||
-      norm(e.phone).includes(q);
+      norm(e.phone).includes(q) ||
+      vidE(e).toLowerCase().includes(q);
     const matchPr = (pr) =>
       norm(pr.name).includes(q) ||
       norm(pr.description).includes(q) ||

@@ -815,6 +815,7 @@ const App = () => {
     const prev = routeHistory[routeHistory.length - 1];
     setRouteHistory(h => h.slice(0, -1));
     setRoute(prev);
+    setQuery("");
     window.scrollTo({ top: 0 });
   };
 
