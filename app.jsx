@@ -859,7 +859,7 @@ const App = () => {
       id, first: form.first, last: form.last,
       role: form.role, roleOther: form.roleOther,
       emails: form.emails || [], phones: form.phones || [], email: (form.emails || [])[0]?.value || "", phone: (form.phones || [])[0]?.value || "",
-      address: form.address, zip: form.zip, city: form.city, state: form.state, country: form.country,
+      address: form.address, addressLabel: form.addressLabel || "domicilio", zip: form.zip, city: form.city, state: form.state, country: form.country,
       lat: 0, lng: 0,
       website: form.website, social: form.social,
       entities: form.entities.map(le => ({ id: le.id, role: le.role, roleOther: le.roleOther })),

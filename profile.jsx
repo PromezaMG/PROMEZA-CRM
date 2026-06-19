@@ -415,7 +415,10 @@ const PersonProfile = ({ id, t, lang, data, go, addComment, onUpdatePerson, onEd
             </div>
 
             <div className="section">
-              <h3>{t.common.address}</h3>
+              <h3>{(() => {
+                const labels = { domicilio: lang === "es" ? "Domicilio / Casa" : "Home / House", iglesia: lang === "es" ? "Dirección Iglesia" : "Church Address", trabajo: lang === "es" ? "Trabajo / Oficina" : "Work / Office", ministerio: lang === "es" ? "Dirección Ministerio" : "Ministry Address", otro: lang === "es" ? "Otra dirección" : "Other address" };
+                return labels[p.addressLabel] || t.common.address;
+              })()}</h3>
               <div className="section-body">
                 <dl className="kv">
                   <dt>{lang === "es" ? "Calle" : "Street"}</dt><dd>{p.address || <span className="muted">—</span>}</dd>
@@ -785,25 +788,30 @@ const EntityProfile = ({ id, t, lang, data, go, addComment, onUpdateEntity, onUp
           </div>
 
           <div>
-            {e.schedule && e.schedule.length > 0 && (
-              <div className="section" style={{ marginBottom: 16 }}>
-                <h3 style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                  <Icon name="calendar" size={14} /> {lang === "es" ? "Horario de servicios" : "Service schedule"}
-                </h3>
-                <div className="section-body" style={{ paddingTop: 8 }}>
-                  {e.schedule.map(s => {
-                    const DAY_LABELS = { domingo: "Domingo", lunes: "Lunes", martes: "Martes", miercoles: "Miércoles", jueves: "Jueves", viernes: "Viernes", sabado: "Sábado" };
-                    const timeDisplay = s.time ? (() => { const [h, m] = s.time.split(":"); const hour = parseInt(h); return (hour > 12 ? hour - 12 : hour || 12) + ":" + m + " " + (hour >= 12 ? "PM" : "AM"); })() : "";
-                    return (
-                      <div key={s.day} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 12px", borderRadius: 8, background: "var(--bg-soft)", marginBottom: 6 }}>
-                        <span style={{ fontWeight: 600, fontSize: 14, color: "var(--ink-1)" }}>{DAY_LABELS[s.day] || s.day}</span>
-                        {timeDisplay && <span style={{ fontWeight: 700, fontSize: 14, color: "var(--accent)", fontFamily: "var(--font-mono)" }}>{timeDisplay}</span>}
-                      </div>
-                    );
-                  })}
-                </div>
+            <div className="section" style={{ marginBottom: 16 }}>
+              <h3 style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <Icon name="calendar" size={14} /> {lang === "es" ? "Horario de servicios" : "Service schedule"}
+              </h3>
+              <div className="section-body" style={{ paddingTop: 8 }}>
+                {(!e.schedule || e.schedule.length === 0) ? (
+                  <div style={{ color: "var(--ink-4)", fontSize: 13, display: "flex", alignItems: "center", gap: 8 }}>
+                    <span>{lang === "es" ? "Sin horario configurado" : "No schedule set"}</span>
+                    <button className="btn btn-sm" style={{ fontSize: 11, padding: "2px 8px" }} onClick={() => onEditEntity && onEditEntity(e.id)}>
+                      + {lang === "es" ? "Agregar" : "Add"}
+                    </button>
+                  </div>
+                ) : e.schedule.map(s => {
+                  const DAY_LABELS = { domingo: "Domingo", lunes: "Lunes", martes: "Martes", miercoles: "Miércoles", jueves: "Jueves", viernes: "Viernes", sabado: "Sábado" };
+                  const timeDisplay = s.time ? (() => { const [h, m] = s.time.split(":"); const hour = parseInt(h); return (hour > 12 ? hour - 12 : hour || 12) + ":" + m + " " + (hour >= 12 ? "PM" : "AM"); })() : "";
+                  return (
+                    <div key={s.day} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 12px", borderRadius: 8, background: "var(--bg-soft)", marginBottom: 6 }}>
+                      <span style={{ fontWeight: 600, fontSize: 14, color: "var(--ink-1)" }}>{DAY_LABELS[s.day] || s.day}</span>
+                      {timeDisplay && <span style={{ fontWeight: 700, fontSize: 14, color: "var(--accent)", fontFamily: "var(--font-mono)" }}>{timeDisplay}</span>}
+                    </div>
+                  );
+                })}
               </div>
-            )}
+            </div>
             <div className="section">
               <h3>{t.common.relatedPersonas} <span className="muted mono" style={{ fontSize: 11 }}>{linkedPeople.length}</span></h3>
               <div className="section-body" style={{ paddingTop: 4 }}>

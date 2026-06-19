@@ -126,10 +126,12 @@ const NewPersonForm = ({ t, lang, data, onClose, onSave, initialData, editMode, 
     birthday: initialData.birthday || "",
     lastContact: initialData.lastContact || "",
     extraAddresses: initialData.extraAddresses || [],
+    addressLabel: initialData.addressLabel || "domicilio",
   } : {
     first: "", last: "", role: "miembro", roleOther: "",
     emails: [], phones: [],
     address: "", zip: "", city: "", state: "", country: "", county: "",
+    addressLabel: "domicilio",
     website: "",
     social: { ig: "", fb: "", tiktok: "", x: "" },
     entities: prefillData?.entityId ? [{ id: prefillData.entityId, role: prefillData.entityRole || "miembro", roleOther: "", comment: "" }] : [],
@@ -206,8 +208,16 @@ const NewPersonForm = ({ t, lang, data, onClose, onSave, initialData, editMode, 
           {/* Primary address */}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", margin: "18px 0 8px" }}>
             <h4 style={{ margin: 0, fontSize: 12, color: "var(--ink-3)", textTransform: "uppercase", letterSpacing: ".06em" }}>
-              {lang === "es" ? "Dirección principal" : "Primary address"}
+              {lang === "es" ? "Dirección" : "Address"}
             </h4>
+            <select value={form.addressLabel} onChange={e => set("addressLabel", e.target.value)}
+              style={{ fontSize: 12, padding: "3px 8px", border: "1px solid var(--line)", borderRadius: 6, background: "var(--bg)", color: "var(--accent)", fontWeight: 600, fontFamily: "inherit", cursor: "pointer" }}>
+              <option value="domicilio">{lang === "es" ? "Domicilio / Casa" : "Home"}</option>
+              <option value="iglesia">{lang === "es" ? "Iglesia" : "Church"}</option>
+              <option value="trabajo">{lang === "es" ? "Trabajo / Oficina" : "Work / Office"}</option>
+              <option value="ministerio">{lang === "es" ? "Ministerio" : "Ministry"}</option>
+              <option value="otro">{lang === "es" ? "Otro" : "Other"}</option>
+            </select>
           </div>
           <div className="form-grid">
             <TextField full label={lang === "es" ? "Dirección completa" : "Full address"} value={form.address} onChange={v => set("address", v)} placeholder="Calle, número, depto." />
