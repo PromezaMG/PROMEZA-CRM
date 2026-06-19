@@ -56,44 +56,66 @@ const MultiContactField = ({ label, entries, onChange, type = "phone", lang }) =
 // ─── Schedule Field (for entities) ───
 
 const SCHEDULE_DAYS = [
-  { key: "domingo",   short: "Dom" },
-  { key: "lunes",     short: "Lun" },
-  { key: "martes",    short: "Mar" },
-  { key: "miercoles", short: "Mié" },
-  { key: "jueves",    short: "Jue" },
-  { key: "viernes",   short: "Vie" },
-  { key: "sabado",    short: "Sáb" },
+  { key: "domingo",   short: "Dom", label: "Domingo" },
+  { key: "lunes",     short: "Lun", label: "Lunes" },
+  { key: "martes",    short: "Mar", label: "Martes" },
+  { key: "miercoles", short: "Mié", label: "Miércoles" },
+  { key: "jueves",    short: "Jue", label: "Jueves" },
+  { key: "viernes",   short: "Vie", label: "Viernes" },
+  { key: "sabado",    short: "Sáb", label: "Sábado" },
 ];
 const DAY_ORDER = SCHEDULE_DAYS.map(d => d.key);
 
 const ScheduleField = ({ schedule, onChange }) => {
   const has = (day) => schedule.some(s => s.day === day);
+  // Toggle: add first slot or remove all slots for that day
   const toggle = (day) => {
     if (has(day)) onChange(schedule.filter(s => s.day !== day));
     else onChange([...schedule, { day, time: "" }].sort((a, b) => DAY_ORDER.indexOf(a.day) - DAY_ORDER.indexOf(b.day)));
   };
-  const setTime = (day, time) => onChange(schedule.map(s => s.day === day ? { ...s, time } : s));
+  // Add another time slot for an already-selected day
+  const addSlot = (day) => onChange([...schedule, { day, time: "" }].sort((a, b) => DAY_ORDER.indexOf(a.day) - DAY_ORDER.indexOf(b.day)));
+  // Remove a specific slot by its array index
+  const removeSlot = (idx) => onChange(schedule.filter((_, i) => i !== idx));
+  const setTime = (idx, time) => onChange(schedule.map((s, i) => i === idx ? { ...s, time } : s));
+
+  // Group entries by day for display
+  const byDay = DAY_ORDER.filter(has).map(day => ({
+    day,
+    dayObj: SCHEDULE_DAYS.find(d => d.key === day),
+    entries: schedule.map((s, i) => ({ ...s, idx: i })).filter(s => s.day === day),
+  }));
+
   return (
     <div className="field full">
       <label>Horario de servicios · Opcional</label>
-      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: schedule.length ? 10 : 0 }}>
+      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: byDay.length ? 10 : 0 }}>
         {SCHEDULE_DAYS.map(({ key, short }) => (
           <button key={key} type="button" onClick={() => toggle(key)}
-            style={{ padding: "5px 11px", border: "1px solid " + (has(key) ? "var(--accent)" : "var(--line)"), borderRadius: 20, background: has(key) ? "var(--accent-50, #eef2ff)" : "transparent", color: has(key) ? "var(--accent)" : "var(--ink-3)", cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit", transition: "all .15s" }}>
+            style={{ padding: "5px 11px", border: "1.5px solid " + (has(key) ? "var(--accent)" : "var(--line)"), borderRadius: 20, background: has(key) ? "var(--accent)" : "transparent", color: has(key) ? "#fff" : "var(--ink-3)", cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit", transition: "all .15s" }}>
             {short}
           </button>
         ))}
       </div>
-      {schedule.map(({ day, time }) => {
-        const d = SCHEDULE_DAYS.find(x => x.key === day);
-        return (
-          <div key={day} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-            <span style={{ minWidth: 32, fontSize: 12, fontWeight: 700, color: "var(--accent)" }}>{d?.short || day}</span>
-            <input type="time" value={time || ""} onChange={e => setTime(day, e.target.value)}
-              style={{ flex: 1, padding: "7px 10px", border: "1px solid var(--line)", borderRadius: 8, background: "var(--bg)", fontSize: 13, fontFamily: "inherit", color: "var(--ink-1)" }} />
+      {byDay.map(({ day, dayObj, entries }) => (
+        <div key={day} style={{ marginBottom: 8, padding: "8px 10px", background: "var(--bg-2, #f8f8fa)", borderRadius: 8, border: "1px solid var(--line)" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: entries.length ? 8 : 0 }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: "var(--accent)", textTransform: "capitalize" }}>{dayObj?.label || day}</span>
+            <button type="button" onClick={() => addSlot(day)}
+              style={{ fontSize: 11, color: "var(--accent)", border: "none", background: "none", cursor: "pointer", fontFamily: "inherit", padding: 0, fontWeight: 600 }}>
+              + hora
+            </button>
           </div>
-        );
-      })}
+          {entries.map(({ idx, time }) => (
+            <div key={idx} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+              <input type="time" value={time || ""} onChange={e => setTime(idx, e.target.value)}
+                style={{ flex: 1, padding: "6px 10px", border: "1px solid var(--line)", borderRadius: 8, background: "var(--bg)", fontSize: 13, fontFamily: "inherit", color: "var(--ink-1)" }} />
+              <button type="button" onClick={() => removeSlot(idx)}
+                style={{ color: "var(--ink-4)", border: "none", background: "none", cursor: "pointer", fontSize: 18, lineHeight: 1, padding: "0 2px" }}>×</button>
+            </div>
+          ))}
+        </div>
+      ))}
     </div>
   );
 };

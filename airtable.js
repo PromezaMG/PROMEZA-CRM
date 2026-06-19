@@ -66,13 +66,21 @@ window.AIRTABLE = (function () {
 
   const stripDataField = (records) => records.map(r => { const f = { ...r.fields }; delete f._data; return { ...r, fields: f }; });
 
+  // Fields that may not exist in older Airtable tables — strip progressively on unknown field errors
+  const OPTIONAL_FIELDS = ["_data", "Horarios", "Denominación"];
+  const stripField = (records, fieldName) => records.map(r => { const f = { ...r.fields }; delete f[fieldName]; return { ...r, fields: f }; });
+
   const upsertBatch = async (method, url, pat, batch) => {
-    try {
-      await req(method, url, { records: batch }, pat);
-    } catch (err) {
-      if (err.message && err.message.includes("Unknown field")) {
-        await req(method, url, { records: stripDataField(batch) }, pat);
-      } else throw err;
+    let records = batch;
+    for (let i = 0; i <= OPTIONAL_FIELDS.length; i++) {
+      try {
+        await req(method, url, { records }, pat);
+        return;
+      } catch (err) {
+        if (err.message && err.message.includes("Unknown field") && i < OPTIONAL_FIELDS.length) {
+          records = stripField(records, OPTIONAL_FIELDS[i]);
+        } else throw err;
+      }
     }
   };
 
@@ -522,7 +530,6 @@ window.AIRTABLE = (function () {
     const e = Object.assign({}, entity);
     delete e._atId;
     const url = "https://api.airtable.com/v0/" + cfg.baseId + "/" + encodeURIComponent(table);
-    const tryFields = (withData) => ({ ...humanFields, ...(withData ? { "_data": JSON.stringify(e) } : {}) });
 
     let atId = entity._atId;
     if (!atId) {
@@ -533,25 +540,33 @@ window.AIRTABLE = (function () {
       } catch {}
     }
 
-    try {
-      if (atId) {
-        await req("PATCH", url, { records: [{ id: atId, fields: tryFields(true) }] }, cfg.pat);
-        return atId;
-      } else {
-        const res = await req("POST", url, { records: [{ fields: tryFields(true) }] }, cfg.pat);
-        return res.records && res.records[0] && res.records[0].id;
-      }
-    } catch {
+    // Try progressively simpler field sets until one succeeds
+    const fieldAttempts = [
+      { ...humanFields, "_data": JSON.stringify(e) },
+      { ...humanFields },
+      { ...humanFields, "Horarios": undefined, "Denominación": undefined },
+    ].map(f => { const out = {}; Object.keys(f).forEach(k => { if (f[k] !== undefined && f[k] !== null && f[k] !== "") out[k] = f[k]; }); return out; });
+
+    for (const fields of fieldAttempts) {
       try {
         if (atId) {
-          await req("PATCH", url, { records: [{ id: atId, fields: humanFields }] }, cfg.pat);
+          await req("PATCH", url, { records: [{ id: atId, fields }] }, cfg.pat);
           return atId;
         } else {
-          const res = await req("POST", url, { records: [{ fields: humanFields }] }, cfg.pat);
+          const res = await req("POST", url, { records: [{ fields }] }, cfg.pat);
           return res.records && res.records[0] && res.records[0].id;
         }
-      } catch (e2) { console.warn("saveEntity failed:", e2); return null; }
+      } catch (err) {
+        if (!err.message || !err.message.includes("Unknown field")) {
+          console.warn("saveEntity failed:", err);
+          return null;
+        }
+        // Unknown field → try next attempt with fewer fields
+      }
     }
+    console.warn("saveEntity: all field attempts exhausted");
+    return null;
+  };
   };
 
   // Delete a record from Airtable by CRM_ID

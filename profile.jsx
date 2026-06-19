@@ -800,16 +800,27 @@ const EntityProfile = ({ id, t, lang, data, go, addComment, onUpdateEntity, onUp
                       + {lang === "es" ? "Agregar" : "Add"}
                     </button>
                   </div>
-                ) : e.schedule.map(s => {
+                ) : (() => {
                   const DAY_LABELS = { domingo: "Domingo", lunes: "Lunes", martes: "Martes", miercoles: "Miércoles", jueves: "Jueves", viernes: "Viernes", sabado: "Sábado" };
-                  const timeDisplay = s.time ? (() => { const [h, m] = s.time.split(":"); const hour = parseInt(h); return (hour > 12 ? hour - 12 : hour || 12) + ":" + m + " " + (hour >= 12 ? "PM" : "AM"); })() : "";
-                  return (
-                    <div key={s.day} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 12px", borderRadius: 8, background: "var(--bg-soft)", marginBottom: 6 }}>
-                      <span style={{ fontWeight: 600, fontSize: 14, color: "var(--ink-1)" }}>{DAY_LABELS[s.day] || s.day}</span>
-                      {timeDisplay && <span style={{ fontWeight: 700, fontSize: 14, color: "var(--accent)", fontFamily: "var(--font-mono)" }}>{timeDisplay}</span>}
-                    </div>
-                  );
-                })}
+                  const DAY_ORDER_P = ["domingo","lunes","martes","miercoles","jueves","viernes","sabado"];
+                  const fmt = (t) => { if (!t) return ""; const [h, m] = t.split(":"); const hr = parseInt(h); return (hr > 12 ? hr - 12 : hr || 12) + ":" + m + " " + (hr >= 12 ? "PM" : "AM"); };
+                  const days = [...new Set((e.schedule || []).map(s => s.day))].sort((a, b) => DAY_ORDER_P.indexOf(a) - DAY_ORDER_P.indexOf(b));
+                  return days.map(day => {
+                    const slots = (e.schedule || []).filter(s => s.day === day);
+                    return (
+                      <div key={day} style={{ marginBottom: 8, padding: "10px 14px", borderRadius: 10, background: "var(--bg-soft, #f8f9fc)", border: "1px solid var(--line)" }}>
+                        <div style={{ fontWeight: 700, fontSize: 13, color: "var(--accent)", marginBottom: slots.length ? 6 : 0 }}>{DAY_LABELS[day] || day}</div>
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                          {slots.map((s, i) => (
+                            <span key={i} style={{ display: "inline-block", padding: "3px 10px", borderRadius: 20, background: "var(--accent)", color: "#fff", fontSize: 12, fontWeight: 700, fontFamily: "var(--font-mono, monospace)" }}>
+                              {fmt(s.time) || "—"}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  });
+                })()}
               </div>
             </div>
             <div className="section">

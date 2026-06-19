@@ -594,6 +594,17 @@ const App = () => {
       if (local._localSavedAt && local._localSavedAt > prevLastLoad) {
         return { ...local, _atId: remote._atId || local._atId };
       }
+      // If remote came from individual fields (no _data blob), preserve complex local fields
+      // that aren't stored as separate Airtable columns
+      if (!remote._localSavedAt) {
+        return {
+          ...remote,
+          schedule: (remote.schedule && remote.schedule.length > 0) ? remote.schedule : (local.schedule || []),
+          denominacion: remote.denominacion || local.denominacion || "",
+          phones: (remote.phones && remote.phones.length > 0) ? remote.phones : (local.phones || []),
+          emails: (remote.emails && remote.emails.length > 0) ? remote.emails : (local.emails || []),
+        };
+      }
       return remote;
     });
     const localEntityIds = new Set(prev.entities.map(e => e.id));
