@@ -604,8 +604,16 @@ const App = () => {
       const remote = atEntityMap.get(local.id);
       if (!remote) return local;
       if (local._localSavedAt && local._localSavedAt > prevLastLoad) {
-        // Local was edited after last Airtable load → keep local
-        return { ...local, _atId: remote._atId || local._atId };
+        // Local was edited after last Airtable load → keep local edits, but recover
+        // complex fields (schedule/phones/emails) from remote if local lacks them
+        // (happens when Mac saved entity with old code before these fields existed)
+        return {
+          ...local,
+          _atId: remote._atId || local._atId,
+          schedule: pick(local.schedule, remote.schedule),
+          phones: pick(local.phones, remote.phones),
+          emails: pick(local.emails, remote.emails),
+        };
       }
       // Remote is source of truth, but never blank out complex fields if only one side has them
       return {
@@ -662,7 +670,7 @@ const App = () => {
             ...prev.personas.filter(p => !atData.personas.some(a => a.id === p.id)),
           ],
           entities: [
-            ...atData.entities,
+            ...atData.entities.map(e => ({ ...e, schedule: e.schedule || [], phones: e.phones || [], emails: e.emails || [] })),
             ...prev.entities.filter(e => !atData.entities.some(a => a.id === e.id)),
           ],
         }));
