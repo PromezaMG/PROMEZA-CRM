@@ -407,7 +407,15 @@ window.AIRTABLE = (function () {
 
   const parseEntityRecord = (r) => {
     if (r.fields._data) {
-      try { return { ...JSON.parse(r.fields._data), _atId: r.id }; } catch {}
+      try {
+        const parsed = JSON.parse(r.fields._data);
+        // Recover schedule from Horarios if _data was saved by old code without schedule
+        if ((!parsed.schedule || parsed.schedule.length === 0) && r.fields["Horarios"]) {
+          try { parsed.schedule = JSON.parse(r.fields["Horarios"]); } catch {}
+        }
+        parsed.schedule = parsed.schedule || [];
+        return { ...parsed, _atId: r.id };
+      } catch {}
     }
     const f = r.fields;
     const tagsRaw = f["Etiquetas"] || "";

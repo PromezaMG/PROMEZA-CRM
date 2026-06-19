@@ -618,7 +618,12 @@ const App = () => {
       };
     });
     const localEntityIds = new Set(prev.entities.map(e => e.id));
-    const remoteOnlyEntities = atData.entities.filter(e => !localEntityIds.has(e.id));
+    const remoteOnlyEntities = atData.entities.filter(e => !localEntityIds.has(e.id)).map(e => ({
+      ...e,
+      schedule: e.schedule || [],
+      phones: e.phones || [],
+      emails: e.emails || [],
+    }));
 
     return {
       ...prev,

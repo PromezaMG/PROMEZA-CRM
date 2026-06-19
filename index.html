@@ -22,11 +22,11 @@
 
 
 <!-- MSAL.js for Microsoft Entra ID login (hosted locally) -->
-<script src="msal-browser.min.js?v=56"
+<script src="msal-browser.min.js?v=57"
   onload="console.log('MSAL loaded OK, window.msal=', typeof window.msal)"
   onerror="console.error('MSAL LOCAL FILE FAILED TO LOAD')"></script>
 
-<link rel="stylesheet" href="styles.css?v=56" />
+<link rel="stylesheet" href="styles.css?v=57" />
 <link rel="manifest" href="manifest.json" />
 <meta name="theme-color" content="#4f46e5" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -42,40 +42,40 @@
 <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
 
 <!-- Data + utilities -->
-<script src="data.js?v=56"></script>
-<script src="i18n.js?v=56"></script>
-<script src="airtable.js?v=56"></script>
+<script src="data.js?v=57"></script>
+<script src="i18n.js?v=57"></script>
+<script src="airtable.js?v=57"></script>
 
 <!-- React JSX components -->
-<script type="text/babel" src="ui.jsx?v=56"></script>
-<script type="text/babel" src="auth.jsx?v=56"></script>
-<script type="text/babel" src="shell.jsx?v=56"></script>
-<script type="text/babel" src="map.jsx?v=56"></script>
-<script type="text/babel" src="home.jsx?v=56"></script>
-<script type="text/babel" src="lists.jsx?v=56"></script>
-<script type="text/babel" src="profile.jsx?v=56"></script>
-<script type="text/babel" src="forms.jsx?v=56"></script>
-<script type="text/babel" src="duplicates.jsx?v=56"></script>
-<script type="text/babel" src="interactions.jsx?v=56"></script>
-<script type="text/babel" src="tasks.jsx?v=56"></script>
-<script type="text/babel" src="pipeline.jsx?v=56"></script>
-<script type="text/babel" src="projects.jsx?v=56"></script>
-<script type="text/babel" src="attachments.jsx?v=56"></script>
-<script type="text/babel" src="campaigns.jsx?v=56"></script>
-<script type="text/babel" src="calendar.jsx?v=56"></script>
-<script type="text/babel" src="goals.jsx?v=56"></script>
-<script type="text/babel" src="county.jsx?v=56"></script>
-<script type="text/babel" src="app.jsx?v=56"></script>
+<script type="text/babel" src="ui.jsx?v=57"></script>
+<script type="text/babel" src="auth.jsx?v=57"></script>
+<script type="text/babel" src="shell.jsx?v=57"></script>
+<script type="text/babel" src="map.jsx?v=57"></script>
+<script type="text/babel" src="home.jsx?v=57"></script>
+<script type="text/babel" src="lists.jsx?v=57"></script>
+<script type="text/babel" src="profile.jsx?v=57"></script>
+<script type="text/babel" src="forms.jsx?v=57"></script>
+<script type="text/babel" src="duplicates.jsx?v=57"></script>
+<script type="text/babel" src="interactions.jsx?v=57"></script>
+<script type="text/babel" src="tasks.jsx?v=57"></script>
+<script type="text/babel" src="pipeline.jsx?v=57"></script>
+<script type="text/babel" src="projects.jsx?v=57"></script>
+<script type="text/babel" src="attachments.jsx?v=57"></script>
+<script type="text/babel" src="campaigns.jsx?v=57"></script>
+<script type="text/babel" src="calendar.jsx?v=57"></script>
+<script type="text/babel" src="goals.jsx?v=57"></script>
+<script type="text/babel" src="county.jsx?v=57"></script>
+<script type="text/babel" src="app.jsx?v=57"></script>
 
 <script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      caches.keys().then(keys => Promise.all(keys.filter(k => k !== 'promeza-v56').map(k => caches.delete(k))));
-      navigator.serviceWorker.register('./sw.js?v=56')
-        .then(() => console.log('SW v54 registered'))
+      caches.keys().then(keys => Promise.all(keys.filter(k => k !== 'promeza-v57').map(k => caches.delete(k))));
+      navigator.serviceWorker.register('./sw.js?v=57')
+        .then(() => console.log('SW v57 registered'))
         .catch(e => console.warn('SW failed:', e));
-      // No controllerchange→reload: avoids disruptive forced reloads mid-session.
-      // New SW activates via skipWaiting and serves fresh files on next navigation.
+      // Reload when new SW takes control so fresh code is always running
+      navigator.serviceWorker.addEventListener('controllerchange', () => window.location.reload());
     });
   }
 </script>
