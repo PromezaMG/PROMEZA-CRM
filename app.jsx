@@ -577,13 +577,25 @@ const App = () => {
     const atPersonaMap = new Map(atData.personas.map(p => [p.id, p]));
     const atEntityMap = new Map(atData.entities.map(e => [e.id, e]));
 
+    // Merge helper: pick the non-empty value, preferring the base entity's value
+    const pick = (base, fallback) => (base && base.length > 0) ? base : (fallback || []);
+    const pickStr = (base, fallback) => base || fallback || "";
+
     const mergedPersonas = prev.personas.map(local => {
       const remote = atPersonaMap.get(local.id);
       if (!remote) return local;
       if (local._localSavedAt && local._localSavedAt > prevLastLoad) {
+        // Local was edited after the last Airtable load → keep local, update _atId
         return { ...local, _atId: remote._atId || local._atId };
       }
-      return remote;
+      // Remote is source of truth, but never blank out complex fields if only one side has them
+      return {
+        ...remote,
+        _atId: remote._atId || local._atId,
+        phones: pick(remote.phones, local.phones),
+        emails: pick(remote.emails, local.emails),
+        addressLabel: remote.addressLabel || local.addressLabel || "domicilio",
+      };
     });
     const localPersonaIds = new Set(prev.personas.map(p => p.id));
     const remoteOnlyPersonas = atData.personas.filter(p => !localPersonaIds.has(p.id));
@@ -592,20 +604,18 @@ const App = () => {
       const remote = atEntityMap.get(local.id);
       if (!remote) return local;
       if (local._localSavedAt && local._localSavedAt > prevLastLoad) {
+        // Local was edited after last Airtable load → keep local
         return { ...local, _atId: remote._atId || local._atId };
       }
-      // If remote came from individual fields (no _data blob), preserve complex local fields
-      // that aren't stored as separate Airtable columns
-      if (!remote._localSavedAt) {
-        return {
-          ...remote,
-          schedule: (remote.schedule && remote.schedule.length > 0) ? remote.schedule : (local.schedule || []),
-          denominacion: remote.denominacion || local.denominacion || "",
-          phones: (remote.phones && remote.phones.length > 0) ? remote.phones : (local.phones || []),
-          emails: (remote.emails && remote.emails.length > 0) ? remote.emails : (local.emails || []),
-        };
-      }
-      return remote;
+      // Remote is source of truth, but never blank out complex fields if only one side has them
+      return {
+        ...remote,
+        _atId: remote._atId || local._atId,
+        schedule: pick(remote.schedule, local.schedule),
+        denominacion: pickStr(remote.denominacion, local.denominacion),
+        phones: pick(remote.phones, local.phones),
+        emails: pick(remote.emails, local.emails),
+      };
     });
     const localEntityIds = new Set(prev.entities.map(e => e.id));
     const remoteOnlyEntities = atData.entities.filter(e => !localEntityIds.has(e.id));

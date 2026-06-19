@@ -99,22 +99,59 @@ window.AIRTABLE = (function () {
     return out;
   };
 
-  // Auto-create tables if they don't exist; add _data field to existing ones
+  // Session cache: tables confirmed to have all required fields this session
+  const _tablesReady = new Set();
+
+  // Ensure a table has the _data, Horarios, Denominación fields (create if missing)
+  const ensureTableFields = async (baseId, table, pat, extraFields = []) => {
+    const cacheKey = baseId + "/" + table;
+    if (_tablesReady.has(cacheKey)) return;
+    try {
+      const metaUrl = "https://api.airtable.com/v0/meta/bases/" + baseId + "/tables";
+      const meta = await req("GET", metaUrl, null, pat);
+      const t = (meta.tables || []).find(t => t.name === table);
+      if (!t) return;
+      const existing = new Set((t.fields || []).map(f => f.name));
+      const needed = [{ name: "_data", type: "multilineText" }, ...extraFields].filter(f => !existing.has(f.name));
+      await Promise.all(needed.map(f =>
+        req("POST", metaUrl + "/" + t.id + "/fields", f, pat).catch(e => console.warn("Field create:", f.name, e.message))
+      ));
+      _tablesReady.add(cacheKey);
+    } catch (e) {
+      console.warn("ensureTableFields failed:", e.message);
+      _tablesReady.add(cacheKey); // don't retry on meta failure
+    }
+  };
+
+  // Auto-create tables if they don't exist; add _data + extra fields to existing ones
   const setupTables = async (baseId, pat, personasTable, entidadesTable) => {
     const metaUrl = "https://api.airtable.com/v0/meta/bases/" + baseId + "/tables";
     const meta = await req("GET", metaUrl, null, pat);
     const tables = meta.tables || [];
     const existingNames = tables.map(t => t.name);
+    const tableMap = Object.fromEntries(tables.map(t => [t.name, t]));
 
-    // Add _data field to existing tables that don't have it yet
-    for (const t of tables) {
-      if (t.name !== personasTable && t.name !== entidadesTable) continue;
-      const hasDataField = (t.fields || []).some(f => f.name === "_data");
-      if (!hasDataField) {
-        try {
-          await req("POST", metaUrl + "/" + t.id + "/fields", { name: "_data", type: "multilineText" }, pat);
-        } catch (e) { console.warn("Could not add _data field to", t.name, ":", e.message); }
-      }
+    // Add missing fields to existing tables
+    const addMissingFields = async (tableName, required) => {
+      const t = tableMap[tableName];
+      if (!t) return;
+      const existing = new Set((t.fields || []).map(f => f.name));
+      const needed = required.filter(f => !existing.has(f.name));
+      await Promise.all(needed.map(f =>
+        req("POST", metaUrl + "/" + t.id + "/fields", f, pat).catch(e => console.warn("Could not add field", f.name, "to", tableName, ":", e.message))
+      ));
+      _tablesReady.add(baseId + "/" + tableName);
+    };
+
+    if (existingNames.includes(personasTable)) {
+      await addMissingFields(personasTable, [{ name: "_data", type: "multilineText" }]);
+    }
+    if (existingNames.includes(entidadesTable)) {
+      await addMissingFields(entidadesTable, [
+        { name: "_data", type: "multilineText" },
+        { name: "Horarios", type: "multilineText" },
+        { name: "Denominación", type: "singleLineText" },
+      ]);
     }
 
     const personasFields = [
@@ -465,9 +502,7 @@ window.AIRTABLE = (function () {
     const p = Object.assign({}, persona);
     delete p._atId;
     const url = "https://api.airtable.com/v0/" + cfg.baseId + "/" + encodeURIComponent(table);
-    const tryFields = (withData) => ({ ...humanFields, ...(withData ? { "_data": JSON.stringify(p) } : {}) });
 
-    // Resolve Airtable row ID: use stored _atId or look up by CRM_ID to prevent duplicates
     let atId = persona._atId;
     if (!atId) {
       try {
@@ -477,24 +512,24 @@ window.AIRTABLE = (function () {
       } catch {}
     }
 
-    try {
+    const doSave = async (fields) => {
       if (atId) {
-        await req("PATCH", url, { records: [{ id: atId, fields: tryFields(true) }] }, cfg.pat);
+        await req("PATCH", url, { records: [{ id: atId, fields }] }, cfg.pat);
         return atId;
       } else {
-        const res = await req("POST", url, { records: [{ fields: tryFields(true) }] }, cfg.pat);
-        return res.records && res.records[0] && res.records[0].id;
+        const res = await req("POST", url, { records: [{ fields }] }, cfg.pat);
+        return res.records?.[0]?.id;
       }
-    } catch {
-      try {
-        if (atId) {
-          await req("PATCH", url, { records: [{ id: atId, fields: humanFields }] }, cfg.pat);
-          return atId;
-        } else {
-          const res = await req("POST", url, { records: [{ fields: humanFields }] }, cfg.pat);
-          return res.records && res.records[0] && res.records[0].id;
-        }
-      } catch (e2) { console.warn("savePersona failed:", e2); return null; }
+    };
+
+    try {
+      return await doSave({ ...humanFields, "_data": JSON.stringify(p) });
+    } catch (err) {
+      if (err.message?.includes("Unknown field")) {
+        await ensureTableFields(cfg.baseId, table, cfg.pat);
+        try { return await doSave({ ...humanFields, "_data": JSON.stringify(p) }); } catch {}
+      }
+      try { return await doSave(humanFields); } catch (e2) { console.warn("savePersona failed:", e2); return null; }
     }
   };
 
@@ -540,32 +575,33 @@ window.AIRTABLE = (function () {
       } catch {}
     }
 
-    // Try progressively simpler field sets until one succeeds
-    const fieldAttempts = [
-      { ...humanFields, "_data": JSON.stringify(e) },
-      { ...humanFields },
-      { ...humanFields, "Horarios": undefined, "Denominación": undefined },
-    ].map(f => { const out = {}; Object.keys(f).forEach(k => { if (f[k] !== undefined && f[k] !== null && f[k] !== "") out[k] = f[k]; }); return out; });
-
-    for (const fields of fieldAttempts) {
-      try {
-        if (atId) {
-          await req("PATCH", url, { records: [{ id: atId, fields }] }, cfg.pat);
-          return atId;
-        } else {
-          const res = await req("POST", url, { records: [{ fields }] }, cfg.pat);
-          return res.records && res.records[0] && res.records[0].id;
-        }
-      } catch (err) {
-        if (!err.message || !err.message.includes("Unknown field")) {
-          console.warn("saveEntity failed:", err);
-          return null;
-        }
-        // Unknown field → try next attempt with fewer fields
+    const doSave = async (fields) => {
+      if (atId) {
+        await req("PATCH", url, { records: [{ id: atId, fields }] }, cfg.pat);
+        return atId;
+      } else {
+        const res = await req("POST", url, { records: [{ fields }] }, cfg.pat);
+        return res.records?.[0]?.id;
       }
+    };
+
+    const fullFields = { ...humanFields, "_data": JSON.stringify(e) };
+    try {
+      return await doSave(fullFields);
+    } catch (err) {
+      if (err.message?.includes("Unknown field")) {
+        // Create missing fields (_data, Horarios, Denominación) then retry
+        await ensureTableFields(cfg.baseId, table, cfg.pat, [
+          { name: "Horarios", type: "multilineText" },
+          { name: "Denominación", type: "singleLineText" },
+        ]);
+        try { return await doSave(fullFields); } catch {}
+        // If still failing, save without _data (losing complex fields is better than not saving)
+        try { return await doSave(humanFields); } catch (e2) { console.warn("saveEntity failed:", e2); return null; }
+      }
+      console.warn("saveEntity failed:", err);
+      return null;
     }
-    console.warn("saveEntity: all field attempts exhausted");
-    return null;
   };
 
   // Delete a record from Airtable by CRM_ID
