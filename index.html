@@ -74,8 +74,6 @@
       navigator.serviceWorker.register('./sw.js?v=58')
         .then(() => console.log('SW v58 registered'))
         .catch(e => console.warn('SW failed:', e));
-      // Reload when new SW takes control so fresh code is always running
-      navigator.serviceWorker.addEventListener('controllerchange', () => window.location.reload());
     });
   }
 </script>
