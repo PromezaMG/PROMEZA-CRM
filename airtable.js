@@ -567,7 +567,6 @@ window.AIRTABLE = (function () {
     console.warn("saveEntity: all field attempts exhausted");
     return null;
   };
-  };
 
   // Delete a record from Airtable by CRM_ID
   const deleteRecord = async (tableName, crmId) => {
