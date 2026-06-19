@@ -31,7 +31,7 @@ window.PROMEZA_I18N = {
       exportCSV: "Exportar CSV",
     },
     roles: {
-      pastor: "Pastor", lider: "Líder",
+      pastor: "Pastor", lider: "Líder", maestro: "Maestro", profeta: "Profeta",
       miembro: "Miembro", secretario: "Secretario", tesorero: "Tesorero",
       ujiere: "Ujier", evangelista: "Evangelista", misionero: "Misionero",
       influencer: "Influencer", cantante: "Cantante",
@@ -172,7 +172,7 @@ window.PROMEZA_I18N = {
       exportCSV: "Export CSV",
     },
     roles: {
-      pastor: "Pastor", lider: "Leader",
+      pastor: "Pastor", lider: "Leader", maestro: "Teacher", profeta: "Prophet",
       miembro: "Member", secretario: "Secretary", tesorero: "Treasurer",
       ujiere: "Usher", evangelista: "Evangelist", misionero: "Missionary",
       influencer: "Influencer", cantante: "Singer",

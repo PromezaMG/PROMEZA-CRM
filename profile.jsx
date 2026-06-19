@@ -773,22 +773,6 @@ const EntityProfile = ({ id, t, lang, data, go, addComment, onUpdateEntity, onUp
                   <dt>{t.common.type}</dt><dd>{t.types[e.type]}</dd>
                   <dt>{t.common.size}</dt><dd>{e.size ? e.size.toLocaleString() + " " + t.common.members : <span className="muted">—</span>}</dd>
                   <dt>{t.common.founded}</dt><dd>{e.founded || <span className="muted">—</span>}</dd>
-                  {e.schedule && e.schedule.length > 0 && (<>
-                    <dt>{lang === "es" ? "Horario" : "Schedule"}</dt>
-                    <dd>
-                      <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
-                        {e.schedule.map(s => {
-                          const labels = { domingo: "Dom", lunes: "Lun", martes: "Mar", miercoles: "Mié", jueves: "Jue", viernes: "Vie", sabado: "Sáb" };
-                          const timeDisplay = s.time ? (() => { const [h, m] = s.time.split(":"); const hour = parseInt(h); return (hour > 12 ? hour - 12 : hour || 12) + ":" + m + " " + (hour >= 12 ? "PM" : "AM"); })() : "";
-                          return (
-                            <span key={s.day} style={{ fontSize: 13 }}>
-                              <strong>{labels[s.day] || s.day}</strong>{timeDisplay ? " · " + timeDisplay : ""}
-                            </span>
-                          );
-                        })}
-                      </div>
-                    </dd>
-                  </>)}
                   <dt>{t.common.parent}</dt><dd>{parent ? <a href="#" onClick={ev => { ev.preventDefault(); go({ name: "entity", id: parent.id }); }}>{parent.name}</a> : <span className="muted">—</span>}</dd>
                   <dt>{t.common.tags}</dt><dd>{e.tags && e.tags.length > 0 ? (
                     <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
@@ -801,6 +785,25 @@ const EntityProfile = ({ id, t, lang, data, go, addComment, onUpdateEntity, onUp
           </div>
 
           <div>
+            {e.schedule && e.schedule.length > 0 && (
+              <div className="section" style={{ marginBottom: 16 }}>
+                <h3 style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <Icon name="calendar" size={14} /> {lang === "es" ? "Horario de servicios" : "Service schedule"}
+                </h3>
+                <div className="section-body" style={{ paddingTop: 8 }}>
+                  {e.schedule.map(s => {
+                    const DAY_LABELS = { domingo: "Domingo", lunes: "Lunes", martes: "Martes", miercoles: "Miércoles", jueves: "Jueves", viernes: "Viernes", sabado: "Sábado" };
+                    const timeDisplay = s.time ? (() => { const [h, m] = s.time.split(":"); const hour = parseInt(h); return (hour > 12 ? hour - 12 : hour || 12) + ":" + m + " " + (hour >= 12 ? "PM" : "AM"); })() : "";
+                    return (
+                      <div key={s.day} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 12px", borderRadius: 8, background: "var(--bg-soft)", marginBottom: 6 }}>
+                        <span style={{ fontWeight: 600, fontSize: 14, color: "var(--ink-1)" }}>{DAY_LABELS[s.day] || s.day}</span>
+                        {timeDisplay && <span style={{ fontWeight: 700, fontSize: 14, color: "var(--accent)", fontFamily: "var(--font-mono)" }}>{timeDisplay}</span>}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
             <div className="section">
               <h3>{t.common.relatedPersonas} <span className="muted mono" style={{ fontSize: 11 }}>{linkedPeople.length}</span></h3>
               <div className="section-body" style={{ paddingTop: 4 }}>
