@@ -152,6 +152,8 @@ window.AIRTABLE = (function () {
       { name: "Tamaño (miembros)", type: "singleLineText" },
       { name: "Año fundación", type: "singleLineText" },
       { name: "Entidad padre", type: "singleLineText" },
+      { name: "Denominación", type: "singleLineText" },
+      { name: "Horarios", type: "multilineText" },
       { name: "Etiquetas", type: "singleLineText" },
     ];
 
@@ -249,6 +251,8 @@ window.AIRTABLE = (function () {
         "Tamaño (miembros)": e.size ? String(e.size) : null,
         "Año fundación": e.founded,
         "Entidad padre": e.parent ? (entityById[e.parent] && entityById[e.parent].name) : null,
+        "Denominación": e.denominacion || null,
+        "Horarios": (e.schedule && e.schedule.length > 0) ? JSON.stringify(e.schedule) : null,
         "Etiquetas": e.tags.join(", "),
       });
       fields["_data"] = JSON.stringify(e);
@@ -362,12 +366,17 @@ window.AIRTABLE = (function () {
     }
     const f = r.fields;
     const tagsRaw = f["Etiquetas"] || "";
+    let schedule = [];
+    try { if (f["Horarios"]) schedule = JSON.parse(f["Horarios"]); } catch {}
     return {
       id: f["CRM_ID"] || ("at_" + r.id),
       name: f["Nombre"] || "",
       type: f["Tipo"] || "otro",
+      denominacion: f["Denominación"] || "",
       email: f["Email"] || "",
       phone: f["Teléfono"] || "",
+      phones: [],
+      emails: [],
       address: f["Dirección"] || "",
       zip: f["ZIP"] || "",
       city: f["Ciudad"] || "",
@@ -379,6 +388,7 @@ window.AIRTABLE = (function () {
       size: f["Tamaño (miembros)"] ? parseInt(f["Tamaño (miembros)"]) || null : null,
       founded: f["Año fundación"] || "",
       parent: null,
+      schedule,
       tags: tagsRaw ? tagsRaw.split(/,\s*/).filter(Boolean) : [],
       status: "activo",
       _atId: r.id,
@@ -505,6 +515,8 @@ window.AIRTABLE = (function () {
       "Tamaño (miembros)": entity.size ? String(entity.size) : null,
       "Año fundación": entity.founded,
       "Entidad padre": entity.parent ? (entityById[entity.parent] && entityById[entity.parent].name) : null,
+      "Denominación": entity.denominacion || null,
+      "Horarios": (entity.schedule && entity.schedule.length > 0) ? JSON.stringify(entity.schedule) : null,
       "Etiquetas": (entity.tags || []).join(", "),
     });
     const e = Object.assign({}, entity);
