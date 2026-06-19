@@ -53,6 +53,51 @@ const MultiContactField = ({ label, entries, onChange, type = "phone", lang }) =
   );
 };
 
+// ─── Schedule Field (for entities) ───
+
+const SCHEDULE_DAYS = [
+  { key: "domingo",   short: "Dom" },
+  { key: "lunes",     short: "Lun" },
+  { key: "martes",    short: "Mar" },
+  { key: "miercoles", short: "Mié" },
+  { key: "jueves",    short: "Jue" },
+  { key: "viernes",   short: "Vie" },
+  { key: "sabado",    short: "Sáb" },
+];
+const DAY_ORDER = SCHEDULE_DAYS.map(d => d.key);
+
+const ScheduleField = ({ schedule, onChange }) => {
+  const has = (day) => schedule.some(s => s.day === day);
+  const toggle = (day) => {
+    if (has(day)) onChange(schedule.filter(s => s.day !== day));
+    else onChange([...schedule, { day, time: "" }].sort((a, b) => DAY_ORDER.indexOf(a.day) - DAY_ORDER.indexOf(b.day)));
+  };
+  const setTime = (day, time) => onChange(schedule.map(s => s.day === day ? { ...s, time } : s));
+  return (
+    <div className="field full">
+      <label>Horario de servicios · Opcional</label>
+      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: schedule.length ? 10 : 0 }}>
+        {SCHEDULE_DAYS.map(({ key, short }) => (
+          <button key={key} type="button" onClick={() => toggle(key)}
+            style={{ padding: "5px 11px", border: "1px solid " + (has(key) ? "var(--accent)" : "var(--line)"), borderRadius: 20, background: has(key) ? "var(--accent-50, #eef2ff)" : "transparent", color: has(key) ? "var(--accent)" : "var(--ink-3)", cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit", transition: "all .15s" }}>
+            {short}
+          </button>
+        ))}
+      </div>
+      {schedule.map(({ day, time }) => {
+        const d = SCHEDULE_DAYS.find(x => x.key === day);
+        return (
+          <div key={day} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+            <span style={{ minWidth: 32, fontSize: 12, fontWeight: 700, color: "var(--accent)" }}>{d?.short || day}</span>
+            <input type="time" value={time || ""} onChange={e => setTime(day, e.target.value)}
+              style={{ flex: 1, padding: "7px 10px", border: "1px solid var(--line)", borderRadius: 8, background: "var(--bg)", fontSize: 13, fontFamily: "inherit", color: "var(--ink-1)" }} />
+          </div>
+        );
+      })}
+    </div>
+  );
+};
+
 // ─── New Person ───
 
 const NewPersonForm = ({ t, lang, data, onClose, onSave, initialData, editMode, prefillData }) => {
@@ -307,6 +352,7 @@ const NewEntityForm = ({ t, lang, data, onClose, onSave, initialData, editMode }
     founded: initialData.founded || "",
     parent: initialData.parent || "",
     tags: Array.isArray(initialData.tags) ? initialData.tags.join(", ") : (initialData.tags || ""),
+    schedule: initialData.schedule || [],
   } : {
     name: "", type: "iglesia", typeOther: "", denominacion: "",
     emails: [], phones: [],
@@ -314,7 +360,7 @@ const NewEntityForm = ({ t, lang, data, onClose, onSave, initialData, editMode }
     website: "",
     social: { ig: "", fb: "", tiktok: "", x: "" },
     size: "", founded: "", parent: "",
-    tags: "",
+    tags: "", schedule: [],
   });
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
   const setSoc = (k, v) => setForm(f => ({ ...f, social: { ...f.social, [k]: v } }));
@@ -403,6 +449,11 @@ const NewEntityForm = ({ t, lang, data, onClose, onSave, initialData, editMode }
             <TextField label={t.common.size + " (" + t.common.members + ")"} type="number" value={form.size} onChange={v => set("size", v)} />
             <TextField label={t.common.founded} value={form.founded} onChange={v => set("founded", v)} placeholder="2014" />
             <TextField full label={t.common.tags} value={form.tags} onChange={v => set("tags", v)} placeholder="matriz, hispana" hint={lang === "es" ? "Separadas por coma" : "Comma separated"} />
+          </div>
+
+          <h4 style={{ margin: "18px 0 8px", fontSize: 12, color: "var(--ink-3)", textTransform: "uppercase", letterSpacing: ".06em" }}>Horarios</h4>
+          <div className="form-grid">
+            <ScheduleField schedule={form.schedule} onChange={v => set("schedule", v)} />
           </div>
         </div>
         <div className="modal-foot">

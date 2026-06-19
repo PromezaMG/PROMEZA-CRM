@@ -554,6 +554,7 @@ const App = () => {
         ...e,
         phones: e.phones || (e.phone ? [{ value: e.phone, label: "Personal" }] : []),
         emails: e.emails || (e.email ? [{ value: e.email, label: "Personal" }] : []),
+        schedule: e.schedule || [],
       })),
       interactions: parsed.interactions || {},
       tasks: mergedTasks,
@@ -900,6 +901,7 @@ const App = () => {
       website: form.website, social: form.social,
       size: form.size ? parseInt(form.size) : null,
       founded: form.founded, parent: form.parent || null,
+      schedule: form.schedule || [],
       tags, status: "activo", uid: computeUID(id),
       _localSavedAt: new Date().toISOString(),
     };

@@ -776,6 +776,7 @@ const EntitiesList = ({ t, lang, data, go, onImportEntities, globalQ = "" }) => 
   const [tagFilter, setTagFilter] = React.useState("");
   const [emailFilter, setEmailFilter] = React.useState("");
   const [phoneFilter, setPhoneFilter] = React.useState("");
+  const [dayFilter, setDayFilter] = React.useState("all");
   const [q, setQ] = React.useState("");
   const [showFilters, setShowFilters] = React.useState(false);
   const [showImport, setShowImport] = React.useState(false);
@@ -798,6 +799,7 @@ const EntitiesList = ({ t, lang, data, go, onImportEntities, globalQ = "" }) => 
     if (tagFilter && !(e.tags || []).some(tg => tg.toLowerCase().includes(tagFilter.toLowerCase()))) return false;
     if (emailFilter && !(e.email || "").toLowerCase().includes(emailFilter.toLowerCase())) return false;
     if (phoneFilter && !(e.phone || "").toLowerCase().includes(phoneFilter.toLowerCase())) return false;
+    if (dayFilter !== "all" && !(e.schedule || []).some(s => s.day === dayFilter)) return false;
     const checkQ = (query) => {
       if (!query) return true;
       const sq = query.trim().toLowerCase();
@@ -810,11 +812,11 @@ const EntitiesList = ({ t, lang, data, go, onImportEntities, globalQ = "" }) => 
     return true;
   });
 
-  const activeFilters = [type !== "all", country !== "all", status !== "all", city, countyFilter, zip, tagFilter, emailFilter, phoneFilter, q].filter(Boolean).length;
+  const activeFilters = [type !== "all", country !== "all", status !== "all", city, countyFilter, zip, tagFilter, emailFilter, phoneFilter, dayFilter !== "all", q].filter(Boolean).length;
 
   const clearFilters = () => {
     setType("all"); setCountry("all"); setStatus("all");
-    setCity(""); setCountyFilter(""); setZip(""); setTagFilter(""); setEmailFilter(""); setPhoneFilter(""); setQ("");
+    setCity(""); setCountyFilter(""); setZip(""); setTagFilter(""); setEmailFilter(""); setPhoneFilter(""); setDayFilter("all"); setQ("");
   };
 
   const doExportCSV = () => {
@@ -902,6 +904,18 @@ const EntitiesList = ({ t, lang, data, go, onImportEntities, globalQ = "" }) => 
             </FField>
             <FField label={lang === "es" ? "Teléfono" : "Phone"}>
               <input value={phoneFilter} onChange={e => setPhoneFilter(e.target.value)} placeholder="+1 305…" />
+            </FField>
+            <FField label={lang === "es" ? "Día de servicio" : "Service day"}>
+              <select value={dayFilter} onChange={e => setDayFilter(e.target.value)}>
+                <option value="all">{lang === "es" ? "Todos los días" : "All days"}</option>
+                <option value="domingo">{lang === "es" ? "Domingo" : "Sunday"}</option>
+                <option value="lunes">{lang === "es" ? "Lunes" : "Monday"}</option>
+                <option value="martes">{lang === "es" ? "Martes" : "Tuesday"}</option>
+                <option value="miercoles">{lang === "es" ? "Miércoles" : "Wednesday"}</option>
+                <option value="jueves">{lang === "es" ? "Jueves" : "Thursday"}</option>
+                <option value="viernes">{lang === "es" ? "Viernes" : "Friday"}</option>
+                <option value="sabado">{lang === "es" ? "Sábado" : "Saturday"}</option>
+              </select>
             </FField>
             <FField label={lang === "es" ? "Ciudad" : "City"}>
               <input value={city} onChange={e => setCity(e.target.value)} placeholder="Miami, Bogotá…" />
