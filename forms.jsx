@@ -17,6 +17,42 @@ const SelectField = ({ label, value, onChange, options, full }) => (
   </div>
 );
 
+const PHONE_LABELS = ["Personal", "Trabajo", "WhatsApp", "Casa", "Oficina", "Otro"];
+const EMAIL_LABELS = ["Personal", "Trabajo", "Otro"];
+
+const MultiContactField = ({ label, entries, onChange, type = "phone", lang }) => {
+  const labels = type === "phone" ? PHONE_LABELS : EMAIL_LABELS;
+  const placeholder = type === "phone" ? "+1 305 555 0000" : "correo@dominio.com";
+  const inputType = type === "email" ? "email" : "tel";
+  const add = () => onChange([...entries, { value: "", label: labels[0] }]);
+  const remove = (i) => onChange(entries.filter((_, idx) => idx !== i));
+  const upd = (i, key, val) => onChange(entries.map((e, idx) => idx === i ? { ...e, [key]: val } : e));
+  return (
+    <div className="field full">
+      <label style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <span>{label}</span>
+        <button type="button" onClick={add} style={{ border: "none", background: "none", cursor: "pointer", color: "var(--accent)", fontSize: 12, fontWeight: 600, padding: "0 2px", fontFamily: "inherit" }}>+ Agregar</button>
+      </label>
+      {entries.length === 0 && (
+        <button type="button" onClick={add} style={{ width: "100%", padding: "9px 12px", border: "1px dashed var(--line)", borderRadius: 8, background: "transparent", cursor: "pointer", color: "var(--ink-3)", fontSize: 13, fontFamily: "inherit", textAlign: "left" }}>+ {label}</button>
+      )}
+      {entries.map((entry, i) => (
+        <div key={i} style={{ display: "flex", gap: 6, marginTop: 6, alignItems: "center" }}>
+          <select value={entry.label} onChange={e => upd(i, "label", e.target.value)}
+            style={{ flexShrink: 0, width: 110, padding: "8px 10px", border: "1px solid var(--line)", borderRadius: 8, background: "var(--bg)", fontSize: 13, fontFamily: "inherit", color: "var(--ink-1)" }}>
+            {labels.map(l => <option key={l} value={l}>{l}</option>)}
+          </select>
+          <input type={inputType} value={entry.value} onChange={e => upd(i, "value", e.target.value)}
+            placeholder={placeholder}
+            style={{ flex: 1, padding: "8px 12px", border: "1px solid var(--line)", borderRadius: 8, background: "var(--bg)", fontSize: 13, fontFamily: "inherit", color: "var(--ink-1)" }} />
+          <button type="button" onClick={() => remove(i)}
+            style={{ flexShrink: 0, border: "none", background: "none", cursor: "pointer", color: "var(--ink-4)", fontSize: 18, padding: "0 4px", lineHeight: 1 }}>×</button>
+        </div>
+      ))}
+    </div>
+  );
+};
+
 // ─── New Person ───
 
 const NewPersonForm = ({ t, lang, data, onClose, onSave, initialData, editMode, prefillData }) => {
@@ -25,8 +61,8 @@ const NewPersonForm = ({ t, lang, data, onClose, onSave, initialData, editMode, 
     last: initialData.last || "",
     role: initialData.role || "miembro",
     roleOther: initialData.roleOther || "",
-    email: initialData.email || "",
-    phone: initialData.phone || "",
+    emails: initialData.emails || (initialData.email ? [{ value: initialData.email, label: "Personal" }] : []),
+    phones: initialData.phones || (initialData.phone ? [{ value: initialData.phone, label: "Personal" }] : []),
     address: initialData.address || "",
     zip: initialData.zip || "",
     city: initialData.city || "",
@@ -47,7 +83,7 @@ const NewPersonForm = ({ t, lang, data, onClose, onSave, initialData, editMode, 
     extraAddresses: initialData.extraAddresses || [],
   } : {
     first: "", last: "", role: "miembro", roleOther: "",
-    email: "", phone: "",
+    emails: [], phones: [],
     address: "", zip: "", city: "", state: "", country: "", county: "",
     website: "",
     social: { ig: "", fb: "", tiktok: "", x: "" },
@@ -118,8 +154,8 @@ const NewPersonForm = ({ t, lang, data, onClose, onSave, initialData, editMode, 
 
           <h4 style={{ margin: "18px 0 8px", fontSize: 12, color: "var(--ink-3)", textTransform: "uppercase", letterSpacing: ".06em" }}>{t.forms.contact}</h4>
           <div className="form-grid">
-            <TextField label="Email" type="email" value={form.email} onChange={v => set("email", v)} placeholder="nombre@dominio.com" />
-            <TextField label={lang === "es" ? "Teléfono" : "Phone"} value={form.phone} onChange={v => set("phone", v)} placeholder="+1 305 555 0000" />
+            <MultiContactField label="Email(s)" entries={form.emails} onChange={v => set("emails", v)} type="email" lang={lang} />
+            <MultiContactField label={lang === "es" ? "Teléfono(s)" : "Phone(s)"} entries={form.phones} onChange={v => set("phones", v)} type="phone" lang={lang} />
           </div>
 
           {/* Primary address */}
@@ -257,8 +293,8 @@ const NewEntityForm = ({ t, lang, data, onClose, onSave, initialData, editMode }
     type: initialData.type || "iglesia",
     typeOther: initialData.typeOther || "",
     denominacion: initialData.denominacion || "",
-    email: initialData.email || "",
-    phone: initialData.phone || "",
+    emails: initialData.emails || (initialData.email ? [{ value: initialData.email, label: "Personal" }] : []),
+    phones: initialData.phones || (initialData.phone ? [{ value: initialData.phone, label: "Personal" }] : []),
     address: initialData.address || "",
     zip: initialData.zip || "",
     city: initialData.city || "",
@@ -273,7 +309,7 @@ const NewEntityForm = ({ t, lang, data, onClose, onSave, initialData, editMode }
     tags: Array.isArray(initialData.tags) ? initialData.tags.join(", ") : (initialData.tags || ""),
   } : {
     name: "", type: "iglesia", typeOther: "", denominacion: "",
-    email: "", phone: "",
+    emails: [], phones: [],
     address: "", zip: "", city: "", state: "", country: "", county: "",
     website: "",
     social: { ig: "", fb: "", tiktok: "", x: "" },
@@ -332,8 +368,8 @@ const NewEntityForm = ({ t, lang, data, onClose, onSave, initialData, editMode }
 
           <h4 style={{ margin: "18px 0 8px", fontSize: 12, color: "var(--ink-3)", textTransform: "uppercase", letterSpacing: ".06em" }}>{t.forms.contact}</h4>
           <div className="form-grid">
-            <TextField label="Email" type="email" value={form.email} onChange={v => set("email", v)} />
-            <TextField label={lang === "es" ? "Teléfono" : "Phone"} value={form.phone} onChange={v => set("phone", v)} />
+            <MultiContactField label="Email(s)" entries={form.emails} onChange={v => set("emails", v)} type="email" lang={lang} />
+            <MultiContactField label={lang === "es" ? "Teléfono(s)" : "Phone(s)"} entries={form.phones} onChange={v => set("phones", v)} type="phone" lang={lang} />
           </div>
 
           <h4 style={{ margin: "18px 0 8px", fontSize: 12, color: "var(--ink-3)", textTransform: "uppercase", letterSpacing: ".06em" }}>{t.forms.addressBlock}</h4>

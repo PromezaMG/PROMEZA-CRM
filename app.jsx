@@ -545,8 +545,16 @@ const App = () => {
     const mergedTasks = { ...demoTasks, ...(parsed.tasks || {}) };
     return {
       ...parsed,
-      personas: withUIDs([...(parsed.personas || []), ...newPersonas]),
-      entities: withUIDs([...(parsed.entities || []), ...newEntities]),
+      personas: withUIDs([...(parsed.personas || []), ...newPersonas]).map(p => ({
+        ...p,
+        phones: p.phones || (p.phone ? [{ value: p.phone, label: "Personal" }] : []),
+        emails: p.emails || (p.email ? [{ value: p.email, label: "Personal" }] : []),
+      })),
+      entities: withUIDs([...(parsed.entities || []), ...newEntities]).map(e => ({
+        ...e,
+        phones: e.phones || (e.phone ? [{ value: e.phone, label: "Personal" }] : []),
+        emails: e.emails || (e.email ? [{ value: e.email, label: "Personal" }] : []),
+      })),
       interactions: parsed.interactions || {},
       tasks: mergedTasks,
       changelog: parsed.changelog || {},
@@ -849,7 +857,7 @@ const App = () => {
     const newP = {
       id, first: form.first, last: form.last,
       role: form.role, roleOther: form.roleOther,
-      email: form.email, phone: form.phone,
+      emails: form.emails || [], phones: form.phones || [], email: (form.emails || [])[0]?.value || "", phone: (form.phones || [])[0]?.value || "",
       address: form.address, zip: form.zip, city: form.city, state: form.state, country: form.country,
       lat: 0, lng: 0,
       website: form.website, social: form.social,
@@ -886,7 +894,7 @@ const App = () => {
     const tags = form.tags ? form.tags.split(",").map(s => s.trim()).filter(Boolean) : [];
     const newE = {
       id, name: form.name, type: form.type, denominacion: form.denominacion || "",
-      email: form.email, phone: form.phone,
+      emails: form.emails || [], phones: form.phones || [], email: (form.emails || [])[0]?.value || "", phone: (form.phones || [])[0]?.value || "",
       address: form.address, zip: form.zip, city: form.city, state: form.state, country: form.country,
       lat: 0, lng: 0,
       website: form.website, social: form.social,

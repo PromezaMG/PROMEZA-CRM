@@ -33,12 +33,15 @@ window.PROMEZA_I18N = {
     roles: {
       pastor: "Pastor", lider: "Líder", adorador: "Adorador",
       miembro: "Miembro", secretario: "Secretario", tesorero: "Tesorero",
-      ujiere: "Ujier", influencer: "Influencer", otro: "Otro",
+      ujiere: "Ujier", influencer: "Influencer", cantante: "Cantante",
+      musico: "Músico", predicador: "Predicador", periodista: "Periodista",
+      presentador: "Presentador", productor: "Productor", otro: "Otro",
     },
     types: {
       iglesia: "Iglesia", sinagoga: "Sinagoga", universidad: "Universidad",
       escuela: "Escuela", ong: "Organización sin fines de lucro",
       entidad_gubernamental: "Entidad Gubernamental", comedor: "Comedor",
+      radio: "Radio", television: "Televisión", prensa: "Prensa", medio_digital: "Medio Digital",
       estudio: "Estudio de grabación", oficina: "Oficina", casa: "Casa / Domicilio", otro: "Otro",
     },
     home: {
@@ -170,12 +173,15 @@ window.PROMEZA_I18N = {
     roles: {
       pastor: "Pastor", lider: "Leader", adorador: "Worship",
       miembro: "Member", secretario: "Secretary", tesorero: "Treasurer",
-      ujiere: "Usher", influencer: "Influencer", otro: "Other",
+      ujiere: "Usher", influencer: "Influencer", cantante: "Singer",
+      musico: "Musician", predicador: "Preacher", periodista: "Journalist",
+      presentador: "Host / Presenter", productor: "Producer", otro: "Other",
     },
     types: {
       iglesia: "Church", sinagoga: "Synagogue", universidad: "University",
       escuela: "School", ong: "Nonprofit",
       entidad_gubernamental: "Government Entity", comedor: "Food pantry / Dining",
+      radio: "Radio", television: "Television", prensa: "Press / Print", medio_digital: "Digital Media",
       estudio: "Recording studio", oficina: "Office", casa: "Home / House", otro: "Other",
     },
     home: {

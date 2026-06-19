@@ -304,17 +304,17 @@ const Topbar = ({ t, lang, setLang, query, setQuery, onSearchSubmit, onSettings,
 
     const matchP = (p) =>
       norm(p.first + " " + p.last).includes(q) ||
-      norm(p.email).includes(q) ||
-      norm((p.phone || "").replace(/\D/g, "")).includes(q.replace(/\D/g, "")) ||
+      norm((p.emails || []).map(e => e.value || "").concat([p.email || ""]).join(" ")).includes(q) ||
+      norm((p.phones || []).map(ph => ph.value || "").concat([p.phone || ""]).join("").replace(/\D/g, "")).includes(q.replace(/\D/g, "")) ||
       norm(p.city).includes(q) ||
       norm(p.role).includes(q) ||
       vidP(p).toLowerCase().includes(q) ||
       (p.tags || []).some(tg => norm(tg).includes(q));
     const matchE = (e) =>
       norm(e.name).includes(q) ||
-      norm(e.email).includes(q) ||
+      norm((e.emails || []).map(em => em.value || "").concat([e.email || ""]).join(" ")).includes(q) ||
       norm(e.city).includes(q) ||
-      norm(e.phone).includes(q) ||
+      norm((e.phones || []).map(ph => ph.value || "").concat([e.phone || ""]).join(" ")).includes(q) ||
       vidE(e).toLowerCase().includes(q);
     const matchPr = (pr) =>
       norm(pr.name).includes(q) ||
