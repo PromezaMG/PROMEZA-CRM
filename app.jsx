@@ -725,6 +725,34 @@ const App = () => {
         if (enc) {
           const json = await window.CryptoUtils.decrypt(enc, key);
           const parsed = JSON.parse(json);
+          // If real data hasn't been imported yet and stored data is still demo-sized, auto-import now
+          if (!localStorage.getItem('promeza_import_loaded') && (parsed.personas || []).length < 200) {
+            try {
+              const res = await fetch('./import-data.json?nc=' + Date.now());
+              if (res.ok) {
+                const importData = await res.json();
+                localStorage.setItem('promeza_last_load', new Date(Date.now() + 365*24*60*60*1000).toISOString());
+                localStorage.setItem('promeza_import_loaded', '1');
+                setData(processLoadedData({
+                  personas: importData.personas || [],
+                  entities: importData.entities || [],
+                  tasks: importData.tasks || {},
+                  interactions: importData.interactions || {},
+                  projects: importData.projects || [],
+                  campaigns: importData.campaigns || [],
+                  calendarEvents: importData.calendarEvents || [],
+                  comments: importData.comments || {},
+                  attachments: importData.attachments || {},
+                  changelog: importData.changelog || {},
+                  goals: importData.goals || [],
+                  segments: importData.segments || [],
+                }));
+                setDataReady(true);
+                syncFromAirtable();
+                return;
+              }
+            } catch(e) { console.warn('Auto-import failed:', e); }
+          }
           setData(processLoadedData(parsed));
           setDataReady(true);
           // Load from Airtable in background to pick up teammate changes
