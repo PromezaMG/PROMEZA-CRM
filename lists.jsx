@@ -989,6 +989,7 @@ const EntitiesList = ({ t, lang, data, go, onImportEntities, globalQ = "" }) => 
               <th>{t.common.contact}</th>
               <th>{t.common.relatedPersonas}</th>
               <th>{t.common.size}</th>
+              <th>Horario</th>
               <th>{t.common.tags}</th>
             </tr>
           </thead>
@@ -1017,6 +1018,23 @@ const EntitiesList = ({ t, lang, data, go, onImportEntities, globalQ = "" }) => 
                   </span>
                 </td>
                 <td className="num">{e.size != null ? e.size.toLocaleString() : "—"}</td>
+                <td style={{ minWidth: 120 }}>{(() => {
+                  const sched = e.schedule || [];
+                  if (!sched.length) return <span className="muted">—</span>;
+                  const DAY_SHORT = { domingo:"Dom", lunes:"Lun", martes:"Mar", miercoles:"Mié", jueves:"Jue", viernes:"Vie", sabado:"Sáb" };
+                  const DAY_ORDER = ["domingo","lunes","martes","miercoles","jueves","viernes","sabado"];
+                  const fmt = t => { if (!t) return ""; const [h,m] = t.split(":"); const hr=parseInt(h); return (hr>12?hr-12:hr||12)+":"+(m||"00")+(hr>=12?" PM":" AM"); };
+                  const days = [...new Set(sched.map(s => s.day))].sort((a,b) => DAY_ORDER.indexOf(a)-DAY_ORDER.indexOf(b));
+                  return <div style={{ display:"flex", flexDirection:"column", gap:2 }}>
+                    {days.map(day => {
+                      const slots = sched.filter(s => s.day === day);
+                      return <div key={day} style={{ fontSize:11.5, lineHeight:1.4 }}>
+                        <span style={{ fontWeight:700, color:"var(--accent)", marginRight:4 }}>{DAY_SHORT[day]||day}</span>
+                        <span className="muted">{slots.map(s => fmt(s.time)).filter(Boolean).join(" · ") || "—"}</span>
+                      </div>;
+                    })}
+                  </div>;
+                })()}</td>
                 <td>
                   <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
                     {(e.tags || []).map(tg => <span key={tg} className="tag-chip">{tg}</span>)}
