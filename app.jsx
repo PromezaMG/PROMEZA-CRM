@@ -540,6 +540,7 @@ const App = () => {
   const [dataReady, setDataReady] = useState(false);
   const [data, setData] = useState(null);
   const [needsUnlock, setNeedsUnlock] = useState(false);
+  const [importBanner, setImportBanner] = useState(null); // null | 'loading' | 'done' | 'error'
 
   const freshData = () => ({
     personas: withUIDs([...window.PROMEZA_DATA.personas]),
@@ -707,84 +708,68 @@ const App = () => {
 
   useEffect(() => {
     const initData = async () => {
-      // 1. Try to load crypto key from sessionStorage
-      let key = await window.CryptoUtils.loadSessionKey();
-
-      if (!key) {
-        // Session valid but no key → need to unlock (re-enter password)
-        setNeedsUnlock(true);
-        setDataReady(true);
-        return;
-      }
-
+      const key = await window.CryptoUtils.loadSessionKey();
+      if (!key) { setNeedsUnlock(true); setDataReady(true); return; }
       setCryptoKey(key);
-
-      // 2. Auto-import real data on very first login — runs BEFORE touching localStorage
-      //    so it fires regardless of what (if anything) is stored there.
-      if (!localStorage.getItem('promeza_real_data_v1')) {
-        try {
-          const res = await fetch('./import-data.json?nc=' + Date.now());
-          if (res.ok) {
-            const importData = await res.json();
-            if ((importData.personas || []).length > 100) {
-              localStorage.setItem('promeza_last_load', new Date(Date.now() + 365*24*60*60*1000).toISOString());
-              localStorage.setItem('promeza_real_data_v1', '1');
-              setData({
-                personas: importData.personas || [],
-                entities: importData.entities || [],
-                tasks: importData.tasks || {},
-                interactions: importData.interactions || {},
-                projects: importData.projects || [],
-                campaigns: importData.campaigns || [],
-                calendarEvents: importData.calendarEvents || [],
-                comments: importData.comments || {},
-                attachments: importData.attachments || {},
-                changelog: importData.changelog || {},
-                goals: importData.goals || [],
-                segments: importData.segments || [],
-              });
-              setDataReady(true);
-              return;
-            }
-          }
-        } catch(e) { console.warn('Auto-import failed:', e); }
-      }
-
       try {
-        // 3. Load encrypted data from localStorage
         const enc = localStorage.getItem("promeza_data_enc");
         if (enc) {
           const json = await window.CryptoUtils.decrypt(enc, key);
-          const parsed = JSON.parse(json);
-          setData(processLoadedData(parsed));
+          setData(processLoadedData(JSON.parse(json)));
           setDataReady(true);
-          // Load from Airtable in background to pick up teammate changes
           syncFromAirtable();
           return;
         }
-
-        // 4. Migration: old unencrypted data
         const old = localStorage.getItem("promeza_data");
         if (old) {
-          const parsed = JSON.parse(old);
-          const processed = processLoadedData(parsed);
-          setData(processed);
+          setData(processLoadedData(JSON.parse(old)));
           setDataReady(true);
-          localStorage.removeItem("promeza_data"); // will be re-saved encrypted
+          localStorage.removeItem("promeza_data");
           return;
         }
-      } catch (err) {
-        console.error("Data load error:", err);
-        // Fall back to fresh data on crypto error
-      }
-
-      // 5. Truly fresh start with no data at all
+      } catch (err) { console.error("Data load error:", err); }
       setData(freshData());
       setDataReady(true);
     };
-
     if (userEmail) initData();
   }, [userEmail]);
+
+  // Auto-import real data after app is ready — runs independently of startup
+  useEffect(() => {
+    if (!dataReady || !cryptoKey) return;
+    if (localStorage.getItem('promeza_real_data_v1')) return;
+    setImportBanner('loading');
+    fetch('./import-data.json?v=65&nc=' + Date.now())
+      .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+      .then(d => {
+        if ((d.personas || []).length > 100) {
+          localStorage.setItem('promeza_real_data_v1', '1');
+          localStorage.setItem('promeza_last_load', new Date(Date.now() + 365*24*60*60*1000).toISOString());
+          setData({
+            personas: d.personas || [],
+            entities: d.entities || [],
+            tasks: d.tasks || {},
+            interactions: d.interactions || {},
+            projects: d.projects || [],
+            campaigns: d.campaigns || [],
+            calendarEvents: d.calendarEvents || [],
+            comments: d.comments || {},
+            attachments: d.attachments || {},
+            changelog: d.changelog || {},
+            goals: d.goals || [],
+            segments: d.segments || [],
+          });
+          setImportBanner('done');
+          setTimeout(() => setImportBanner(null), 3000);
+        } else {
+          throw new Error('Datos insuficientes en el archivo');
+        }
+      })
+      .catch(e => {
+        console.error('Auto-import error:', e);
+        setImportBanner('error');
+      });
+  }, [dataReady, cryptoKey]);
 
   useEffect(() => {
     if (!data || !cryptoKey) return;
@@ -1466,6 +1451,18 @@ const App = () => {
           zIndex: 9999, cursor: "pointer", boxShadow: "0 2px 12px rgba(0,0,0,.25)", maxWidth: "90vw", textAlign: "center",
         }}>
           {atSyncMsg.text}
+        </div>
+      )}
+      {importBanner && (
+        <div style={{
+          position: "fixed", top: 0, left: 0, right: 0,
+          background: importBanner === 'error' ? "#991b1b" : importBanner === 'done' ? "#166534" : "var(--accent)",
+          color: "#fff", padding: "10px 20px", fontSize: 13, fontWeight: 600,
+          zIndex: 10000, textAlign: "center", display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
+        }}>
+          {importBanner === 'loading' && <><span style={{ animation: "spin 1s linear infinite", display: "inline-block" }}>⟳</span> Cargando base de datos real (4,429 contactos)…</>}
+          {importBanner === 'done' && <>✓ Base de datos cargada — 4,429 contactos y 1,304 entidades</>}
+          {importBanner === 'error' && <>✗ Error al cargar datos — <button onClick={() => { localStorage.removeItem('promeza_real_data_v1'); window.location.reload(); }} style={{ background: "rgba(255,255,255,.2)", border: "1px solid rgba(255,255,255,.4)", color: "#fff", borderRadius: 6, padding: "2px 10px", cursor: "pointer", fontFamily: "inherit", fontWeight: 700, fontSize: 12 }}>Reintentar</button></>}
         </div>
       )}
       <main className="main">{view}</main>
