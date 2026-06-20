@@ -1,6 +1,6 @@
-const CACHE = "promeza-v58";
+const CACHE = "promeza-v59";
 const ASSETS = [
-  "./", "./index.html", "./styles.css",
+  "./styles.css",
   "./data.js", "./i18n.js", "./airtable.js",
   "./ui.jsx", "./auth.jsx", "./shell.jsx", "./map.jsx", "./home.jsx",
   "./lists.jsx", "./profile.jsx", "./forms.jsx", "./duplicates.jsx",
@@ -19,12 +19,19 @@ self.addEventListener("activate", e => {
 
 self.addEventListener("fetch", e => {
   if (e.request.method !== "GET") return;
-  // Never cache external API calls — they must always go to the network
   if (!e.request.url.startsWith(self.location.origin)) return;
+  const url = new URL(e.request.url);
+  const isHTML = url.pathname === "/" || url.pathname.endsWith(".html") || url.pathname.endsWith("/");
+  if (isHTML) {
+    // Always network-first for HTML so new deployments are picked up automatically
+    e.respondWith(fetch(e.request).catch(() => caches.match(e.request)));
+    return;
+  }
+  // Assets: cache-first, network fallback (no fallback to index.html)
   e.respondWith(
     caches.match(e.request).then(cached => cached || fetch(e.request).then(res => {
       if (res.ok) { const clone = res.clone(); caches.open(CACHE).then(c => c.put(e.request, clone)); }
       return res;
-    }).catch(() => caches.match("./index.html")))
+    }))
   );
 });

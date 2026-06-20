@@ -179,7 +179,7 @@ const ImportModal = ({ type, lang, onClose, onImport }) => {
     if (f) handleFile(f);
   };
 
-  const label = isPersona ? "Personas" : "Entidades";
+  const label = isPersona ? "Contactos" : "Entidades";
 
   return (
     <div className="modal-veil" onClick={onClose}>
@@ -840,7 +840,7 @@ const EntitiesList = ({ t, lang, data, go, onImportEntities, globalQ = "" }) => 
       { key: "tamano", label: "Tamaño (miembros)" },
       { key: "fundacion", label: "Año fundación" },
       { key: "etiquetas", label: "Etiquetas" },
-      { key: "personasVinculadas", label: "Personas vinculadas" },
+      { key: "personasVinculadas", label: "Contactos vinculados" },
     ];
     const csvRows = rows.map(e => ({
       id: e.id,

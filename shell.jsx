@@ -195,7 +195,7 @@ const NotificationsPanel = ({ data, lang, go, onClose, dupCount = 0 }) => {
         {badInfoPersonas.length > 0 && (
           <div>
             <div style={{ padding: "8px 16px 4px", fontSize: 10.5, fontWeight: 700, color: "#f59e0b", textTransform: "uppercase", letterSpacing: ".06em" }}>
-              Información por corregir · {data.personas.filter(p => window.hasContactIssue && window.hasContactIssue(p)).length} personas
+              Información por corregir · {data.personas.filter(p => window.hasContactIssue && window.hasContactIssue(p)).length} contactos
             </div>
             {badInfoPersonas.map(p => {
               const email = (p.email || "").trim();
@@ -441,7 +441,7 @@ const Topbar = ({ t, lang, setLang, query, setQuery, onSearchSubmit, onSettings,
                 {searchResults.personas.length > 0 && (
                   <div>
                     <div style={{ padding: "8px 16px 4px", fontSize: 10, fontWeight: 700, color: "var(--ink-4)", textTransform: "uppercase", letterSpacing: ".08em" }}>
-                      Personas · {searchResults.personas.length}
+                      Contactos · {searchResults.personas.length}
                     </div>
                     {searchResults.personas.map(p => {
                       const stage = stages.find(s => s.id === stageOf(p));
