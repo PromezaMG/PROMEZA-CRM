@@ -295,7 +295,7 @@ const PersonasList = ({ t, lang, data, go, onImportPersonas, globalQ = "", onBul
   const stageOf = (p) => p.stage || (p.status === "inactivo" ? "inhabilitado" : "activo");
 
   const rows = data.personas.filter(p => {
-    if (role !== "all" && p.role !== role) return false;
+    if (role !== "all" && !(p.roles ? p.roles.includes(role) : p.role === role)) return false;
     if (country !== "all" && p.country !== country) return false;
     if (status !== "all" && p.status !== status) return false;
     if (stageFilter !== "all" && stageOf(p) !== stageFilter) return false;
@@ -390,7 +390,9 @@ const PersonasList = ({ t, lang, data, go, onImportPersonas, globalQ = "", onBul
       id: p.id,
       nombre: p.first,
       apellido: p.last,
-      cargo: p.role === "otro" ? (p.roleOther || "Otro") : (t.roles[p.role] || p.role),
+      cargo: p.roles
+        ? p.roles.map(r => t.roles[r] || r).join(", ")
+        : (p.role === "otro" ? (p.roleOther || "Otro") : (t.roles[p.role] || p.role)),
       email: p.email,
       telefono: p.phone,
       direccion: p.address,
@@ -732,7 +734,11 @@ const PersonasList = ({ t, lang, data, go, onImportPersonas, globalQ = "", onBul
                   </div>
                 </td>
                 <td>
-                  <span className="role-pill">{p.role === "otro" ? (p.roleOther || t.roles.otro) : t.roles[p.role]}</span>
+                  <span className="role-pill">
+                    {p.roles
+                      ? p.roles.map(r => t.roles[r] || r).join(" · ")
+                      : (p.role === "otro" ? (p.roleOther || t.roles.otro) : (t.roles[p.role] || p.role))}
+                  </span>
                 </td>
                 <td>
                   {(!p.entities || p.entities.length === 0) ? <span className="muted">—</span> : (

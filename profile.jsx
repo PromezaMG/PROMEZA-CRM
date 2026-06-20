@@ -262,7 +262,11 @@ const PersonProfile = ({ id, t, lang, data, go, addComment, onUpdatePerson, onEd
             </span>
           </div>
           <div className="sub">
-            <span className="role-pill">{p.role === "otro" ? (p.roleOther || t.roles.otro) : t.roles[p.role]}</span>
+            <span className="role-pill">
+              {p.roles
+                ? p.roles.map(r => r === "otro" ? (p.roleOther || t.roles.otro) : (t.roles[r] || r)).join(" · ")
+                : (p.role === "otro" ? (p.roleOther || t.roles.otro) : (t.roles[p.role] || p.role))}
+            </span>
             {(() => {
               const stageId = p.stage || (p.status === "inactivo" ? "inhabilitado" : "activo");
               const st = (window.PIPELINE_STAGES || []).find(s => s.id === stageId);
@@ -774,6 +778,7 @@ const EntityProfile = ({ id, t, lang, data, go, addComment, onUpdateEntity, onUp
               <div className="section-body">
                 <dl className="kv">
                   <dt>{t.common.type}</dt><dd>{t.types[e.type]}</dd>
+                  {e.idioma && <><dt>{lang === "es" ? "Idioma" : "Language"}</dt><dd>{{ hispana: "Hispana / Español", ingles: "Inglés", bilingue: "Bilingüe", otro: "Otro" }[e.idioma] || e.idioma}</dd></>}
                   <dt>{t.common.size}</dt><dd>{e.size ? e.size.toLocaleString() + " " + t.common.members : <span className="muted">—</span>}</dd>
                   <dt>{t.common.founded}</dt><dd>{e.founded || <span className="muted">—</span>}</dd>
                   <dt>{t.common.parent}</dt><dd>{parent ? <a href="#" onClick={ev => { ev.preventDefault(); go({ name: "entity", id: parent.id }); }}>{parent.name}</a> : <span className="muted">—</span>}</dd>

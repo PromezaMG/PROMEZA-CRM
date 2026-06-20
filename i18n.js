@@ -36,7 +36,8 @@ window.PROMEZA_I18N = {
       ujiere: "Ujier", evangelista: "Evangelista", misionero: "Misionero",
       influencer: "Influencer", cantante: "Cantante",
       musico: "Músico", predicador: "Predicador", periodista: "Periodista",
-      presentador: "Presentador", productor: "Productor", otro: "Otro",
+      presentador: "Presentador", productor: "Productor",
+      comunicador: "Comunicador", otro: "Otro",
     },
     types: {
       iglesia: "Iglesia", sinagoga: "Sinagoga", universidad: "Universidad",
@@ -177,7 +178,8 @@ window.PROMEZA_I18N = {
       ujiere: "Usher", evangelista: "Evangelist", misionero: "Missionary",
       influencer: "Influencer", cantante: "Singer",
       musico: "Musician", predicador: "Preacher", periodista: "Journalist",
-      presentador: "Host / Presenter", productor: "Producer", otro: "Other",
+      presentador: "Host / Presenter", productor: "Producer",
+      comunicador: "Communicator", otro: "Other",
     },
     types: {
       iglesia: "Church", sinagoga: "Synagogue", universidad: "University",

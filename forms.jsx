@@ -53,6 +53,32 @@ const MultiContactField = ({ label, entries, onChange, type = "phone", lang }) =
   );
 };
 
+// ─── Roles Multi-Select Field ───
+
+const RolesField = ({ roles, onChange, t }) => {
+  const toggle = (key) => {
+    if (roles.includes(key)) {
+      const next = roles.filter(r => r !== key);
+      onChange(next.length ? next : ["miembro"]);
+    } else {
+      onChange([...roles, key]);
+    }
+  };
+  return (
+    <div className="field full">
+      <label>{t.common.role} <span style={{ marginLeft: 6, color: "var(--ink-4)", fontWeight: 400, textTransform: "none", letterSpacing: 0, fontSize: 11 }}>(uno o varios)</span></label>
+      <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+        {Object.keys(t.roles).map(key => (
+          <button key={key} type="button" onClick={() => toggle(key)}
+            style={{ padding: "5px 11px", borderRadius: 20, border: "1.5px solid " + (roles.includes(key) ? "var(--accent)" : "var(--line)"), background: roles.includes(key) ? "var(--accent)" : "transparent", color: roles.includes(key) ? "#fff" : "var(--ink-3)", cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit", transition: "all .15s" }}>
+            {t.roles[key]}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+};
+
 // ─── Schedule Field (for entities) ───
 
 const SCHEDULE_DAYS = [
@@ -126,7 +152,7 @@ const NewPersonForm = ({ t, lang, data, onClose, onSave, initialData, editMode, 
   const [form, setForm] = React.useState(() => initialData ? {
     first: initialData.first || "",
     last: initialData.last || "",
-    role: initialData.role || "miembro",
+    roles: initialData.roles || (initialData.role ? [initialData.role] : ["miembro"]),
     roleOther: initialData.roleOther || "",
     emails: initialData.emails || (initialData.email ? [{ value: initialData.email, label: "Personal" }] : []),
     phones: initialData.phones || (initialData.phone ? [{ value: initialData.phone, label: "Personal" }] : []),
@@ -150,7 +176,7 @@ const NewPersonForm = ({ t, lang, data, onClose, onSave, initialData, editMode, 
     extraAddresses: initialData.extraAddresses || [],
     addressLabel: initialData.addressLabel || "domicilio",
   } : {
-    first: "", last: "", role: "miembro", roleOther: "",
+    first: "", last: "", roles: ["miembro"], roleOther: "",
     emails: [], phones: [],
     address: "", zip: "", city: "", state: "", country: "", county: "",
     addressLabel: "domicilio",
@@ -187,7 +213,7 @@ const NewPersonForm = ({ t, lang, data, onClose, onSave, initialData, editMode, 
   const updateAddress = (idx, k, v) => set("extraAddresses", form.extraAddresses.map((a, i) => i === idx ? { ...a, [k]: v } : a));
 
   const roleOpts = Object.keys(t.roles).map(k => ({ value: k, label: t.roles[k] }));
-  const langOpts = [{ value: "es", label: "Español" }, { value: "en", label: "English" }];
+  const langOpts = [{ value: "es", label: "Español" }, { value: "en", label: "English" }, { value: "pt", label: "Português" }];
   const statusOpts = [{ value: "activo", label: t.common.activos }, { value: "inactivo", label: t.common.inactivos }];
 
   const addEntityLink = () => set("entities", [...form.entities, { id: data.entities[0]?.id || "", role: "miembro", roleOther: "", comment: "" }]);
@@ -217,8 +243,8 @@ const NewPersonForm = ({ t, lang, data, onClose, onSave, initialData, editMode, 
           <div className="form-grid">
             <TextField label={t.forms.first} value={form.first} onChange={v => set("first", v)} placeholder="Marcos" />
             <TextField label={t.forms.last} value={form.last} onChange={v => set("last", v)} placeholder="Rivera" />
-            <SelectField label={t.common.role} value={form.role} onChange={v => set("role", v)} options={roleOpts} />
-            {form.role === "otro" && <TextField label={t.common.roleOther} value={form.roleOther} onChange={v => set("roleOther", v)} placeholder="Coordinador, Director…" />}
+            <RolesField roles={form.roles} onChange={v => set("roles", v)} t={t} />
+            {form.roles.includes("otro") && <TextField label={t.common.roleOther} value={form.roleOther} onChange={v => set("roleOther", v)} placeholder="Coordinador, Director…" />}
           </div>
 
           <h4 style={{ margin: "18px 0 8px", fontSize: 12, color: "var(--ink-3)", textTransform: "uppercase", letterSpacing: ".06em" }}>{t.forms.contact}</h4>
@@ -385,6 +411,7 @@ const NewEntityForm = ({ t, lang, data, onClose, onSave, initialData, editMode }
     parent: initialData.parent || "",
     tags: Array.isArray(initialData.tags) ? initialData.tags.join(", ") : (initialData.tags || ""),
     schedule: initialData.schedule || [],
+    idioma: initialData.idioma || "",
   } : {
     name: "", type: "iglesia", typeOther: "", denominacion: "",
     emails: [], phones: [],
@@ -392,7 +419,7 @@ const NewEntityForm = ({ t, lang, data, onClose, onSave, initialData, editMode }
     website: "",
     social: { ig: "", fb: "", tiktok: "", x: "" },
     size: "", founded: "", parent: "",
-    tags: "", schedule: [],
+    tags: "", schedule: [], idioma: "",
   });
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
   const setSoc = (k, v) => setForm(f => ({ ...f, social: { ...f.social, [k]: v } }));
@@ -480,6 +507,20 @@ const NewEntityForm = ({ t, lang, data, onClose, onSave, initialData, editMode }
           <div className="form-grid">
             <TextField label={t.common.size + " (" + t.common.members + ")"} type="number" value={form.size} onChange={v => set("size", v)} />
             <TextField label={t.common.founded} value={form.founded} onChange={v => set("founded", v)} placeholder="2014" />
+            {(form.type === "iglesia" || form.type === "sinagoga") && (
+              <SelectField
+                label={lang === "es" ? "Idioma de la congregación" : "Congregation language"}
+                value={form.idioma}
+                onChange={v => set("idioma", v)}
+                options={[
+                  { value: "", label: lang === "es" ? "— No especificado —" : "— Not specified —" },
+                  { value: "hispana", label: lang === "es" ? "Hispana / Español" : "Hispanic / Spanish" },
+                  { value: "ingles", label: lang === "es" ? "Inglés" : "English" },
+                  { value: "bilingue", label: lang === "es" ? "Bilingüe" : "Bilingual" },
+                  { value: "otro", label: lang === "es" ? "Otro" : "Other" },
+                ]}
+              />
+            )}
             <TextField full label={t.common.tags} value={form.tags} onChange={v => set("tags", v)} placeholder="matriz, hispana" hint={lang === "es" ? "Separadas por coma" : "Comma separated"} />
           </div>
 

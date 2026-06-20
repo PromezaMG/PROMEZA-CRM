@@ -233,7 +233,7 @@ window.AIRTABLE = (function () {
         "Nombre": p.first,
         "Apellido": p.last,
         "Nombre completo": p.first + " " + p.last,
-        "Cargo": p.role === "otro" ? (p.roleOther || "Otro") : p.role,
+        "Cargo": p.roles ? p.roles.join(", ") : (p.role === "otro" ? (p.roleOther || "Otro") : p.role),
         "Email": p.email,
         "Teléfono": p.phone,
         "Dirección": p.address,

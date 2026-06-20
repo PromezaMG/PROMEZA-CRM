@@ -22,11 +22,11 @@
 
 
 <!-- MSAL.js for Microsoft Entra ID login (hosted locally) -->
-<script src="msal-browser.min.js?v=63"
+<script src="msal-browser.min.js?v=64"
   onload="console.log('MSAL loaded OK, window.msal=', typeof window.msal)"
   onerror="console.error('MSAL LOCAL FILE FAILED TO LOAD')"></script>
 
-<link rel="stylesheet" href="styles.css?v=63" />
+<link rel="stylesheet" href="styles.css?v=64" />
 <link rel="manifest" href="manifest.json" />
 <meta name="theme-color" content="#4f46e5" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -42,37 +42,37 @@
 <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
 
 <!-- Data + utilities -->
-<script src="data.js?v=63"></script>
-<script src="i18n.js?v=63"></script>
-<script src="airtable.js?v=63"></script>
+<script src="data.js?v=64"></script>
+<script src="i18n.js?v=64"></script>
+<script src="airtable.js?v=64"></script>
 
 <!-- React JSX components -->
-<script type="text/babel" src="ui.jsx?v=63"></script>
-<script type="text/babel" src="auth.jsx?v=63"></script>
-<script type="text/babel" src="shell.jsx?v=63"></script>
-<script type="text/babel" src="map.jsx?v=63"></script>
-<script type="text/babel" src="home.jsx?v=63"></script>
-<script type="text/babel" src="lists.jsx?v=63"></script>
-<script type="text/babel" src="profile.jsx?v=63"></script>
-<script type="text/babel" src="forms.jsx?v=63"></script>
-<script type="text/babel" src="duplicates.jsx?v=63"></script>
-<script type="text/babel" src="interactions.jsx?v=63"></script>
-<script type="text/babel" src="tasks.jsx?v=63"></script>
-<script type="text/babel" src="pipeline.jsx?v=63"></script>
-<script type="text/babel" src="projects.jsx?v=63"></script>
-<script type="text/babel" src="attachments.jsx?v=63"></script>
-<script type="text/babel" src="campaigns.jsx?v=63"></script>
-<script type="text/babel" src="calendar.jsx?v=63"></script>
-<script type="text/babel" src="goals.jsx?v=63"></script>
-<script type="text/babel" src="county.jsx?v=63"></script>
-<script type="text/babel" src="app.jsx?v=63"></script>
+<script type="text/babel" src="ui.jsx?v=64"></script>
+<script type="text/babel" src="auth.jsx?v=64"></script>
+<script type="text/babel" src="shell.jsx?v=64"></script>
+<script type="text/babel" src="map.jsx?v=64"></script>
+<script type="text/babel" src="home.jsx?v=64"></script>
+<script type="text/babel" src="lists.jsx?v=64"></script>
+<script type="text/babel" src="profile.jsx?v=64"></script>
+<script type="text/babel" src="forms.jsx?v=64"></script>
+<script type="text/babel" src="duplicates.jsx?v=64"></script>
+<script type="text/babel" src="interactions.jsx?v=64"></script>
+<script type="text/babel" src="tasks.jsx?v=64"></script>
+<script type="text/babel" src="pipeline.jsx?v=64"></script>
+<script type="text/babel" src="projects.jsx?v=64"></script>
+<script type="text/babel" src="attachments.jsx?v=64"></script>
+<script type="text/babel" src="campaigns.jsx?v=64"></script>
+<script type="text/babel" src="calendar.jsx?v=64"></script>
+<script type="text/babel" src="goals.jsx?v=64"></script>
+<script type="text/babel" src="county.jsx?v=64"></script>
+<script type="text/babel" src="app.jsx?v=64"></script>
 
 <script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      caches.keys().then(keys => Promise.all(keys.filter(k => k !== 'promeza-v63').map(k => caches.delete(k))));
-      navigator.serviceWorker.register('./sw.js?v=63')
-        .then(() => console.log('SW v63 registered'))
+      caches.keys().then(keys => Promise.all(keys.filter(k => k !== 'promeza-v64').map(k => caches.delete(k))));
+      navigator.serviceWorker.register('./sw.js?v=64')
+        .then(() => console.log('SW v64 registered'))
         .catch(e => console.warn('SW failed:', e));
     });
   }

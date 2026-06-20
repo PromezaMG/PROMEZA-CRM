@@ -747,7 +747,33 @@ const App = () => {
         // Fall back to fresh data on crypto error
       }
 
-      // 4. Fresh start
+      // 4. Fresh start — auto-load real data on first visit
+      if (!localStorage.getItem('promeza_import_loaded')) {
+        try {
+          const res = await fetch('./import-data.json?nc=' + Date.now());
+          if (res.ok) {
+            const importData = await res.json();
+            localStorage.setItem('promeza_last_load', new Date(Date.now() + 365*24*60*60*1000).toISOString());
+            localStorage.setItem('promeza_import_loaded', '1');
+            setData(processLoadedData({
+              personas: importData.personas || [],
+              entities: importData.entities || [],
+              tasks: importData.tasks || {},
+              interactions: importData.interactions || {},
+              projects: importData.projects || [],
+              campaigns: importData.campaigns || [],
+              calendarEvents: importData.calendarEvents || [],
+              comments: importData.comments || {},
+              attachments: importData.attachments || {},
+              changelog: importData.changelog || {},
+              goals: importData.goals || [],
+              segments: importData.segments || [],
+            }));
+            setDataReady(true);
+            return;
+          }
+        } catch(e) { console.warn('Auto-import failed:', e); }
+      }
       setData(freshData());
       setDataReady(true);
     };
