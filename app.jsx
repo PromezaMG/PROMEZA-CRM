@@ -346,23 +346,24 @@ const SettingsModal = ({ t, lang, data, cryptoKey, onClose, onLogout, onRestoreD
                   ⚠ {lang === "es" ? "Esto reemplazará TODOS los datos actuales." : "This will replace ALL current data."}
                 </div>
                 <button className="btn btn-primary" style={{ width: "100%", marginBottom: 8 }} onClick={async () => {
-                  if (!window.confirm("¿Cargar los datos reales de iglesias? Esto BORRARÁ todos los datos actuales (62 contactos, 17 entidades) y cargará 4,429 contactos y 1,304 iglesias.")) return;
-                  setBackupMsg({ type: "ok", text: "⏳ Cargando datos… espera un momento" });
+                  if (!window.confirm("¿Cargar los 4,429 contactos y 1,304 iglesias reales?\n\nEsto BORRARÁ todos los datos actuales y los reemplazará con los datos del Excel. Continuar?")) return;
+                  setBackupMsg({ type: "ok", text: "⏳ Descargando datos… puede tardar unos segundos" });
                   try {
-                    const res = await fetch('./import-data.json?v=61');
+                    const res = await fetch('./import-data.json?nc=' + Date.now());
+                    if (!res.ok) throw new Error('HTTP ' + res.status);
                     const parsed = await res.json();
-                    onRestoreData({
-                      personas: parsed.personas || [],
-                      entities: parsed.entities || [],
-                      tasks: {}, interactions: {}, projects: [], campaigns: [],
-                      calendarEvents: [], comments: {}, attachments: {}, changelog: {}, goals: [], segments: [],
-                    });
-                    setBackupMsg({ type: "ok", text: `✓ Cargados: ${(parsed.personas||[]).length} contactos · ${(parsed.entities||[]).length} iglesias. Ahora usa "⬆ Enviar mis datos a Airtable".` });
+                    const personas = parsed.personas || [];
+                    const entities = parsed.entities || [];
+                    const tasks = parsed.tasks || {};
+                    // Mark Airtable last-load far in the future so imported data always wins syncs
+                    localStorage.setItem('promeza_last_load', new Date(Date.now() + 365*24*60*60*1000).toISOString());
+                    onRestoreData({ personas, entities, tasks, interactions: {}, projects: [], campaigns: [], calendarEvents: [], comments: {}, attachments: {}, changelog: {}, goals: [], segments: [] });
+                    setBackupMsg({ type: "ok", text: `✓ ${personas.length} contactos · ${entities.length} iglesias · ${Object.values(tasks).flat().length} tareas de duplicados cargados. Ahora pulsa "⬆ Enviar mis datos a Airtable".` });
                   } catch(err) {
-                    setBackupMsg({ type: "err", text: "Error al cargar: " + err.message });
+                    setBackupMsg({ type: "err", text: "Error al cargar datos: " + err.message });
                   }
                 }}>
-                  ⛪ Cargar datos de iglesias USA (4,429 contactos · 1,304 iglesias)
+                  ⛪ Cargar datos reales — 4,429 contactos + 1,304 iglesias
                 </button>
                 <label className="btn" style={{ cursor: "pointer" }}>
                   <Icon name="upload" /> {lang === "es" ? "Seleccionar archivo de respaldo…" : "Select backup file…"}
