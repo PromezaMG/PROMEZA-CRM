@@ -721,14 +721,14 @@ const App = () => {
 
       // 2. Auto-import real data on very first login — runs BEFORE touching localStorage
       //    so it fires regardless of what (if anything) is stored there.
-      if (!localStorage.getItem('promeza_import_loaded')) {
+      if (!localStorage.getItem('promeza_real_data_v1')) {
         try {
           const res = await fetch('./import-data.json?nc=' + Date.now());
           if (res.ok) {
             const importData = await res.json();
             if ((importData.personas || []).length > 100) {
               localStorage.setItem('promeza_last_load', new Date(Date.now() + 365*24*60*60*1000).toISOString());
-              localStorage.setItem('promeza_import_loaded', '1');
+              localStorage.setItem('promeza_real_data_v1', '1');
               setData({
                 personas: importData.personas || [],
                 entities: importData.entities || [],
