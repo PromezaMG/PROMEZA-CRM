@@ -1,4 +1,4 @@
-const CACHE = "promeza-v59";
+const CACHE = "promeza-v60";
 const ASSETS = [
   "./styles.css",
   "./data.js", "./i18n.js", "./airtable.js",
@@ -14,7 +14,9 @@ self.addEventListener("install", e => {
 });
 
 self.addEventListener("activate", e => {
-  e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim()));
+  // Delete old caches but do NOT claim clients — claiming fires controllerchange
+  // on open pages, which can interrupt the Microsoft login popup flow
+  e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))));
 });
 
 self.addEventListener("fetch", e => {
@@ -23,11 +25,16 @@ self.addEventListener("fetch", e => {
   const url = new URL(e.request.url);
   const isHTML = url.pathname === "/" || url.pathname.endsWith(".html") || url.pathname.endsWith("/");
   if (isHTML) {
-    // Always network-first for HTML so new deployments are picked up automatically
-    e.respondWith(fetch(e.request).catch(() => caches.match(e.request)));
+    // Network-first for HTML: always picks up new deployments on next load
+    e.respondWith(
+      fetch(e.request).then(res => {
+        if (res.ok) { const clone = res.clone(); caches.open(CACHE).then(c => c.put(e.request, clone)); }
+        return res;
+      }).catch(() => caches.match(e.request))
+    );
     return;
   }
-  // Assets: cache-first, network fallback (no fallback to index.html)
+  // Assets: cache-first, network fallback
   e.respondWith(
     caches.match(e.request).then(cached => cached || fetch(e.request).then(res => {
       if (res.ok) { const clone = res.clone(); caches.open(CACHE).then(c => c.put(e.request, clone)); }
