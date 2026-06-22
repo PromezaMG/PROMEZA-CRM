@@ -105,7 +105,7 @@ const Home = ({ t, lang, data, go }) => {
       return { ...tk, personaName };
     }), [allTasks, data.tasks, personas, today]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const { activityByDay, maxActivity, totalActivity } = useMemo(() => {
+  const { activityByDay, maxActivity, totalActivity, last14 } = useMemo(() => {
     const last14 = Array.from({ length: 14 }, (_, i) => {
       const d = new Date(); d.setDate(d.getDate() - 13 + i);
       return d.toISOString().slice(0, 10);
@@ -120,7 +120,7 @@ const Home = ({ t, lang, data, go }) => {
       const d = (e.date || "").slice(0, 10);
       if (abd[d] !== undefined) abd[d]++;
     });
-    return { activityByDay: abd, maxActivity: Math.max(1, ...Object.values(abd)), totalActivity: Object.values(abd).reduce((a, b) => a + b, 0) };
+    return { activityByDay: abd, maxActivity: Math.max(1, ...Object.values(abd)), totalActivity: Object.values(abd).reduce((a, b) => a + b, 0), last14 };
   }, [data.changelog, data.interactions]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const in30 = new Date(); in30.setDate(in30.getDate() + 30);
