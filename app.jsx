@@ -521,20 +521,23 @@ const App = () => {
   const [data, setData] = useState(null);
   const [needsUnlock, setNeedsUnlock] = useState(false);
 
-  const freshData = () => ({
-    personas: withUIDs([...window.PROMEZA_DATA.personas]),
-    entities: withUIDs([...window.PROMEZA_DATA.entities]),
-    comments: { ...window.PROMEZA_DATA.comments },
-    interactions: {},
-    tasks: { ...(window.PROMEZA_DATA.tasks || {}) },
-    changelog: {},
-    segments: [],
-    attachments: {},
-    projects: [],
-    campaigns: [],
-    goals: [],
-    calendarEvents: [],
-  });
+  const freshData = () => {
+    const pd = window.PROMEZA_DATA || {};
+    return {
+      personas: withUIDs([...(pd.personas || [])]),
+      entities: withUIDs([...(pd.entities || [])]),
+      comments: { ...(pd.comments || {}) },
+      interactions: {},
+      tasks: { ...(pd.tasks || {}) },
+      changelog: {},
+      segments: [],
+      attachments: {},
+      projects: [],
+      campaigns: [],
+      goals: [],
+      calendarEvents: [],
+    };
+  };
 
   const processLoadedData = (parsed) => {
     // Normalize fields only — do NOT merge PROMEZA_DATA into existing data.
