@@ -482,6 +482,30 @@ const RemindersModal = ({ lang, data, onClose, go }) => {
   );
 };
 
+// ─── Error Boundary — prevents a view crash from blanking the whole page ───
+
+class ViewErrorBoundary extends React.Component {
+  constructor(props) { super(props); this.state = { error: null }; }
+  static getDerivedStateFromError(e) { return { error: e }; }
+  componentDidCatch(e) { console.error("View crash:", e); }
+  render() {
+    if (this.state.error) {
+      return (
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "60vh", gap: 16, padding: 32, textAlign: "center" }}>
+          <div style={{ fontSize: 32 }}>⚠️</div>
+          <div style={{ fontSize: 16, fontWeight: 700, color: "var(--ink)" }}>Algo salió mal en esta vista</div>
+          <div style={{ fontSize: 12, color: "var(--ink-4)", maxWidth: 400 }}>{String(this.state.error)}</div>
+          <button onClick={() => this.setState({ error: null })}
+            style={{ padding: "10px 20px", background: "var(--accent)", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer", fontWeight: 600, fontSize: 14 }}>
+            Reintentar
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 // ─── App Root ───
 
 const App = () => {
@@ -1349,7 +1373,7 @@ const App = () => {
 
   let view;
   switch (route.name) {
-    case "home": view = <Home t={t} lang={lang} data={data} go={go} />; break;
+    case "home": view = <ViewErrorBoundary key="home"><Home t={t} lang={lang} data={data} go={go} /></ViewErrorBoundary>; break;
     case "personas": view = <PersonasList t={t} lang={lang} data={data} go={go} onImportPersonas={handleImportPersonas} globalQ={query} onBulkDelete={handleBulkDeletePersonas} onBulkUpdateStatus={handleBulkUpdatePersonas} onBulkAddTag={handleBulkAddTagPersonas} onBulkAddTask={handleBulkAddTask} segments={data.segments || []} onAddSegment={addSegment} onDeleteSegment={deleteSegment} users={window.PROMEZA_USERS || []} currentUser={userEmail} />; break;
     case "pipeline": view = <PipelineView t={t} lang={lang} data={data} go={go} onUpdatePerson={handleUpdatePerson} />; break;
     case "entities": view = <EntitiesList t={t} lang={lang} data={data} go={go} onImportEntities={handleImportEntities} globalQ={query} />; break;
