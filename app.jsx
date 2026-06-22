@@ -719,14 +719,18 @@ const App = () => {
         if (enc) {
           const json = await window.CryptoUtils.decrypt(enc, key);
           const loaded = processLoadedData(JSON.parse(json));
-          if ((loaded.personas || []).length >= 200) {
+          // Validate: must have real data AND correct English field names (first/last).
+          // Old Airtable data used Spanish names (nombre/apellido) — unusable for search.
+          const sample = (loaded.personas || [])[0];
+          const hasCorrectFormat = sample && (sample.first !== undefined || sample.last !== undefined);
+          if ((loaded.personas || []).length >= 200 && hasCorrectFormat) {
             setData(loaded);
             setDataReady(true);
-            // Do NOT call syncFromAirtable here — Airtable may have stale data
-            // from a previous import that would overwrite clean local data.
-            // Sync only happens via the periodic interval or manual button.
             return;
           }
+          // Wrong format or too few contacts — clear and re-seed
+          localStorage.removeItem("promeza_data_enc");
+          console.log("PROMEZA: cleared stale/wrong-format data, re-seeding");
         }
       } catch (err) { console.error("Data load error:", err); }
 
@@ -747,11 +751,17 @@ const App = () => {
         segments: seed.segments || [],
       };
       // Normalize phone/email arrays expected by UI components
-      setData(processLoadedData(seedData));
+      const seeded = processLoadedData(seedData);
+      setData(seeded);
       setDataReady(true);
-      // Prevent Airtable auto-sync from overwriting clean seed data
       localStorage.setItem('promeza_last_load', new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString());
-      // Free the 3.3MB seed object from memory — data is now in React state
+      // Save immediately so data persists even if a crash cancels the debounced useEffect
+      try {
+        window.CryptoUtils.encrypt(JSON.stringify(seeded), key).then(enc => {
+          localStorage.setItem("promeza_data_enc", enc);
+          console.log("PROMEZA: seed data saved to localStorage");
+        }).catch(console.error);
+      } catch(e) {}
       try { delete window.PROMEZA_DATA; } catch(e) {}
     };
     if (userEmail) initData();
