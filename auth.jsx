@@ -77,11 +77,18 @@ window.CryptoUtils = {
     const enc = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, new TextEncoder().encode(str));
     const combined = new Uint8Array(12 + enc.byteLength);
     combined.set(iv, 0); combined.set(new Uint8Array(enc), 12);
-    return btoa(String.fromCharCode(...combined));
+    // Chunked btoa — spreading millions of args to String.fromCharCode causes stack overflow
+    let bin = "";
+    for (let i = 0; i < combined.length; i += 8192) {
+      bin += String.fromCharCode(...combined.subarray(i, i + 8192));
+    }
+    return btoa(bin);
   },
 
   decrypt: async (b64, key) => {
-    const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+    const str = atob(b64);
+    const bytes = new Uint8Array(str.length);
+    for (let i = 0; i < str.length; i++) bytes[i] = str.charCodeAt(i);
     const iv = bytes.slice(0, 12), data = bytes.slice(12);
     const dec = await crypto.subtle.decrypt({ name: "AES-GCM", iv }, key, data);
     return new TextDecoder().decode(dec);
@@ -221,22 +228,14 @@ const UnlockScreen = ({ email, onUnlock, onLogout }) => {
     try {
       const msalInstance = buildMSALInstance(cfg);
       if (!msalInstance) { setError("Error de configuración (clientId/tenantId inválido)."); setLoading(false); return; }
-
-      let account = null;
-      try {
-        const r = await msalInstance.ssoSilent({ scopes: ["User.Read", "openid"], loginHint: email });
-        account = r.account;
-      } catch {
-        const r = await msalInstance.loginPopup({ scopes: ["User.Read", "openid"], loginHint: email });
-        account = r?.account;
-      }
-
+      // Go directly to loginPopup — ssoSilent uses hidden iframes that can hang 10s+
+      const r = await msalInstance.loginPopup({ scopes: ["User.Read", "openid"], loginHint: email });
+      const account = r?.account;
       if (!account || account.username.toLowerCase() !== email.toLowerCase()) {
         setError("La cuenta no coincide con la sesión activa.");
         setLoading(false);
         return;
       }
-
       const key = await deriveSharedKey(cfg.clientId, cfg.tenantId, cfg.extraKey || "");
       await storeSessionKey(key);
       onUnlock();

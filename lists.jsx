@@ -288,6 +288,8 @@ const PersonasList = ({ t, lang, data, go, onImportPersonas, globalQ = "", onBul
   const [bulkTaskAssignee, setBulkTaskAssignee] = React.useState("");
   const [savingSegment, setSavingSegment] = React.useState(false);
   const [segmentName, setSegmentName] = React.useState("");
+  const [page, setPage] = React.useState(0);
+  const PAGE_SIZE = 100;
 
   const countries = ["all", ...new Set(data.personas.map(p => p.country).filter(Boolean))];
   const roles = ["all", ...Object.keys(t.roles)];
@@ -319,6 +321,12 @@ const PersonasList = ({ t, lang, data, go, onImportPersonas, globalQ = "", onBul
   });
 
   const activeFilters = [role !== "all", country !== "all", status !== "all", stageFilter !== "all", langFilter !== "all", city, countyFilter, zip, tagFilter, emailFilter, phoneFilter, q].filter(Boolean).length;
+
+  // Reset to page 0 whenever any filter or search changes
+  React.useEffect(() => { setPage(0); }, [role, country, status, stageFilter, langFilter, city, countyFilter, zip, tagFilter, emailFilter, phoneFilter, q, globalQ]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const totalPages = Math.ceil(rows.length / PAGE_SIZE);
+  const pageRows = rows.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
   const clearFilters = () => {
     setRole("all"); setCountry("all"); setStatus("all"); setStageFilter("all"); setLangFilter("all");
@@ -712,7 +720,7 @@ const PersonasList = ({ t, lang, data, go, onImportPersonas, globalQ = "", onBul
             </tr>
           </thead>
           <tbody>
-            {rows.map(p => (
+            {pageRows.map(p => (
               <tr key={p.id} onClick={() => go({ name: "person", id: p.id })}
                 style={{ background: selected.has(p.id) ? "var(--accent-50)" : undefined }}>
                 <td style={{ paddingRight: 0 }} onClick={e => toggleSelect(e, p.id)}>
@@ -765,6 +773,17 @@ const PersonasList = ({ t, lang, data, go, onImportPersonas, globalQ = "", onBul
           </tbody>
         </table>
         {rows.length === 0 && <div className="empty">{t.common.noResults}</div>}
+        {totalPages > 1 && (
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "12px 16px", borderTop: "1px solid var(--border)" }}>
+            <button className="btn btn-sm" onClick={() => setPage(0)} disabled={page === 0}>«</button>
+            <button className="btn btn-sm" onClick={() => setPage(p => p - 1)} disabled={page === 0}>‹</button>
+            <span style={{ fontSize: 13, color: "var(--ink-3)", minWidth: 120, textAlign: "center" }}>
+              {page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, rows.length)} de {rows.length}
+            </span>
+            <button className="btn btn-sm" onClick={() => setPage(p => p + 1)} disabled={page >= totalPages - 1}>›</button>
+            <button className="btn btn-sm" onClick={() => setPage(totalPages - 1)} disabled={page >= totalPages - 1}>»</button>
+          </div>
+        )}
       </div>
     </div>
   );
