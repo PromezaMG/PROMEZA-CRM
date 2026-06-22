@@ -711,6 +711,15 @@ const App = () => {
       const key = await window.CryptoUtils.loadSessionKey();
       if (!key) { setNeedsUnlock(true); setDataReady(true); return; }
       setCryptoKey(key);
+
+      // If real data has never been imported, skip localStorage entirely.
+      // The import useEffect below will fetch the real data and fill it in.
+      if (!localStorage.getItem('promeza_real_data_v1')) {
+        setData({ personas: [], entities: [], tasks: {}, interactions: {}, projects: [], campaigns: [], calendarEvents: [], comments: {}, attachments: {}, changelog: {}, goals: [], segments: [] });
+        setDataReady(true);
+        return;
+      }
+
       try {
         const enc = localStorage.getItem("promeza_data_enc");
         if (enc) {
