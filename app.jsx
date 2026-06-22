@@ -692,19 +692,20 @@ const App = () => {
         if (enc) {
           const json = await window.CryptoUtils.decrypt(enc, key);
           const loaded = processLoadedData(JSON.parse(json));
-          // If localStorage has real data (>= 200 contacts), use it
           if ((loaded.personas || []).length >= 200) {
             setData(loaded);
             setDataReady(true);
-            syncFromAirtable();
+            // Do NOT call syncFromAirtable here — Airtable may have stale data
+            // from a previous import that would overwrite clean local data.
+            // Sync only happens via the periodic interval or manual button.
             return;
           }
         }
       } catch (err) { console.error("Data load error:", err); }
 
-      // No valid data in localStorage — use the real data embedded in data.js (instant, no fetch)
+      // No valid data in localStorage — seed from data.js (instant, no fetch)
       const seed = window.PROMEZA_DATA || {};
-      setData({
+      const seedData = {
         personas: seed.personas || [],
         entities: seed.entities || [],
         tasks: seed.tasks || {},
@@ -717,8 +718,12 @@ const App = () => {
         changelog: seed.changelog || {},
         goals: seed.goals || [],
         segments: seed.segments || [],
-      });
+      };
+      // Normalize phone/email arrays expected by UI components
+      setData(processLoadedData(seedData));
       setDataReady(true);
+      // Prevent Airtable auto-sync from overwriting clean seed data
+      localStorage.setItem('promeza_last_load', new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString());
     };
     if (userEmail) initData();
   }, [userEmail]);
@@ -750,7 +755,7 @@ const App = () => {
     if (!dataReady || !data) return;
     const interval = setInterval(syncFromAirtable, 120000);
     return () => clearInterval(interval);
-  }, [dataReady, syncFromAirtable]);
+  }, [dataReady]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Auto-logout on inactivity (1 hour)
   const INACTIVITY_MS = 60 * 60 * 1000;
