@@ -520,7 +520,6 @@ const App = () => {
   const [dataReady, setDataReady] = useState(false);
   const [data, setData] = useState(null);
   const [needsUnlock, setNeedsUnlock] = useState(false);
-  const [importBanner, setImportBanner] = useState(null); // null | 'loading' | 'done' | 'error'
 
   const freshData = () => ({
     personas: withUIDs([...window.PROMEZA_DATA.personas]),
@@ -692,69 +691,41 @@ const App = () => {
       if (!key) { setNeedsUnlock(true); setDataReady(true); return; }
       setCryptoKey(key);
 
-      // Try to load from localStorage if real data was previously imported
-      if (localStorage.getItem('promeza_real_data_v1')) {
-        try {
-          const enc = localStorage.getItem("promeza_data_enc");
-          if (enc) {
-            const json = await window.CryptoUtils.decrypt(enc, key);
-            const loaded = processLoadedData(JSON.parse(json));
-            // Verify we actually have the real dataset (fake/demo data had only 62 contacts)
-            if ((loaded.personas || []).length >= 200) {
-              setData(loaded);
-              setDataReady(true);
-              syncFromAirtable();
-              return;
-            }
+      try {
+        const enc = localStorage.getItem("promeza_data_enc");
+        if (enc) {
+          const json = await window.CryptoUtils.decrypt(enc, key);
+          const loaded = processLoadedData(JSON.parse(json));
+          // If localStorage has real data (>= 200 contacts), use it
+          if ((loaded.personas || []).length >= 200) {
+            setData(loaded);
+            setDataReady(true);
+            syncFromAirtable();
+            return;
           }
-        } catch (err) { console.error("Data load error:", err); }
-        // Data missing or too small — clear flag so import runs again
-        localStorage.removeItem('promeza_real_data_v1');
-      }
+        }
+      } catch (err) { console.error("Data load error:", err); }
 
-      // No valid real data yet — show empty state, let import useEffect handle it
-      setData({ personas: [], entities: [], tasks: {}, interactions: {}, projects: [], campaigns: [], calendarEvents: [], comments: {}, attachments: {}, changelog: {}, goals: [], segments: [] });
+      // No valid data in localStorage — use the real data embedded in data.js (instant, no fetch)
+      const seed = window.PROMEZA_DATA || {};
+      setData({
+        personas: seed.personas || [],
+        entities: seed.entities || [],
+        tasks: seed.tasks || {},
+        interactions: seed.interactions || {},
+        projects: seed.projects || [],
+        campaigns: seed.campaigns || [],
+        calendarEvents: seed.calendarEvents || [],
+        comments: seed.comments || {},
+        attachments: seed.attachments || {},
+        changelog: seed.changelog || {},
+        goals: seed.goals || [],
+        segments: seed.segments || [],
+      });
       setDataReady(true);
     };
     if (userEmail) initData();
   }, [userEmail]);
-
-  // Auto-import real data after app is ready — runs independently of startup
-  useEffect(() => {
-    if (!dataReady || !cryptoKey) return;
-    if (localStorage.getItem('promeza_real_data_v1')) return;
-    setImportBanner('loading');
-    fetch('./import-data.json?v=69&nc=' + Date.now())
-      .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
-      .then(d => {
-        if ((d.personas || []).length > 100) {
-          localStorage.setItem('promeza_real_data_v1', '1');
-          localStorage.setItem('promeza_last_load', new Date(Date.now() + 365*24*60*60*1000).toISOString());
-          setData({
-            personas: d.personas || [],
-            entities: d.entities || [],
-            tasks: d.tasks || {},
-            interactions: d.interactions || {},
-            projects: d.projects || [],
-            campaigns: d.campaigns || [],
-            calendarEvents: d.calendarEvents || [],
-            comments: d.comments || {},
-            attachments: d.attachments || {},
-            changelog: d.changelog || {},
-            goals: d.goals || [],
-            segments: d.segments || [],
-          });
-          setImportBanner('done');
-          setTimeout(() => setImportBanner(null), 3000);
-        } else {
-          throw new Error('Datos insuficientes en el archivo');
-        }
-      })
-      .catch(e => {
-        console.error('Auto-import error:', e);
-        setImportBanner('error');
-      });
-  }, [dataReady, cryptoKey]);
 
   useEffect(() => {
     if (!data || !cryptoKey) return;
@@ -1436,18 +1407,6 @@ const App = () => {
           zIndex: 9999, cursor: "pointer", boxShadow: "0 2px 12px rgba(0,0,0,.25)", maxWidth: "90vw", textAlign: "center",
         }}>
           {atSyncMsg.text}
-        </div>
-      )}
-      {importBanner && (
-        <div style={{
-          position: "fixed", top: 0, left: 0, right: 0,
-          background: importBanner === 'error' ? "#991b1b" : importBanner === 'done' ? "#166534" : "var(--accent)",
-          color: "#fff", padding: "10px 20px", fontSize: 13, fontWeight: 600,
-          zIndex: 10000, textAlign: "center", display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
-        }}>
-          {importBanner === 'loading' && <><span style={{ animation: "spin 1s linear infinite", display: "inline-block" }}>⟳</span> Cargando base de datos real (4,429 contactos)…</>}
-          {importBanner === 'done' && <>✓ Base de datos cargada — 4,429 contactos y 1,304 entidades</>}
-          {importBanner === 'error' && <>✗ Error al cargar datos — <button onClick={() => { localStorage.removeItem('promeza_real_data_v1'); window.location.reload(); }} style={{ background: "rgba(255,255,255,.2)", border: "1px solid rgba(255,255,255,.4)", color: "#fff", borderRadius: 6, padding: "2px 10px", cursor: "pointer", fontFamily: "inherit", fontWeight: 700, fontSize: 12 }}>Reintentar</button></>}
         </div>
       )}
       <main className="main">{view}</main>
