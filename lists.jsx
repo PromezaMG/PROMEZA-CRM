@@ -708,7 +708,6 @@ const PersonasList = ({ t, lang, data, go, onImportPersonas, globalQ = "", onBul
               <th>{t.common.relatedEntities}</th>
               <th>{t.common.contact}</th>
               <th>{t.common.address}</th>
-              <th>{t.common.lastContact}</th>
               <th>{t.common.tags}</th>
             </tr>
           </thead>
@@ -756,7 +755,6 @@ const PersonasList = ({ t, lang, data, go, onImportPersonas, globalQ = "", onBul
                   <div className="muted" style={{ fontSize: 12 }}>{p.phone}</div>
                 </td>
                 <td><div style={{ fontSize: 12.5 }}>{p.city}{p.county ? <span style={{ color: "var(--accent)", marginLeft: 4, fontSize: 11, fontWeight: 600 }}>· {p.county}</span> : ""}</div><div className="muted" style={{ fontSize: 12 }}>{p.country}</div></td>
-                <td className="num">{fmtDate(p.lastContact, lang)}</td>
                 <td>
                   <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
                     {(p.tags || []).map(tg => <span key={tg} className="tag-chip">{tg}</span>)}
