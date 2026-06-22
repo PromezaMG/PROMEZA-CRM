@@ -537,27 +537,23 @@ const App = () => {
   });
 
   const processLoadedData = (parsed) => {
-    const savedPersonaIds = new Set((parsed.personas || []).map(p => p.id));
-    const newPersonas = window.PROMEZA_DATA.personas.filter(p => !savedPersonaIds.has(p.id));
-    const savedEntityIds = new Set((parsed.entities || []).map(e => e.id));
-    const newEntities = window.PROMEZA_DATA.entities.filter(e => !savedEntityIds.has(e.id));
-    const demoTasks = window.PROMEZA_DATA.tasks || {};
-    const mergedTasks = { ...demoTasks, ...(parsed.tasks || {}) };
+    // Normalize fields only — do NOT merge PROMEZA_DATA into existing data.
+    // PROMEZA_DATA is only used as a fallback when localStorage has no real data.
     return {
       ...parsed,
-      personas: withUIDs([...(parsed.personas || []), ...newPersonas]).map(p => ({
+      personas: withUIDs(parsed.personas || []).map(p => ({
         ...p,
         phones: p.phones || (p.phone ? [{ value: p.phone, label: "Personal" }] : []),
         emails: p.emails || (p.email ? [{ value: p.email, label: "Personal" }] : []),
       })),
-      entities: withUIDs([...(parsed.entities || []), ...newEntities]).map(e => ({
+      entities: withUIDs(parsed.entities || []).map(e => ({
         ...e,
         phones: e.phones || (e.phone ? [{ value: e.phone, label: "Personal" }] : []),
         emails: e.emails || (e.email ? [{ value: e.email, label: "Personal" }] : []),
         schedule: e.schedule || [],
       })),
       interactions: parsed.interactions || {},
-      tasks: mergedTasks,
+      tasks: parsed.tasks || {},
       changelog: parsed.changelog || {},
       segments: parsed.segments || [],
       attachments: parsed.attachments || {},
@@ -749,12 +745,12 @@ const App = () => {
     return () => window.removeEventListener("storage", onStorage);
   }, [cryptoKey, dataReady]);
 
-  // Periodic Airtable sync every 60 seconds to pick up teammate changes
+  // Periodic Airtable sync every 2 minutes to pick up teammate changes
   useEffect(() => {
     if (!dataReady || !data) return;
-    const interval = setInterval(syncFromAirtable, 30000);
+    const interval = setInterval(syncFromAirtable, 120000);
     return () => clearInterval(interval);
-  }, [dataReady]);
+  }, [dataReady, syncFromAirtable]);
 
   // Auto-logout on inactivity (1 hour)
   const INACTIVITY_MS = 60 * 60 * 1000;
