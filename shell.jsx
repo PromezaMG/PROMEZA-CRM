@@ -288,7 +288,7 @@ const Topbar = ({ t, lang, setLang, query, setQuery, onSearchSubmit, onSettings,
 
     // UID search: pure digits (with or without #)
     if (/^\d+$/.test(stripped)) {
-      const personas = data.personas.filter(p => (p.uid || "").startsWith(stripped)).slice(0, 5);
+      const personas = data.personas.filter(p => (p.uid || "").startsWith(stripped)).slice(0, 8);
       const entities = data.entities.filter(e => (e.uid || "").startsWith(stripped)).slice(0, 4);
       return { personas, entities, projects: [], total: personas.length + entities.length };
     }
@@ -297,33 +297,63 @@ const Topbar = ({ t, lang, setLang, query, setQuery, onSearchSubmit, onSettings,
     const vidP = (p) => (p.id.toUpperCase() + "-" + Math.abs(p.id.charCodeAt(1) * 7919) % 999999);
     const vidE = (e) => (e.id.toUpperCase() + "-" + Math.abs(e.id.charCodeAt(1) * 8819) % 999999);
     if (/^[pe]\d+-\d+$/i.test(q)) {
-      const personas = data.personas.filter(p => vidP(p).toLowerCase() === q).slice(0, 5);
-      const entities = data.entities.filter(e => vidE(e).toLowerCase() === q).slice(0, 5);
+      const personas = data.personas.filter(p => vidP(p).toLowerCase() === q).slice(0, 8);
+      const entities = data.entities.filter(e => vidE(e).toLowerCase() === q).slice(0, 8);
       return { personas, entities, projects: [], total: personas.length + entities.length };
     }
 
-    const matchP = (p) =>
-      norm(p.first + " " + p.last).includes(q) ||
-      norm((p.emails || []).map(e => e.value || "").concat([p.email || ""]).join(" ")).includes(q) ||
-      norm((p.phones || []).map(ph => ph.value || "").concat([p.phone || ""]).join("").replace(/\D/g, "")).includes(q.replace(/\D/g, "")) ||
-      norm(p.city).includes(q) ||
-      norm(p.role).includes(q) ||
-      vidP(p).toLowerCase().includes(q) ||
-      (p.tags || []).some(tg => norm(tg).includes(q));
-    const matchE = (e) =>
-      norm(e.name).includes(q) ||
-      norm((e.emails || []).map(em => em.value || "").concat([e.email || ""]).join(" ")).includes(q) ||
-      norm(e.city).includes(q) ||
-      norm((e.phones || []).map(ph => ph.value || "").concat([e.phone || ""]).join(" ")).includes(q) ||
-      vidE(e).toLowerCase().includes(q);
-    const matchPr = (pr) =>
-      norm(pr.name).includes(q) ||
-      norm(pr.description).includes(q) ||
-      norm(pr.location).includes(q);
-    const personas = data.personas.filter(matchP).slice(0, 5);
-    const entities = data.entities.filter(matchE).slice(0, 4);
+    // Multi-word search: ALL words must appear somewhere in the contact's fields.
+    // "fabian garza" finds "Fabian Jesus Garza" because both words are present.
+    const words = q.split(/\s+/).filter(Boolean);
+    const allWords = (haystack) => words.every(w => haystack.includes(w));
+
+    const searchStrP = (p) => [
+      p.first, p.last,
+      (p.emails || []).map(e => e.value || "").concat([p.email || ""]).join(" "),
+      (p.phones || []).map(ph => ph.value || "").concat([p.phone || ""]).join(" "),
+      p.city, p.county, p.state, p.country,
+      (p.roles || []).join(" "), p.role,
+      (p.tags || []).join(" "),
+    ].map(norm).join(" ");
+
+    const matchP = (p) => {
+      const s = searchStrP(p);
+      // Exact phrase first, then all-words fallback
+      return s.includes(q) || allWords(s);
+    };
+
+    const searchStrE = (e) => [
+      e.name,
+      (e.emails || []).map(em => em.value || "").concat([e.email || ""]).join(" "),
+      e.city, e.county, e.state, e.country,
+      (e.phones || []).map(ph => ph.value || "").concat([e.phone || ""]).join(" "),
+      (e.tags || []).join(" "),
+    ].map(norm).join(" ");
+
+    const matchE = (e) => {
+      const s = searchStrE(e);
+      return s.includes(q) || allWords(s);
+    };
+
+    const matchPr = (pr) => {
+      const s = [pr.name, pr.description, pr.location].map(norm).join(" ");
+      return s.includes(q) || allWords(s);
+    };
+
+    // Sort: exact name match first, then other matches
+    const exactNameFirst = (arr, nameFn) => {
+      const exact = [], other = [];
+      arr.forEach(item => (norm(nameFn(item)).includes(q) ? exact : other).push(item));
+      return [...exact, ...other];
+    };
+
+    const allMatchP = data.personas.filter(matchP);
+    const allMatchE = data.entities.filter(matchE);
+    const sorted = exactNameFirst(allMatchP, p => p.first + " " + p.last);
+    const personas = sorted.slice(0, 8);
+    const entities = exactNameFirst(allMatchE, e => e.name).slice(0, 4);
     const projects = (data.projects || []).filter(matchPr).slice(0, 3);
-    return { personas, entities, projects, total: personas.length + entities.length + projects.length };
+    return { personas, entities, projects, total: allMatchP.length + allMatchE.length + projects.length };
   }, [query, data]);
 
   const closeSearch = () => { setShowSearch(false); };
@@ -465,13 +495,7 @@ const Topbar = ({ t, lang, setLang, query, setQuery, onSearchSubmit, onSettings,
                         </div>
                       );
                     })}
-                    {data.personas.filter(p => {
-                      const q = query.trim().toLowerCase();
-                      const stripped = q.replace(/^#/, "");
-                      if (/^\d+$/.test(stripped)) return (p.uid || "").startsWith(stripped);
-                      const norm = s => (s || "").toLowerCase();
-                      return norm(p.first + " " + p.last).includes(q) || norm(p.email).includes(q) || norm(p.city).includes(q);
-                    }).length > 5 && (
+                    {searchResults.total > 8 && (
                       <div style={{ padding: "7px 16px", fontSize: 12, color: "var(--accent)", fontWeight: 600, cursor: "pointer", textAlign: "center" }}
                         onClick={() => { onSearchSubmit(); closeSearch(); }}>
                         Ver todos los resultados →

@@ -313,8 +313,10 @@ const PersonasList = ({ t, lang, data, go, onImportPersonas, globalQ = "", onBul
       const sq = query.trim().toLowerCase();
       const stripped = sq.replace(/^#/, "");
       if (/^\d+$/.test(stripped)) return (p.uid || "").startsWith(stripped);
-      const searchStr = (fullName(p) + " " + (p.email||"") + " " + (p.phone||"") + " " + (p.city||"") + " " + (p.tags||[]).join(" ")).toLowerCase();
-      return searchStr.includes(sq);
+      const searchStr = (fullName(p) + " " + (p.email||"") + " " + (p.phone||"") + " " + (p.city||"") + " " + (p.county||"") + " " + (p.state||"") + " " + (p.tags||[]).join(" ")).toLowerCase();
+      // Multi-word: exact phrase OR all words present anywhere
+      const words = sq.split(/\s+/).filter(Boolean);
+      return searchStr.includes(sq) || words.every(w => searchStr.includes(w));
     };
     if (!checkQ(q) || !checkQ(globalQ)) return false;
     return true;
