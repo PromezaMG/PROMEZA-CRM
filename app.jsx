@@ -727,15 +727,21 @@ const App = () => {
       setDataReady(true);
       // Prevent Airtable auto-sync from overwriting clean seed data
       localStorage.setItem('promeza_last_load', new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString());
+      // Free the 3.3MB seed object from memory — data is now in React state
+      try { delete window.PROMEZA_DATA; } catch(e) {}
     };
     if (userEmail) initData();
   }, [userEmail]);
 
   useEffect(() => {
     if (!data || !cryptoKey) return;
-    window.CryptoUtils.encrypt(JSON.stringify(data), cryptoKey).then(enc => {
-      localStorage.setItem("promeza_data_enc", enc);
-    }).catch(console.error);
+    // Debounce: wait 2s after last change so rapid setData() calls don't each block the main thread
+    const timer = setTimeout(() => {
+      window.CryptoUtils.encrypt(JSON.stringify(data), cryptoKey).then(enc => {
+        localStorage.setItem("promeza_data_enc", enc);
+      }).catch(console.error);
+    }, 2000);
+    return () => clearTimeout(timer);
   }, [data, cryptoKey]);
 
   // Cross-tab sync: when another tab saves to localStorage, reload data here

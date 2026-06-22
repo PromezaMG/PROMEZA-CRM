@@ -291,12 +291,12 @@ const PersonasList = ({ t, lang, data, go, onImportPersonas, globalQ = "", onBul
   const [page, setPage] = React.useState(0);
   const PAGE_SIZE = 100;
 
-  const countries = ["all", ...new Set(data.personas.map(p => p.country).filter(Boolean))];
+  const countries = React.useMemo(() => ["all", ...new Set(data.personas.map(p => p.country).filter(Boolean))], [data.personas]);
   const roles = ["all", ...Object.keys(t.roles)];
 
   const stageOf = (p) => p.stage || (p.status === "inactivo" ? "inhabilitado" : "activo");
 
-  const rows = data.personas.filter(p => {
+  const rows = React.useMemo(() => data.personas.filter(p => {
     if (role !== "all" && !(p.roles ? p.roles.includes(role) : p.role === role)) return false;
     if (country !== "all" && p.country !== country) return false;
     if (status !== "all" && p.status !== status) return false;
@@ -318,7 +318,7 @@ const PersonasList = ({ t, lang, data, go, onImportPersonas, globalQ = "", onBul
     };
     if (!checkQ(q) || !checkQ(globalQ)) return false;
     return true;
-  });
+  }), [data.personas, role, country, status, stageFilter, langFilter, city, countyFilter, zip, tagFilter, emailFilter, phoneFilter, q, globalQ]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const activeFilters = [role !== "all", country !== "all", status !== "all", stageFilter !== "all", langFilter !== "all", city, countyFilter, zip, tagFilter, emailFilter, phoneFilter, q].filter(Boolean).length;
 
@@ -348,7 +348,7 @@ const PersonasList = ({ t, lang, data, go, onImportPersonas, globalQ = "", onBul
     setSegmentName(""); setSavingSegment(false);
   };
 
-  const entityById = Object.fromEntries(data.entities.map(e => [e.id, e]));
+  const entityById = React.useMemo(() => Object.fromEntries(data.entities.map(e => [e.id, e])), [data.entities]);
 
   const toggleSelect = (e, id) => {
     e.stopPropagation();

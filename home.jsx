@@ -31,38 +31,66 @@ const Home = ({ t, lang, data, go }) => {
   const today = new Date().toISOString().slice(0, 10);
   const stageOf = (p) => p.stage || (p.status === "inactivo" ? "inhabilitado" : "activo");
 
-  // KPIs
-  const allTasks = Object.values(data.tasks || {}).flat();
-  const pendingTasks = allTasks.filter(tk => !tk.done).length;
-  const overdueTasks = allTasks.filter(tk => !tk.done && tk.due && tk.due < today).length;
-  const projects = data.projects || [];
-  const activeProjects = projects.filter(pr => pr.status === "activo").length;
-  const activePersonas = personas.filter(p => stageOf(p) !== "inhabilitado").length;
-  const inhabilitados = personas.filter(p => stageOf(p) === "inhabilitado").length;
-  const porRevisar = personas.filter(p => window.hasContactIssue ? window.hasContactIssue(p) : false).length;
+  // Memoize all O(n) persona/entity computations — only rerun when contacts/entities actually change
+  const personaStats = useMemo(() => {
+    const entityTypeCounts = {};
+    entities.forEach(e => { entityTypeCounts[e.type] = (entityTypeCounts[e.type] || 0) + 1; });
+    const topEntityTypes = Object.entries(entityTypeCounts).sort((a, b) => b[1] - a[1]).slice(0, 6);
+    const maxEntityType = topEntityTypes.length > 0 ? topEntityTypes[0][1] : 1;
 
-  // Stage breakdown
-  const stageActivo = personas.filter(p => stageOf(p) === "activo").length;
-  const stageRevisar = personas.filter(p => stageOf(p) === "revisar").length;
+    const entityContactCount = {};
+    personas.forEach(p => (p.entities || []).forEach(e => { entityContactCount[e.id] = (entityContactCount[e.id] || 0) + 1; }));
+    const topEntitiesByCount = entities
+      .map(e => ({ ...e, count: entityContactCount[e.id] || 0 }))
+      .filter(e => e.count > 0).sort((a, b) => b.count - a.count).slice(0, 5);
+    const maxEntityCount = topEntitiesByCount.length > 0 ? topEntitiesByCount[0].count : 1;
+
+    const cityCounts = {};
+    personas.forEach(p => { if (p.city) cityCounts[p.city] = (cityCounts[p.city] || 0) + 1; });
+    const topCities = Object.entries(cityCounts).sort((a, b) => b[1] - a[1]).slice(0, 6);
+    const maxCity = topCities.length > 0 ? Math.max(...topCities.map(([, c]) => c)) : 1;
+
+    const stageActivo = personas.filter(p => stageOf(p) === "activo").length;
+    const stageRevisar = personas.filter(p => stageOf(p) === "revisar").length;
+    const inhabilitados = personas.filter(p => stageOf(p) === "inhabilitado").length;
+    const activePersonas = personas.length - inhabilitados;
+    const porRevisar = personas.filter(p => window.hasContactIssue ? window.hasContactIssue(p) : false).length;
+
+    const recentPersonas = [...personas]
+      .sort((a, b) => (b.lastContact || "").localeCompare(a.lastContact || "")).slice(0, 6);
+
+    const recentlyAdded = [
+      ...personas.map(p => ({ type: "persona", item: p, date: p.lastContact || "" })),
+      ...entities.map(e => ({ type: "entity", item: e, date: e.lastContact || e.founded || "" })),
+    ].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 5);
+
+    const todayDate = new Date();
+    const dayOfYear = (d) => Math.floor((d - new Date(d.getFullYear(), 0, 0)) / 86400000);
+    const todayDOY = dayOfYear(todayDate);
+    const bdays = personas.filter(p => p.birthday).map(p => {
+      const [, m, d] = p.birthday.split("-").map(n => parseInt(n));
+      const dt = new Date(todayDate.getFullYear(), m - 1, d);
+      let diff = dayOfYear(dt) - todayDOY;
+      if (diff < 0) diff += 365;
+      return { p, diff, dt };
+    }).sort((a, b) => a.diff - b.diff).slice(0, 5);
+
+    return { topEntityTypes, maxEntityType, topEntitiesByCount, maxEntityCount, topCities, maxCity, stageActivo, stageRevisar, inhabilitados: inhabilitados, activePersonas, porRevisar, recentPersonas, recentlyAdded, bdays };
+  }, [personas, entities]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const { topEntityTypes, maxEntityType, topEntitiesByCount, maxEntityCount, topCities, maxCity, stageActivo, stageRevisar, inhabilitados, activePersonas, porRevisar, recentPersonas, recentlyAdded, bdays } = personaStats;
   const stageInhabilitado = inhabilitados;
 
-  // Entity type counts
-  const entityTypeCounts = {};
-  entities.forEach(e => { entityTypeCounts[e.type] = (entityTypeCounts[e.type] || 0) + 1; });
-  const topEntityTypes = Object.entries(entityTypeCounts).sort((a, b) => b[1] - a[1]).slice(0, 6);
-  const maxEntityType = topEntityTypes.length > 0 ? topEntityTypes[0][1] : 1;
   const ENTITY_LABELS = { iglesia: "Iglesia", ong: "ONG", escuela: "Escuela", universidad: "Universidad", sinagoga: "Sinagoga", estudio: "Estudio", oficina: "Oficina", ministerio: "Ministerio" };
 
-  // Top entities by contact count
-  const entityContactCount = {};
-  personas.forEach(p => (p.entities || []).forEach(e => { entityContactCount[e.id] = (entityContactCount[e.id] || 0) + 1; }));
-  const topEntitiesByCount = entities
-    .map(e => ({ ...e, count: entityContactCount[e.id] || 0 }))
-    .filter(e => e.count > 0).sort((a, b) => b.count - a.count).slice(0, 5);
-  const maxEntityCount = topEntitiesByCount.length > 0 ? topEntitiesByCount[0].count : 1;
+  // Tasks/projects/activity — depends on tasks/changelog/interactions, not personas
+  const allTasks = useMemo(() => Object.values(data.tasks || {}).flat(), [data.tasks]);
+  const pendingTasks = useMemo(() => allTasks.filter(tk => !tk.done).length, [allTasks]);
+  const overdueTasks = useMemo(() => allTasks.filter(tk => !tk.done && tk.due && tk.due < today).length, [allTasks, today]);
+  const projects = data.projects || [];
+  const activeProjects = projects.filter(pr => pr.status === "activo").length;
 
-  // Overdue tasks with owner names
-  const overdueTasksList = allTasks
+  const overdueTasksList = useMemo(() => allTasks
     .filter(tk => !tk.done && tk.due && tk.due < today)
     .sort((a, b) => a.due.localeCompare(b.due)).slice(0, 5)
     .map(tk => {
@@ -75,36 +103,25 @@ const Home = ({ t, lang, data, go }) => {
         }
       }
       return { ...tk, personaName };
+    }), [allTasks, data.tasks, personas, today]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const { activityByDay, maxActivity, totalActivity } = useMemo(() => {
+    const last14 = Array.from({ length: 14 }, (_, i) => {
+      const d = new Date(); d.setDate(d.getDate() - 13 + i);
+      return d.toISOString().slice(0, 10);
     });
-
-  // Activity last 14 days
-  const last14 = Array.from({ length: 14 }, (_, i) => {
-    const d = new Date(); d.setDate(d.getDate() - 13 + i);
-    return d.toISOString().slice(0, 10);
-  });
-  const activityByDay = {};
-  last14.forEach(d => { activityByDay[d] = 0; });
-  Object.values(data.changelog || {}).flat().forEach(e => {
-    const d = (e.date || "").slice(0, 10);
-    if (activityByDay[d] !== undefined) activityByDay[d]++;
-  });
-  Object.values(data.interactions || {}).flat().forEach(e => {
-    const d = (e.date || "").slice(0, 10);
-    if (activityByDay[d] !== undefined) activityByDay[d]++;
-  });
-  const maxActivity = Math.max(1, ...Object.values(activityByDay));
-  const totalActivity = Object.values(activityByDay).reduce((a, b) => a + b, 0);
-
-  // Top cities
-  const cityCounts = {};
-  personas.forEach(p => { if (p.city) cityCounts[p.city] = (cityCounts[p.city] || 0) + 1; });
-  const topCities = Object.entries(cityCounts).sort((a, b) => b[1] - a[1]).slice(0, 6);
-  const maxCity = topCities.length > 0 ? Math.max(...topCities.map(([, c]) => c)) : 1;
-
-  const recentlyAdded = [
-    ...personas.map(p => ({ type: "persona", item: p, date: p.lastContact || "" })),
-    ...data.entities.map(e => ({ type: "entity", item: e, date: e.lastContact || e.founded || "" })),
-  ].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 5);
+    const abd = {};
+    last14.forEach(d => { abd[d] = 0; });
+    Object.values(data.changelog || {}).flat().forEach(e => {
+      const d = (e.date || "").slice(0, 10);
+      if (abd[d] !== undefined) abd[d]++;
+    });
+    Object.values(data.interactions || {}).flat().forEach(e => {
+      const d = (e.date || "").slice(0, 10);
+      if (abd[d] !== undefined) abd[d]++;
+    });
+    return { activityByDay: abd, maxActivity: Math.max(1, ...Object.values(abd)), totalActivity: Object.values(abd).reduce((a, b) => a + b, 0) };
+  }, [data.changelog, data.interactions]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const in30 = new Date(); in30.setDate(in30.getDate() + 30);
   const in30str = in30.toISOString().slice(0, 10);
@@ -114,20 +131,6 @@ const Home = ({ t, lang, data, go }) => {
   const upcomingTasks = allTasks
     .filter(tk => !tk.done && tk.due && tk.due >= today && tk.due <= in30str)
     .sort((a, b) => a.due.localeCompare(b.due)).slice(0, 3);
-
-  const recentPersonas = [...personas]
-    .sort((a, b) => (b.lastContact || "").localeCompare(a.lastContact || "")).slice(0, 6);
-
-  const todayDate = new Date();
-  const dayOfYear = (d) => Math.floor((d - new Date(d.getFullYear(), 0, 0)) / 86400000);
-  const todayDOY = dayOfYear(todayDate);
-  const bdays = personas.filter(p => p.birthday).map(p => {
-    const [, m, d] = p.birthday.split("-").map(n => parseInt(n));
-    const dt = new Date(todayDate.getFullYear(), m - 1, d);
-    let diff = dayOfYear(dt) - todayDOY;
-    if (diff < 0) diff += 365;
-    return { p, diff, dt };
-  }).sort((a, b) => a.diff - b.diff).slice(0, 5);
 
   const goals = (data.goals || []).filter(g => !g.archived);
   const getProjType = (id) => {
