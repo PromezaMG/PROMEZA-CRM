@@ -692,32 +692,28 @@ const App = () => {
       if (!key) { setNeedsUnlock(true); setDataReady(true); return; }
       setCryptoKey(key);
 
-      // If real data has never been imported, skip localStorage entirely.
-      // The import useEffect below will fetch the real data and fill it in.
-      if (!localStorage.getItem('promeza_real_data_v1')) {
-        setData({ personas: [], entities: [], tasks: {}, interactions: {}, projects: [], campaigns: [], calendarEvents: [], comments: {}, attachments: {}, changelog: {}, goals: [], segments: [] });
-        setDataReady(true);
-        return;
+      // Try to load from localStorage if real data was previously imported
+      if (localStorage.getItem('promeza_real_data_v1')) {
+        try {
+          const enc = localStorage.getItem("promeza_data_enc");
+          if (enc) {
+            const json = await window.CryptoUtils.decrypt(enc, key);
+            const loaded = processLoadedData(JSON.parse(json));
+            // Verify we actually have the real dataset (fake/demo data had only 62 contacts)
+            if ((loaded.personas || []).length >= 200) {
+              setData(loaded);
+              setDataReady(true);
+              syncFromAirtable();
+              return;
+            }
+          }
+        } catch (err) { console.error("Data load error:", err); }
+        // Data missing or too small — clear flag so import runs again
+        localStorage.removeItem('promeza_real_data_v1');
       }
 
-      try {
-        const enc = localStorage.getItem("promeza_data_enc");
-        if (enc) {
-          const json = await window.CryptoUtils.decrypt(enc, key);
-          setData(processLoadedData(JSON.parse(json)));
-          setDataReady(true);
-          syncFromAirtable();
-          return;
-        }
-        const old = localStorage.getItem("promeza_data");
-        if (old) {
-          setData(processLoadedData(JSON.parse(old)));
-          setDataReady(true);
-          localStorage.removeItem("promeza_data");
-          return;
-        }
-      } catch (err) { console.error("Data load error:", err); }
-      setData(freshData());
+      // No valid real data yet — show empty state, let import useEffect handle it
+      setData({ personas: [], entities: [], tasks: {}, interactions: {}, projects: [], campaigns: [], calendarEvents: [], comments: {}, attachments: {}, changelog: {}, goals: [], segments: [] });
       setDataReady(true);
     };
     if (userEmail) initData();
@@ -728,7 +724,7 @@ const App = () => {
     if (!dataReady || !cryptoKey) return;
     if (localStorage.getItem('promeza_real_data_v1')) return;
     setImportBanner('loading');
-    fetch('./import-data.json?v=68&nc=' + Date.now())
+    fetch('./import-data.json?v=69&nc=' + Date.now())
       .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
       .then(d => {
         if ((d.personas || []).length > 100) {
