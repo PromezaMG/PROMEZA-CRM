@@ -306,6 +306,7 @@ const FField = ({ label, children }) => (
 const PersonasList = ({ t, lang, data, go, onImportPersonas, globalQ = "", onBulkDelete, onBulkUpdateStatus, onBulkAddTag, onBulkAddTask, segments, onAddSegment, onDeleteSegment, users, currentUser }) => {
   const [role, setRole] = React.useState("all");
   const [country, setCountry] = React.useState("all");
+  const [stateFilter, setStateFilter] = React.useState("all");
   const [status, setStatus] = React.useState("all");
   const [stageFilter, setStageFilter] = React.useState("all");
   const [langFilter, setLangFilter] = React.useState("all");
@@ -331,6 +332,7 @@ const PersonasList = ({ t, lang, data, go, onImportPersonas, globalQ = "", onBul
   const PAGE_SIZE = 100;
 
   const countries = React.useMemo(() => ["all", ...new Set(data.personas.map(p => p.country).filter(Boolean))], [data.personas]);
+  const states = React.useMemo(() => ["all", ...[...new Set(data.personas.map(p => p.state).filter(Boolean))].sort()], [data.personas]);
   const roles = ["all", ...Object.keys(t.roles)];
 
   const stageOf = (p) => p.stage || (p.status === "inactivo" ? "inhabilitado" : "activo");
@@ -338,6 +340,7 @@ const PersonasList = ({ t, lang, data, go, onImportPersonas, globalQ = "", onBul
   const rows = React.useMemo(() => data.personas.filter(p => {
     if (role !== "all" && !(p.roles ? p.roles.includes(role) : p.role === role)) return false;
     if (country !== "all" && p.country !== country) return false;
+    if (stateFilter !== "all" && p.state !== stateFilter) return false;
     if (status !== "all" && p.status !== status) return false;
     if (stageFilter !== "all" && stageOf(p) !== stageFilter) return false;
     if (langFilter !== "all" && p.language !== langFilter) return false;
@@ -367,25 +370,25 @@ const PersonasList = ({ t, lang, data, go, onImportPersonas, globalQ = "", onBul
     };
     if (!checkQ(q) || !checkQ(globalQ)) return false;
     return true;
-  }), [data.personas, role, country, status, stageFilter, langFilter, city, countyFilter, zip, tagFilter, emailFilter, phoneFilter, q, globalQ]); // eslint-disable-line react-hooks/exhaustive-deps
+  }), [data.personas, role, country, stateFilter, status, stageFilter, langFilter, city, countyFilter, zip, tagFilter, emailFilter, phoneFilter, q, globalQ]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const activeFilters = [role !== "all", country !== "all", status !== "all", stageFilter !== "all", langFilter !== "all", city, countyFilter, zip, tagFilter, emailFilter, phoneFilter, q].filter(Boolean).length;
+  const activeFilters = [role !== "all", country !== "all", stateFilter !== "all", status !== "all", stageFilter !== "all", langFilter !== "all", city, countyFilter, zip, tagFilter, emailFilter, phoneFilter, q].filter(Boolean).length;
 
   // Reset to page 0 whenever any filter or search changes
-  React.useEffect(() => { setPage(0); }, [role, country, status, stageFilter, langFilter, city, countyFilter, zip, tagFilter, emailFilter, phoneFilter, q, globalQ]); // eslint-disable-line react-hooks/exhaustive-deps
+  React.useEffect(() => { setPage(0); }, [role, country, stateFilter, status, stageFilter, langFilter, city, countyFilter, zip, tagFilter, emailFilter, phoneFilter, q, globalQ]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const totalPages = Math.ceil(rows.length / PAGE_SIZE);
   const pageRows = rows.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
   const clearFilters = () => {
-    setRole("all"); setCountry("all"); setStatus("all"); setStageFilter("all"); setLangFilter("all");
+    setRole("all"); setCountry("all"); setStateFilter("all"); setStatus("all"); setStageFilter("all"); setLangFilter("all");
     setCity(""); setCountyFilter(""); setZip(""); setTagFilter(""); setEmailFilter(""); setPhoneFilter(""); setQ("");
   };
 
-  const currentFilters = { role, country, status, stageFilter, langFilter, city, countyFilter, zip, tagFilter, emailFilter, phoneFilter, q };
+  const currentFilters = { role, country, stateFilter, status, stageFilter, langFilter, city, countyFilter, zip, tagFilter, emailFilter, phoneFilter, q };
   const loadSegment = (seg) => {
     const f = seg.filters;
-    setRole(f.role || "all"); setCountry(f.country || "all"); setStatus(f.status || "all");
+    setRole(f.role || "all"); setCountry(f.country || "all"); setStateFilter(f.stateFilter || "all"); setStatus(f.status || "all");
     setStageFilter(f.stageFilter || "all"); setLangFilter(f.langFilter || "all");
     setCity(f.city || ""); setCountyFilter(f.countyFilter || ""); setZip(f.zip || ""); setTagFilter(f.tagFilter || "");
     setEmailFilter(f.emailFilter || ""); setPhoneFilter(f.phoneFilter || ""); setQ(f.q || "");
@@ -526,6 +529,11 @@ const PersonasList = ({ t, lang, data, go, onImportPersonas, globalQ = "", onBul
             <FField label={lang === "es" ? "País" : "Country"}>
               <select value={country} onChange={e => setCountry(e.target.value)}>
                 {countries.map(c => <option key={c} value={c}>{c === "all" ? (lang === "es" ? "Todos" : "All") : c}</option>)}
+              </select>
+            </FField>
+            <FField label={lang === "es" ? "Estado" : "State"}>
+              <select value={stateFilter} onChange={e => setStateFilter(e.target.value)}>
+                {states.map(s => <option key={s} value={s}>{s === "all" ? (lang === "es" ? "Todos" : "All") : s}</option>)}
               </select>
             </FField>
             <FField label={t.common.language}>
