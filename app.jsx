@@ -727,6 +727,19 @@ const App = () => {
           const sample = (loaded.personas || [])[0];
           const hasCorrectFormat = sample && (sample.first !== undefined || sample.last !== undefined);
           if ((loaded.personas || []).length >= 200 && hasCorrectFormat) {
+            // One-time merge of church contacts (v89) for existing users whose localStorage
+            // was saved before data_churches.js existed.
+            if (!localStorage.getItem('promeza_churches_v89') && window.PROMEZA_CHURCHES) {
+              const cd = window.PROMEZA_CHURCHES;
+              const exN = new Set(loaded.personas.map(p => ((p.first||'')+(p.last||'')).toLowerCase().replace(/\s/g,'')));
+              const exE = new Set(loaded.entities.map(e => (e.name||'').toLowerCase().trim()));
+              const newP = (cd.personas||[]).filter(p => !exN.has(((p.first||'')+(p.last||'')).toLowerCase().replace(/\s/g,'')));
+              const newE = (cd.entities||[]).filter(e => !exE.has((e.name||'').toLowerCase().trim()));
+              if (newP.length > 0) loaded.personas = [...loaded.personas, ...newP];
+              if (newE.length > 0) loaded.entities = [...loaded.entities, ...newE];
+              localStorage.setItem('promeza_churches_v89', '1');
+              console.log('PROMEZA: merged church contacts: +' + newP.length + ' personas, +' + newE.length + ' entities');
+            }
             setData(loaded);
             setDataReady(true);
             return;
