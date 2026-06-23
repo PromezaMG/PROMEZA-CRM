@@ -839,11 +839,20 @@ const App = () => {
               if (synced > 0) console.log('PROMEZA: synced ' + synced + ' contacts from data.js (column-mapping fix)');
               localStorage.setItem('promeza_p5sync_v95', '1');
             }
-            // Email-based sync (v97): catches contacts whose stored email was corrupted
-            // so v95 ID-based migration couldn't match them. Searches by any valid email
-            // in the stored contact; also catches contacts with no stored email but
-            // matching ID (stored email was garbage text without "@").
-            if (!localStorage.getItem('promeza_emailsync_v97') && window.PROMEZA_DATA) {
+            // v98: restore any pch_xxx contacts corrupted by v97, then re-run
+            // email-based sync restricted to p5xxx contacts only.
+            if (!localStorage.getItem('promeza_fullsync_v98') && window.PROMEZA_DATA) {
+              // Step A: restore pch_xxx from data_churches.js (source of truth)
+              if (window.PROMEZA_CHURCHES) {
+                const churchSrc = new Map((window.PROMEZA_CHURCHES.personas || []).map(p => [p.id, p]));
+                loaded.personas = loaded.personas.map(p => {
+                  if (!p.id || !p.id.startsWith('pch_')) return p;
+                  const src = churchSrc.get(p.id);
+                  if (!src) return p;
+                  return { ...p, first: src.first, last: src.last, titulo: src.titulo, roles: src.roles, role: src.role, church: src.church };
+                });
+              }
+              // Step B: email-based sync for p5xxx contacts only
               const srcByEmail = new Map();
               const srcById = new Map();
               (window.PROMEZA_DATA.personas || []).forEach(src => {
@@ -853,14 +862,12 @@ const App = () => {
               });
               let emailSynced = 0;
               loaded.personas = loaded.personas.map(p => {
-                // Gather all valid emails from stored contact
+                if (!p.id || !p.id.match(/^p\d+$/)) return p; // only p5xxx — never touch pch_xxx
                 const storedEmails = [p.email, p.email2, ...((p.emails || []).map(e => e.value || ''))]
                   .filter(e => e && e.includes('@')).map(e => e.toLowerCase().trim());
-                // Method 1: email-based match
                 let src = null;
                 for (const se of storedEmails) { if (srcByEmail.has(se)) { src = srcByEmail.get(se); break; } }
-                // Method 2: ID match when stored has no valid email (email field was corrupted with garbage text)
-                if (!src && storedEmails.length === 0 && p.id && p.id.match(/^p\d+$/)) {
+                if (!src && storedEmails.length === 0) {
                   const byId = srcById.get(p.id);
                   if (byId && byId.email && byId.email.includes('@')) src = byId;
                 }
@@ -881,8 +888,8 @@ const App = () => {
                   website: src.website || p.website,
                 };
               });
-              if (emailSynced > 0) console.log('PROMEZA: emailsync fixed ' + emailSynced + ' contacts');
-              localStorage.setItem('promeza_emailsync_v97', '1');
+              if (emailSynced > 0) console.log('PROMEZA: fullsync fixed ' + emailSynced + ' contacts');
+              localStorage.setItem('promeza_fullsync_v98', '1');
             }
             setData(loaded);
             setDataReady(true);
