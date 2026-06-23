@@ -566,22 +566,26 @@ const App = () => {
   const processLoadedData = (parsed) => {
     // Normalize fields only — do NOT merge PROMEZA_DATA into existing data.
     // PROMEZA_DATA is only used as a fallback when localStorage has no real data.
-    const hasDigit = (v) => /\d/.test(v || "");
+    const hasDigit = (v) => /\d/.test(String(v || ""));
     const cleanPhone = (v) => hasDigit(v) ? v : "";
     const fixZipCity = (zip, city) => {
-      // If ZIP has no digits it's a city name in the wrong column — move it
-      if (zip && !hasDigit(zip)) return { zip: "", city: city || zip };
-      return { zip: zip || "", city: city || "" };
+      const z = String(zip || ""), c = String(city || "");
+      if (z && !hasDigit(z)) return { zip: "", city: c || z };
+      return { zip: z, city: c };
+    };
+    const cleanPhones = (phones, phone) => {
+      const raw = Array.isArray(phones) ? phones
+        : (phone ? [{ value: phone, label: "Personal" }] : []);
+      return raw.filter(ph => ph && ph.value && hasDigit(ph.value));
     };
     return {
       ...parsed,
       personas: withUIDs(parsed.personas || []).map(p => {
         const { zip, city } = fixZipCity(p.zip, p.city);
-        const rawPhones = p.phones || (p.phone ? [{ value: p.phone, label: "Personal" }] : []);
         return {
           ...p,
           phone: cleanPhone(p.phone),
-          phones: rawPhones.filter(ph => hasDigit(ph.value)),
+          phones: cleanPhones(p.phones, p.phone),
           emails: p.emails || (p.email ? [{ value: p.email, label: "Personal" }] : []),
           entities: p.entities || [],
           tags: p.tags || [],
@@ -591,11 +595,10 @@ const App = () => {
       }),
       entities: withUIDs(parsed.entities || []).map(e => {
         const { zip, city } = fixZipCity(e.zip, e.city);
-        const rawPhones = e.phones || (e.phone ? [{ value: e.phone, label: "Personal" }] : []);
         return {
           ...e,
           phone: cleanPhone(e.phone),
-          phones: rawPhones.filter(ph => hasDigit(ph.value)),
+          phones: cleanPhones(e.phones, e.phone),
           emails: e.emails || (e.email ? [{ value: e.email, label: "Personal" }] : []),
           schedule: e.schedule || [],
           tags: e.tags || [],
@@ -788,7 +791,8 @@ const App = () => {
         segments: seed.segments || [],
       };
       // Normalize phone/email arrays expected by UI components
-      const seeded = processLoadedData(seedData);
+      let seeded;
+      try { seeded = processLoadedData(seedData); } catch(e) { console.error("processLoadedData seed error:", e); seeded = seedData; }
       setData(seeded);
       setDataReady(true);
       localStorage.setItem('promeza_last_load', new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString());
