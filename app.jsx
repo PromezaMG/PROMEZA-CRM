@@ -566,22 +566,43 @@ const App = () => {
   const processLoadedData = (parsed) => {
     // Normalize fields only — do NOT merge PROMEZA_DATA into existing data.
     // PROMEZA_DATA is only used as a fallback when localStorage has no real data.
+    const hasDigit = (v) => /\d/.test(v || "");
+    const cleanPhone = (v) => hasDigit(v) ? v : "";
+    const fixZipCity = (zip, city) => {
+      // If ZIP has no digits it's a city name in the wrong column — move it
+      if (zip && !hasDigit(zip)) return { zip: "", city: city || zip };
+      return { zip: zip || "", city: city || "" };
+    };
     return {
       ...parsed,
-      personas: withUIDs(parsed.personas || []).map(p => ({
-        ...p,
-        phones: p.phones || (p.phone ? [{ value: p.phone, label: "Personal" }] : []),
-        emails: p.emails || (p.email ? [{ value: p.email, label: "Personal" }] : []),
-        entities: p.entities || [],
-        tags: p.tags || [],
-      })),
-      entities: withUIDs(parsed.entities || []).map(e => ({
-        ...e,
-        phones: e.phones || (e.phone ? [{ value: e.phone, label: "Personal" }] : []),
-        emails: e.emails || (e.email ? [{ value: e.email, label: "Personal" }] : []),
-        schedule: e.schedule || [],
-        tags: e.tags || [],
-      })),
+      personas: withUIDs(parsed.personas || []).map(p => {
+        const { zip, city } = fixZipCity(p.zip, p.city);
+        const rawPhones = p.phones || (p.phone ? [{ value: p.phone, label: "Personal" }] : []);
+        return {
+          ...p,
+          phone: cleanPhone(p.phone),
+          phones: rawPhones.filter(ph => hasDigit(ph.value)),
+          emails: p.emails || (p.email ? [{ value: p.email, label: "Personal" }] : []),
+          entities: p.entities || [],
+          tags: p.tags || [],
+          zip,
+          city,
+        };
+      }),
+      entities: withUIDs(parsed.entities || []).map(e => {
+        const { zip, city } = fixZipCity(e.zip, e.city);
+        const rawPhones = e.phones || (e.phone ? [{ value: e.phone, label: "Personal" }] : []);
+        return {
+          ...e,
+          phone: cleanPhone(e.phone),
+          phones: rawPhones.filter(ph => hasDigit(ph.value)),
+          emails: e.emails || (e.email ? [{ value: e.email, label: "Personal" }] : []),
+          schedule: e.schedule || [],
+          tags: e.tags || [],
+          zip,
+          city,
+        };
+      }),
       interactions: parsed.interactions || {},
       tasks: parsed.tasks || {},
       changelog: parsed.changelog || {},
