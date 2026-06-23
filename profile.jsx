@@ -185,20 +185,21 @@ const PersonProfile = ({ id, t, lang, data, go, addComment, onUpdatePerson, onEd
   }, [showCallMenu]);
   if (!p) return <div className="empty">Not found</div>;
 
-  const availableEntities = data.entities.filter(e => !p.entities.some(le => le.id === e.id));
+  const pEntities = p.entities || [];
+  const availableEntities = data.entities.filter(e => !pEntities.some(le => le.id === e.id));
 
   const doLinkEntity = () => {
     if (!linkEntityId) return;
-    onUpdatePerson && onUpdatePerson(p.id, { entities: [...p.entities, { id: linkEntityId, role: linkRole, roleOther: "" }] });
+    onUpdatePerson && onUpdatePerson(p.id, { entities: [...pEntities, { id: linkEntityId, role: linkRole, roleOther: "" }] });
     setLinking(false);
     setLinkEntityId("");
     setLinkRole("miembro");
   };
   const doUnlinkEntity = (entityId) => {
-    onUpdatePerson && onUpdatePerson(p.id, { entities: p.entities.filter(le => le.id !== entityId) });
+    onUpdatePerson && onUpdatePerson(p.id, { entities: pEntities.filter(le => le.id !== entityId) });
   };
 
-  const linkedEntities = p.entities.map(le => ({
+  const linkedEntities = pEntities.map(le => ({
     link: le, entity: data.entities.find(e => e.id === le.id),
   })).filter(x => x.entity);
 
@@ -664,7 +665,7 @@ const EntityProfile = ({ id, t, lang, data, go, addComment, onUpdateEntity, onUp
   if (!e) return <div className="empty">Not found</div>;
 
   const linkedPeople = data.personas
-    .map(p => ({ p, link: p.entities.find(le => le.id === e.id) }))
+    .map(p => ({ p, link: (p.entities || []).find(le => le.id === e.id) }))
     .filter(x => x.link);
 
   const children = data.entities.filter(c => c.parent === e.id);
@@ -678,7 +679,7 @@ const EntityProfile = ({ id, t, lang, data, go, addComment, onUpdateEntity, onUp
     const target = data.personas.find(p => p.id === linkPersonId);
     if (!target) return;
     onUpdatePerson && onUpdatePerson(linkPersonId, {
-      entities: [...target.entities, { id: e.id, role: linkRole, roleOther: "" }],
+      entities: [...(target.entities || []), { id: e.id, role: linkRole, roleOther: "" }],
     });
     setLinking(false);
     setLinkPersonId("");
@@ -688,7 +689,7 @@ const EntityProfile = ({ id, t, lang, data, go, addComment, onUpdateEntity, onUp
     const target = data.personas.find(p => p.id === personId);
     if (!target) return;
     onUpdatePerson && onUpdatePerson(personId, {
-      entities: target.entities.filter(le => le.id !== e.id),
+      entities: (target.entities || []).filter(le => le.id !== e.id),
     });
   };
 
@@ -719,7 +720,7 @@ const EntityProfile = ({ id, t, lang, data, go, addComment, onUpdateEntity, onUp
             <span><Icon name="pin" /> {e.city}, {e.country}</span>
             <span><Icon name="users" /> {linkedPeople.length} {t.common.relatedPersonas.toLowerCase()}</span>
             {e.size && <span>{e.size.toLocaleString()} {t.common.members}</span>}
-            {e.tags.map(tg => <span key={tg} className="tag-chip">{tg}</span>)}
+            {(e.tags || []).map(tg => <span key={tg} className="tag-chip">{tg}</span>)}
           </div>
           <div className="vid" style={{ marginTop: 6 }}>EID {e.id.toUpperCase()}-{Math.abs(e.id.charCodeAt(1) * 8819) % 999999}</div>
         </div>
