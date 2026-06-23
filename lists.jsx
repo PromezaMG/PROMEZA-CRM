@@ -865,6 +865,9 @@ const EntitiesList = ({ t, lang, data, go, onImportEntities, globalQ = "" }) => 
   const types = ["all", ...Object.keys(t.types)];
   const countries = ["all", ...new Set(data.entities.map(e => e.country).filter(Boolean))];
 
+  const E_STATE_NORM = {"Giorgia":"Georgia","IDAHO":"Idaho","Idaho":"Idaho","Miami":"Florida","m":null,"USA":null,"FL":"Florida","CA":"California","TX":"Texas","NY":"New York","GA":"Georgia","PA":"Pennsylvania","OH":"Ohio","IL":"Illinois","MI":"Michigan","NJ":"New Jersey","NC":"North Carolina","VA":"Virginia","WA":"Washington","AZ":"Arizona","TN":"Tennessee","MO":"Missouri","MD":"Maryland","WI":"Wisconsin","MN":"Minnesota","CO":"Colorado","AL":"Alabama","SC":"South Carolina","LA":"Louisiana","KY":"Kentucky","OR":"Oregon","OK":"Oklahoma","CT":"Connecticut","UT":"Utah","NV":"Nevada","AR":"Arkansas","MS":"Mississippi","KS":"Kansas","NM":"New Mexico","NE":"Nebraska","WV":"West Virginia","ID":"Idaho","HI":"Hawaii","NH":"New Hampshire","ME":"Maine","RI":"Rhode Island","MT":"Montana","DE":"Delaware","SD":"South Dakota","ND":"North Dakota","AK":"Alaska","VT":"Vermont","WY":"Wyoming","DC":"District of Columbia"};
+  const eNormState = (s) => { if (!s) return null; const n = E_STATE_NORM[s]; return n === undefined ? s : n; };
+
   const personasByEntity = {};
   data.personas.forEach(p => (p.entities || []).forEach(le => {
     personasByEntity[le.id] = (personasByEntity[le.id] || 0) + 1;
@@ -875,6 +878,7 @@ const EntitiesList = ({ t, lang, data, go, onImportEntities, globalQ = "" }) => 
     if (country !== "all" && e.country !== country) return false;
     if (status !== "all" && (e.status || "activo") !== status) return false;
     if (city && !(e.city || "").toLowerCase().includes(city.toLowerCase())) return false;
+    if (stateFilter && !(eNormState(e.state) || "").toLowerCase().includes(stateFilter.toLowerCase())) return false;
     if (countyFilter && !(e.county || "").toLowerCase().includes(countyFilter.toLowerCase())) return false;
     if (zip && !(e.zip || "").toLowerCase().includes(zip.toLowerCase())) return false;
     if (tagFilter && !(e.tags || []).some(tg => tg.toLowerCase().includes(tagFilter.toLowerCase()))) return false;
@@ -901,11 +905,11 @@ const EntitiesList = ({ t, lang, data, go, onImportEntities, globalQ = "" }) => 
     return true;
   });
 
-  const activeFilters = [type !== "all", country !== "all", status !== "all", city, countyFilter, zip, tagFilter, emailFilter, phoneFilter, dayFilter !== "all", q].filter(Boolean).length;
+  const activeFilters = [type !== "all", country !== "all", status !== "all", city, stateFilter, countyFilter, zip, tagFilter, emailFilter, phoneFilter, dayFilter !== "all", q].filter(Boolean).length;
 
   const clearFilters = () => {
     setType("all"); setCountry("all"); setStatus("all");
-    setCity(""); setCountyFilter(""); setZip(""); setTagFilter(""); setEmailFilter(""); setPhoneFilter(""); setDayFilter("all"); setQ("");
+    setCity(""); setStateFilter(""); setCountyFilter(""); setZip(""); setTagFilter(""); setEmailFilter(""); setPhoneFilter(""); setDayFilter("all"); setQ("");
   };
 
   const doExportCSV = () => {
@@ -1008,6 +1012,9 @@ const EntitiesList = ({ t, lang, data, go, onImportEntities, globalQ = "" }) => 
             </FField>
             <FField label={lang === "es" ? "Ciudad" : "City"}>
               <input value={city} onChange={e => setCity(e.target.value)} placeholder="Miami, Bogotá…" />
+            </FField>
+            <FField label={lang === "es" ? "Estado" : "State"}>
+              <input value={stateFilter} onChange={e => setStateFilter(e.target.value)} placeholder="Florida, Texas…" />
             </FField>
             <FField label={lang === "es" ? "Condado" : "County"}>
               <input value={countyFilter} onChange={e => setCountyFilter(e.target.value)} placeholder={lang === "es" ? "Ventura, Los Ángeles…" : "Ventura, Los Angeles…"} />
