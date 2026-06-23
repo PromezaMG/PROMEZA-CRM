@@ -228,17 +228,20 @@ const UnlockScreen = ({ email, onUnlock, onLogout }) => {
     try {
       const msalInstance = buildMSALInstance(cfg);
       if (!msalInstance) { setError("Error de configuración (clientId/tenantId inválido)."); setLoading(false); return; }
-      // Go directly to loginPopup — ssoSilent uses hidden iframes that can hang 10s+
-      const r = await msalInstance.loginPopup({ scopes: ["User.Read", "openid"], loginHint: email });
+      // prompt: "select_account" lets any @promeza.com user log in, not just the stored account
+      const r = await msalInstance.loginPopup({ scopes: ["User.Read", "openid"], prompt: "select_account" });
       const account = r?.account;
-      if (!account || account.username.toLowerCase() !== email.toLowerCase()) {
-        setError("La cuenta no coincide con la sesión activa.");
+      const loggedEmail = (account?.username || "").toLowerCase();
+      if (!loggedEmail || !loggedEmail.endsWith("@promeza.com")) {
+        setError("Solo se permiten cuentas @promeza.com.");
         setLoading(false);
         return;
       }
       const key = await deriveSharedKey(cfg.clientId, cfg.tenantId, cfg.extraKey || "");
       await storeSessionKey(key);
-      onUnlock();
+      // Update session to whoever just logged in (not necessarily same as stored email)
+      saveSession(loggedEmail);
+      onUnlock(loggedEmail);
     } catch (err) {
       if (!err.errorCode?.includes("cancelled") && !err.message?.includes("cancelled")) {
         setError("Error al verificar: " + (err.message || err.errorCode));
@@ -251,22 +254,22 @@ const UnlockScreen = ({ email, onUnlock, onLogout }) => {
     <div className="auth-veil">
       <div className="auth-card">
         <AuthBrand />
-        <div className="auth-title">Bienvenido de vuelta</div>
+        <div className="auth-title">Iniciar sesión</div>
         <div className="auth-sub" style={{ marginBottom: 24 }}>
-          Hola, <strong>{displayName}</strong>. Confirma tu identidad para continuar.
+          Elige tu cuenta <strong>@promeza.com</strong> para continuar.
         </div>
 
         {error && <div className="auth-error" style={{ marginBottom: 14 }}><Icon name="alert" size={14} /> {error}</div>}
 
         <button className="btn btn-primary btn-block auth-submit" onClick={doReauth} disabled={loading}
           style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }}>
-          {loading ? "Verificando…" : (<><MicrosoftLogo /> Continuar con Microsoft</>)}
+          {loading ? "Verificando…" : (<><MicrosoftLogo /> Elegir cuenta Microsoft</>)}
         </button>
 
         <div style={{ textAlign: "center", marginTop: 16 }}>
           <button type="button" onClick={onLogout}
             style={{ border: "none", background: "none", cursor: "pointer", fontSize: 12, color: "var(--ink-4)", fontFamily: "inherit", textDecoration: "underline" }}>
-            Cerrar sesión
+            Cerrar sesión completamente
           </button>
         </div>
 

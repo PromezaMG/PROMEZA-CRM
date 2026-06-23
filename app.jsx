@@ -755,13 +755,6 @@ const App = () => {
       setData(seeded);
       setDataReady(true);
       localStorage.setItem('promeza_last_load', new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString());
-      // Save immediately so data persists even if a crash cancels the debounced useEffect
-      try {
-        window.CryptoUtils.encrypt(JSON.stringify(seeded), key).then(enc => {
-          localStorage.setItem("promeza_data_enc", enc);
-          console.log("PROMEZA: seed data saved to localStorage");
-        }).catch(console.error);
-      } catch(e) {}
       try { delete window.PROMEZA_DATA; } catch(e) {}
     };
     if (userEmail) initData();
@@ -769,13 +762,23 @@ const App = () => {
 
   useEffect(() => {
     if (!data || !cryptoKey) return;
-    // Debounce: wait 2s after last change so rapid setData() calls don't each block the main thread
-    const timer = setTimeout(() => {
+    // Save when browser is idle so JSON.stringify(5MB) doesn't freeze the UI.
+    // requestIdleCallback defers to idle time; setTimeout is the Safari fallback.
+    const doSave = () => {
       window.CryptoUtils.encrypt(JSON.stringify(data), cryptoKey).then(enc => {
         localStorage.setItem("promeza_data_enc", enc);
       }).catch(console.error);
+    };
+    let timer;
+    if (typeof requestIdleCallback !== "undefined") {
+      timer = requestIdleCallback(doSave, { timeout: 4000 });
+    } else {
+      timer = setTimeout(doSave, 2000);
     }, 2000);
-    return () => clearTimeout(timer);
+    return () => {
+      if (typeof requestIdleCallback !== "undefined") cancelIdleCallback(timer);
+      else clearTimeout(timer);
+    };
   }, [data, cryptoKey]);
 
   // Cross-tab sync: when another tab saves to localStorage, reload data here
@@ -1338,7 +1341,8 @@ const App = () => {
   if (needsUnlock) {
     return <UnlockScreen
       email={userEmail}
-      onUnlock={async () => {
+      onUnlock={async (newEmail) => {
+        if (newEmail && newEmail !== userEmail) setUserEmail(newEmail);
         const key = await window.CryptoUtils.loadSessionKey();
         setCryptoKey(key);
         setNeedsUnlock(false);
