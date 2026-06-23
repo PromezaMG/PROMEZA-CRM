@@ -307,7 +307,6 @@ const PersonasList = ({ t, lang, data, go, onImportPersonas, globalQ = "", onBul
   const [role, setRole] = React.useState("all");
   const [country, setCountry] = React.useState("all");
   const [stateFilter, setStateFilter] = React.useState("all");
-  const [stateSearch, setStateSearch] = React.useState("");
   const [status, setStatus] = React.useState("all");
   const [stageFilter, setStageFilter] = React.useState("all");
   const [langFilter, setLangFilter] = React.useState("all");
@@ -524,6 +523,10 @@ const PersonasList = ({ t, lang, data, go, onImportPersonas, globalQ = "", onBul
             <FField label={lang === "es" ? "Ciudad" : "City"}>
               <input value={city} onChange={e => setCity(e.target.value)} placeholder="Miami, Bogotá…" />
             </FField>
+            <FField label={lang === "es" ? "Estado" : "State"}>
+              <input list="state-datalist" value={stateFilter === "all" ? "" : stateFilter} onChange={e => setStateFilter(e.target.value || "all")} placeholder="Florida, Texas…" />
+              <datalist id="state-datalist">{states.map(s => <option key={s} value={s} />)}</datalist>
+            </FField>
             <FField label={lang === "es" ? "Condado" : "County"}>
               <input value={countyFilter} onChange={e => setCountyFilter(e.target.value)} placeholder={lang === "es" ? "Ventura, Los Ángeles…" : "Ventura, Los Angeles…"} />
             </FField>
@@ -598,31 +601,6 @@ const PersonasList = ({ t, lang, data, go, onImportPersonas, globalQ = "", onBul
           </div>
         </div>
       )}
-
-      {/* State filter — always visible */}
-      <div style={{ display: "flex", gap: 6, alignItems: "center", marginBottom: 8, flexWrap: "nowrap" }}>
-        <span style={{ fontSize: 11, fontWeight: 600, color: "var(--ink-3)", textTransform: "uppercase", letterSpacing: ".05em", flexShrink: 0 }}>
-          {lang === "es" ? "Estado:" : "State:"}
-        </span>
-        <input
-          value={stateSearch}
-          onChange={e => setStateSearch(e.target.value)}
-          placeholder={lang === "es" ? "Buscar estado…" : "Search state…"}
-          style={{ fontSize: 12, padding: "3px 8px", borderRadius: 6, border: "1px solid var(--line)", fontFamily: "inherit", width: 130, flexShrink: 0 }}
-        />
-        <div style={{ display: "flex", gap: 6, alignItems: "center", overflowX: "auto", flexWrap: "nowrap", paddingBottom: 2 }}>
-          {!stateSearch && (
-            <button className={"chip " + (stateFilter === "all" ? "on" : "")} onClick={() => setStateFilter("all")} style={{ flexShrink: 0 }}>
-              {lang === "es" ? "Todos" : "All"}
-            </button>
-          )}
-          {states.filter(s => !stateSearch || s.toLowerCase().includes(stateSearch.toLowerCase())).map(s => (
-            <button key={s} className={"chip " + (stateFilter === s ? "on" : "")} onClick={() => { setStateFilter(s); setStateSearch(""); }} style={{ flexShrink: 0 }}>
-              {s}
-            </button>
-          ))}
-        </div>
-      </div>
 
       {/* Saved segments */}
       {(segments || []).length > 0 && (
