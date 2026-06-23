@@ -59,6 +59,97 @@ const Icon = ({ name, size = 16, className = "" }) => {
 
 window.Icon = Icon;
 
+// ─── Searchable picker (type-to-find, A-Z, with copy phone / copy ID) ───
+// Reusable combobox used to link a person to an entity (and vice versa).
+// items: array with .id ; getLabel/getSub/getPhone: accessors.
+const SearchPicker = ({ items, value, onChange, getLabel, getSub, getPhone, placeholder, lang }) => {
+  const selected = (items || []).find(it => it.id === value) || null;
+  const [query, setQuery] = React.useState(selected ? getLabel(selected) : "");
+  const [open, setOpen] = React.useState(false);
+  const [copied, setCopied] = React.useState("");
+  const boxRef = React.useRef(null);
+
+  // Keep the text in sync when the selection changes from outside.
+  React.useEffect(() => { setQuery(selected ? getLabel(selected) : ""); }, [value]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Close the dropdown when clicking elsewhere.
+  React.useEffect(() => {
+    const onDoc = (ev) => { if (boxRef.current && !boxRef.current.contains(ev.target)) setOpen(false); };
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, []);
+
+  const norm = (s) => (s == null ? "" : String(s)).toLowerCase();
+  const sorted = [...(items || [])].sort((a, b) => getLabel(a).localeCompare(getLabel(b), "es", { sensitivity: "base" }));
+  const q = norm(query);
+  const filtering = q && !(selected && q === norm(getLabel(selected)));
+  const matches = (filtering
+    ? sorted.filter(it =>
+        norm(getLabel(it)).includes(q) ||
+        (getSub && norm(getSub(it)).includes(q)) ||
+        (getPhone && norm(getPhone(it)).includes(q)) ||
+        norm(it.id).includes(q))
+    : sorted).slice(0, 40);
+
+  const fallbackCopy = (text) => {
+    const ta = document.createElement("textarea");
+    ta.value = text; ta.style.position = "fixed"; ta.style.opacity = "0";
+    document.body.appendChild(ta); ta.focus(); ta.select();
+    try { document.execCommand("copy"); } catch (e) {}
+    document.body.removeChild(ta);
+  };
+  const copy = (text, kind) => {
+    if (!text) return;
+    const done = () => { setCopied(kind); setTimeout(() => setCopied(""), 1300); };
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(done, () => { fallbackCopy(text); done(); });
+      } else { fallbackCopy(text); done(); }
+    } catch (e) { fallbackCopy(text); done(); }
+  };
+
+  const phone = selected && getPhone ? getPhone(selected) : "";
+
+  return (
+    <div ref={boxRef} style={{ position: "relative" }}>
+      <input
+        value={query}
+        onChange={ev => { setQuery(ev.target.value); setOpen(true); if (value) onChange(""); }}
+        onFocus={ev => { setOpen(true); ev.target.select(); }}
+        placeholder={placeholder || (lang === "es" ? "Escribe un nombre…" : "Type a name…")}
+        style={{ width: "100%" }} />
+      {open && (
+        <div style={{ position: "absolute", top: "calc(100% + 2px)", left: 0, right: 0, background: "var(--bg)", border: "1px solid var(--line)", borderRadius: 8, boxShadow: "0 6px 20px rgba(0,0,0,.14)", zIndex: 300, maxHeight: 280, overflowY: "auto" }}>
+          {matches.length === 0 && <div style={{ padding: "12px 14px", color: "var(--ink-4)", fontSize: 13 }}>{lang === "es" ? "Sin resultados" : "No results"}</div>}
+          {matches.map(it => (
+            <div key={it.id}
+              onClick={() => { onChange(it.id); setQuery(getLabel(it)); setOpen(false); }}
+              style={{ padding: "9px 14px", cursor: "pointer", borderBottom: "1px solid var(--line)" }}
+              onMouseEnter={ev => ev.currentTarget.style.background = "var(--bg-soft)"}
+              onMouseLeave={ev => ev.currentTarget.style.background = ""}>
+              <div style={{ fontWeight: 600, fontSize: 13 }}>{getLabel(it)}</div>
+              {getSub && getSub(it) && <div style={{ fontSize: 11.5, color: "var(--ink-3)", marginTop: 2 }}>{getSub(it)}</div>}
+            </div>
+          ))}
+        </div>
+      )}
+      {selected && !open && (
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 6, alignItems: "center" }}>
+          {phone && (
+            <button type="button" className="btn btn-sm btn-ghost" onClick={() => copy(phone, "phone")}>
+              <Icon name="phone" size={12} /> {copied === "phone" ? (lang === "es" ? "¡Teléfono copiado!" : "Phone copied!") : phone}
+            </button>
+          )}
+          <button type="button" className="btn btn-sm btn-ghost" onClick={() => copy(selected.id, "id")}>
+            <Icon name="copy" size={12} /> {copied === "id" ? (lang === "es" ? "¡ID copiado!" : "ID copied!") : ("ID: " + selected.id)}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};
+window.SearchPicker = SearchPicker;
+
 // Helpers
 window.fmtRole = (role, t) => t.roles[role] || role;
 window.fmtType = (type, t) => t.types[type] || type;

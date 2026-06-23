@@ -186,7 +186,7 @@ const PersonProfile = ({ id, t, lang, data, go, addComment, onUpdatePerson, onEd
   if (!p) return <div className="empty">Not found</div>;
 
   const pEntities = p.entities || [];
-  const availableEntities = data.entities.filter(e => !pEntities.some(le => le.id === e.id));
+  const availableEntities = data.entities.filter(e => !pEntities.some(le => le.id === e.id)).sort((a, b) => (a.name || "").localeCompare(b.name || "", "es", { sensitivity: "base" }));
 
   const doLinkEntity = () => {
     if (!linkEntityId) return;
@@ -672,7 +672,7 @@ const EntityProfile = ({ id, t, lang, data, go, addComment, onUpdateEntity, onUp
   const parent = e.parent ? data.entities.find(x => x.id === e.parent) : null;
 
   const linkedPersonIds = new Set(linkedPeople.map(x => x.p.id));
-  const availablePersons = data.personas.filter(p => !linkedPersonIds.has(p.id));
+  const availablePersons = data.personas.filter(p => !linkedPersonIds.has(p.id)).sort((a, b) => fullName(a).localeCompare(fullName(b), "es", { sensitivity: "base" }));
 
   const doLinkPerson = () => {
     if (!linkPersonId) return;
@@ -896,7 +896,7 @@ const EntityProfile = ({ id, t, lang, data, go, addComment, onUpdateEntity, onUp
             <span>{t.common.relatedPersonas} <span className="muted mono" style={{ fontSize: 11, marginLeft: 6 }}>{linkedPeople.length}</span></span>
             <div style={{ display: "flex", gap: 6 }}>
               {availablePersons.length > 0 && !linking && (
-                <button className="btn btn-sm" onClick={() => { setLinking(true); setLinkPersonId(availablePersons[0]?.id || ""); }}>
+                <button className="btn btn-sm" onClick={() => { setLinking(true); setLinkPersonId(""); }}>
                   <Icon name="plus" /> {lang === "es" ? "Vincular existente" : "Link existing"}
                 </button>
               )}
@@ -907,11 +907,17 @@ const EntityProfile = ({ id, t, lang, data, go, addComment, onUpdateEntity, onUp
           </h3>
           {linking && (
             <div style={{ display: "flex", gap: 8, alignItems: "flex-end", padding: "12px 16px", background: "var(--bg-soft)", borderBottom: "1px solid var(--line)", flexWrap: "wrap" }}>
-              <div className="field" style={{ margin: 0, flex: "1 1 200px" }}>
+              <div className="field" style={{ margin: 0, flex: "1 1 240px" }}>
                 <label style={{ fontSize: 11 }}>{lang === "es" ? "Persona" : "Person"}</label>
-                <select value={linkPersonId} onChange={e2 => setLinkPersonId(e2.target.value)}>
-                  {availablePersons.map(p => <option key={p.id} value={p.id}>{fullName(p)}</option>)}
-                </select>
+                <SearchPicker
+                  items={availablePersons}
+                  value={linkPersonId}
+                  onChange={setLinkPersonId}
+                  getLabel={p => fullName(p) || ""}
+                  getSub={p => [p.email, p.city && (p.city + (p.state ? ", " + p.state : "")), (p.phone || (p.phones && p.phones[0] && p.phones[0].value))].filter(Boolean).join(" · ")}
+                  getPhone={p => p.phone || (p.phones && p.phones[0] && p.phones[0].value) || ""}
+                  lang={lang}
+                  placeholder={lang === "es" ? "Escribe el nombre de la persona…" : "Type person name…"} />
               </div>
               <div className="field" style={{ margin: 0, flex: "1 1 140px" }}>
                 <label style={{ fontSize: 11 }}>{lang === "es" ? "Cargo" : "Role"}</label>
@@ -920,7 +926,7 @@ const EntityProfile = ({ id, t, lang, data, go, addComment, onUpdateEntity, onUp
                 </select>
               </div>
               <div style={{ display: "flex", gap: 6, paddingBottom: 1 }}>
-                <button className="btn btn-sm btn-primary" onClick={doLinkPerson}><Icon name="check" /> {lang === "es" ? "Vincular" : "Link"}</button>
+                <button className="btn btn-sm btn-primary" disabled={!linkPersonId} onClick={doLinkPerson}><Icon name="check" /> {lang === "es" ? "Vincular" : "Link"}</button>
                 <button className="btn btn-sm" onClick={() => setLinking(false)}>{lang === "es" ? "Cancelar" : "Cancel"}</button>
               </div>
             </div>

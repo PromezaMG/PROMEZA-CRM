@@ -327,8 +327,18 @@ const NewPersonForm = ({ t, lang, data, onClose, onSave, initialData, editMode, 
                 <button className="btn btn-sm btn-ghost" onClick={() => removeEntityLink(i)}><Icon name="x" /> {t.forms.removeEntity}</button>
               </div>
               <div className="form-grid">
-                <SelectField full label={lang === "es" ? "Entidad" : "Entity"} value={le.id} onChange={v => updateEntityLink(i, "id", v)}
-                  options={data.entities.map(e => ({ value: e.id, label: e.name }))} />
+                <div className="field full">
+                  <label>{lang === "es" ? "Entidad" : "Entity"}</label>
+                  <SearchPicker
+                    items={data.entities}
+                    value={le.id}
+                    onChange={v => updateEntityLink(i, "id", v)}
+                    getLabel={e => e.name || ""}
+                    getSub={e => [e.city && (e.city + (e.state ? ", " + e.state : "")), (e.phone || (e.phones && e.phones[0] && e.phones[0].value))].filter(Boolean).join(" · ")}
+                    getPhone={e => e.phone || (e.phones && e.phones[0] && e.phones[0].value) || ""}
+                    lang={lang}
+                    placeholder={lang === "es" ? "Escribe el nombre de la entidad…" : "Type entity name…"} />
+                </div>
                 <SelectField label={lang === "es" ? "Cargo en la entidad" : "Role at entity"} value={le.role} onChange={v => updateEntityLink(i, "role", v)} options={roleOpts} />
                 {le.role === "otro" && <TextField label={t.common.roleOther} value={le.roleOther} onChange={v => updateEntityLink(i, "roleOther", v)} />}
                 <TextField full label={t.common.comments} value={le.comment} onChange={v => updateEntityLink(i, "comment", v)} placeholder={lang === "es" ? "Notas sobre la afiliación" : "Notes about the affiliation"} />
@@ -442,7 +452,7 @@ const NewEntityForm = ({ t, lang, data, onClose, onSave, initialData, editMode }
   };
 
   const typeOpts = Object.keys(t.types).map(k => ({ value: k, label: t.types[k] }));
-  const parentOpts = [{ value: "", label: lang === "es" ? "— Ninguna —" : "— None —" }, ...data.entities.map(e => ({ value: e.id, label: e.name }))];
+  const parentOpts = [{ value: "", label: lang === "es" ? "— Ninguna —" : "— None —" }, ...data.entities.map(e => ({ value: e.id, label: e.name })).sort((a, b) => (a.label || "").localeCompare(b.label || "", "es", { sensitivity: "base" }))];
 
   return (
     <div className="modal-veil" onClick={onClose}>
