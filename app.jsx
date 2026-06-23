@@ -673,6 +673,12 @@ const App = () => {
     // may be wrong. Always use data.js values for those fields.
     const canonicalById = new Map(((window.PROMEZA_DATA && window.PROMEZA_DATA.personas) || []).map(p => [p.id, p]));
 
+    // Detect roles that got corrupted by the import (a city/county landed in the
+    // role field, e.g. ["San Francisco"], ["Kern"]). A role is only "valid" if
+    // every entry is a known role key. Corrupted ones are restored from data.js.
+    const VALID_ROLES = new Set(["pastor", "co-pastor", "copastor", "lider", "líder", "miembro", "tesorero", "ujier", "adorador", "musico", "músico", "comunicador", "influencer", "presidente", "vicepresidente", "secretario", "diacono", "diácono", "maestro", "director-ministerio", "voluntario", "evangelista", "misionero", "otro"]);
+    const rolesLookValid = (arr) => Array.isArray(arr) && arr.length > 0 && arr.every(r => VALID_ROLES.has((r || "").toLowerCase().trim()));
+
     // Merge helper: pick the non-empty value, preferring the base entity's value
     const pick = (base, fallback) => (base && base.length > 0) ? base : (fallback || []);
     const pickStr = (base, fallback) => base || fallback || "";
@@ -695,6 +701,10 @@ const App = () => {
         first: canonical ? (canonical.first || remote.first) : remote.first,
         last: canonical ? (canonical.last !== undefined ? canonical.last : remote.last) : remote.last,
         titulo: canonical ? (canonical.titulo || remote.titulo) : remote.titulo,
+        // Restore a corrupted role (city/county stuck in the role field) from data.js,
+        // but keep the remote role when it is a genuine, valid role.
+        roles: (canonical && canonical.roles && !rolesLookValid(remote.roles)) ? canonical.roles : remote.roles,
+        roleOther: (canonical && canonical.roles && !rolesLookValid(remote.roles)) ? (canonical.roleOther || "") : remote.roleOther,
         // Geographic fields: Airtable often has these empty — use canonical (data.js) or local as fallback
         state: canonical ? geo(canonical.state, remote.state, local.state) : geo(remote.state, local.state),
         city: canonical ? geo(canonical.city, remote.city, local.city) : geo(remote.city, local.city),
@@ -962,6 +972,23 @@ const App = () => {
               });
               localStorage.setItem('promeza_notes_v116', '1');
               console.log('PROMEZA: restored 6 import notes as interactions (v116)');
+            }
+            // v117: fix roles corrupted by the import (a city/county landed in the
+            // role field, e.g. "San Francisco", "Kern") — restore from data.js.
+            if (!localStorage.getItem('promeza_roles_v117') && window.PROMEZA_DATA) {
+              const VALID_R = new Set(["pastor", "co-pastor", "copastor", "lider", "líder", "miembro", "tesorero", "ujier", "adorador", "musico", "músico", "comunicador", "influencer", "presidente", "vicepresidente", "secretario", "diacono", "diácono", "maestro", "director-ministerio", "voluntario", "evangelista", "misionero", "otro"]);
+              const okRoles = (arr) => Array.isArray(arr) && arr.length > 0 && arr.every(r => VALID_R.has((r || "").toLowerCase().trim()));
+              const srcRoles = new Map((window.PROMEZA_DATA.personas || []).map(p => [p.id, p]));
+              let rFixed = 0;
+              loaded.personas = loaded.personas.map(p => {
+                if (!p.id || !p.id.match(/^p\d+$/) || okRoles(p.roles)) return p;
+                const src = srcRoles.get(p.id);
+                if (!src || !src.roles) return p;
+                rFixed++;
+                return { ...p, roles: src.roles, roleOther: src.roleOther || "" };
+              });
+              if (rFixed > 0) console.log('PROMEZA: fixed ' + rFixed + ' corrupted roles from data.js (v117)');
+              localStorage.setItem('promeza_roles_v117', '1');
             }
             setData(loaded);
             setDataReady(true);
