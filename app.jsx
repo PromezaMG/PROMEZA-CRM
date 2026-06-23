@@ -774,7 +774,7 @@ const App = () => {
       timer = requestIdleCallback(doSave, { timeout: 4000 });
     } else {
       timer = setTimeout(doSave, 2000);
-    }, 2000);
+    }
     return () => {
       if (typeof requestIdleCallback !== "undefined") cancelIdleCallback(timer);
       else clearTimeout(timer);
