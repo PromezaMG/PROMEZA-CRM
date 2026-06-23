@@ -36,11 +36,11 @@
 </script>
 
 <!-- MSAL.js for Microsoft Entra ID login (hosted locally) -->
-<script src="msal-browser.min.js?v=99"
+<script src="msal-browser.min.js?v=100"
   onload="console.log('MSAL loaded OK, window.msal=', typeof window.msal)"
   onerror="console.error('MSAL LOCAL FILE FAILED TO LOAD')"></script>
 
-<link rel="stylesheet" href="styles.css?v=99" />
+<link rel="stylesheet" href="styles.css?v=100" />
 <link rel="manifest" href="manifest.json" />
 <meta name="theme-color" content="#4f46e5" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -56,44 +56,44 @@
 <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
 
 <!-- Data + utilities -->
-<script src="data.js?v=99"></script>
-<script src="data_churches.js?v=99"></script>
-<script src="i18n.js?v=99"></script>
-<script src="airtable.js?v=99"></script>
+<script src="data.js?v=100"></script>
+<script src="data_churches.js?v=100"></script>
+<script src="i18n.js?v=100"></script>
+<script src="airtable.js?v=100"></script>
 
 <!-- React JSX components -->
-<script type="text/babel" src="ui.jsx?v=99"></script>
-<script type="text/babel" src="auth.jsx?v=99"></script>
-<script type="text/babel" src="shell.jsx?v=99"></script>
-<script type="text/babel" src="map.jsx?v=99"></script>
-<script type="text/babel" src="home.jsx?v=99"></script>
-<script type="text/babel" src="lists.jsx?v=99"></script>
-<script type="text/babel" src="profile.jsx?v=99"></script>
-<script type="text/babel" src="forms.jsx?v=99"></script>
-<script type="text/babel" src="duplicates.jsx?v=99"></script>
-<script type="text/babel" src="interactions.jsx?v=99"></script>
-<script type="text/babel" src="tasks.jsx?v=99"></script>
-<script type="text/babel" src="pipeline.jsx?v=99"></script>
-<script type="text/babel" src="projects.jsx?v=99"></script>
-<script type="text/babel" src="attachments.jsx?v=99"></script>
-<script type="text/babel" src="campaigns.jsx?v=99"></script>
-<script type="text/babel" src="calendar.jsx?v=99"></script>
-<script type="text/babel" src="goals.jsx?v=99"></script>
-<script type="text/babel" src="county.jsx?v=99"></script>
-<script type="text/babel" src="app.jsx?v=99"></script>
+<script type="text/babel" src="ui.jsx?v=100"></script>
+<script type="text/babel" src="auth.jsx?v=100"></script>
+<script type="text/babel" src="shell.jsx?v=100"></script>
+<script type="text/babel" src="map.jsx?v=100"></script>
+<script type="text/babel" src="home.jsx?v=100"></script>
+<script type="text/babel" src="lists.jsx?v=100"></script>
+<script type="text/babel" src="profile.jsx?v=100"></script>
+<script type="text/babel" src="forms.jsx?v=100"></script>
+<script type="text/babel" src="duplicates.jsx?v=100"></script>
+<script type="text/babel" src="interactions.jsx?v=100"></script>
+<script type="text/babel" src="tasks.jsx?v=100"></script>
+<script type="text/babel" src="pipeline.jsx?v=100"></script>
+<script type="text/babel" src="projects.jsx?v=100"></script>
+<script type="text/babel" src="attachments.jsx?v=100"></script>
+<script type="text/babel" src="campaigns.jsx?v=100"></script>
+<script type="text/babel" src="calendar.jsx?v=100"></script>
+<script type="text/babel" src="goals.jsx?v=100"></script>
+<script type="text/babel" src="county.jsx?v=100"></script>
+<script type="text/babel" src="app.jsx?v=100"></script>
 
 <script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
       // Force-remove ALL old caches before registering new SW
-      caches.keys().then(keys => Promise.all(keys.filter(k => k !== 'promeza-v99').map(k => caches.delete(k))));
+      caches.keys().then(keys => Promise.all(keys.filter(k => k !== 'promeza-v100').map(k => caches.delete(k))));
       // Unregister stale service workers then re-register
       navigator.serviceWorker.getRegistrations().then(regs => {
-        const stale = regs.filter(r => !r.active || !r.active.scriptURL.includes('v=99'));
+        const stale = regs.filter(r => !r.active || !r.active.scriptURL.includes('v=100'));
         return Promise.all(stale.map(r => r.unregister()));
       }).then(() => {
-        navigator.serviceWorker.register('./sw.js?v=99')
-          .then(r => { console.log('SW v99 registered'); r.update(); })
+        navigator.serviceWorker.register('./sw.js?v=100')
+          .then(r => { console.log('SW v100 registered'); r.update(); })
           .catch(e => console.warn('SW failed:', e));
       });
     });

@@ -668,6 +668,11 @@ const App = () => {
     const atPersonaMap = new Map(atData.personas.map(p => [p.id, p]));
     const atEntityMap = new Map(atData.entities.map(e => [e.id, e]));
 
+    // data.js is the authoritative source for p5xxx identity fields.
+    // Airtable was seeded from a corrupted CRM export, so its first/last/titulo
+    // may be wrong. Always use data.js values for those fields.
+    const canonicalById = new Map(((window.PROMEZA_DATA && window.PROMEZA_DATA.personas) || []).map(p => [p.id, p]));
+
     // Merge helper: pick the non-empty value, preferring the base entity's value
     const pick = (base, fallback) => (base && base.length > 0) ? base : (fallback || []);
     const pickStr = (base, fallback) => base || fallback || "";
@@ -679,10 +684,15 @@ const App = () => {
         // Local was edited after the last Airtable load → keep local, update _atId
         return { ...local, _atId: remote._atId || local._atId };
       }
-      // Remote is source of truth, but never blank out complex fields if only one side has them
+      // Remote is source of truth, but use data.js for identity fields on p5xxx contacts
+      // (Airtable was synced from corrupted data and may have wrong names/titles)
+      const canonical = (local.id && local.id.match(/^p\d+$/)) ? canonicalById.get(local.id) : null;
       return {
         ...remote,
         _atId: remote._atId || local._atId,
+        first: canonical ? (canonical.first || remote.first) : remote.first,
+        last: canonical ? (canonical.last !== undefined ? canonical.last : remote.last) : remote.last,
+        titulo: canonical ? (canonical.titulo || remote.titulo) : remote.titulo,
         phones: pick(remote.phones, local.phones),
         emails: pick(remote.emails, local.emails),
         addressLabel: remote.addressLabel || local.addressLabel || "domicilio",
