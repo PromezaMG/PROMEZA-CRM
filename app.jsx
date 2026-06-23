@@ -444,7 +444,7 @@ const RemindersModal = ({ lang, data, onClose, go }) => {
                 <div key={p.id} className="hover-row" onClick={() => { go({ name: "person", id: p.id }); onClose(); }}
                   style={{ borderRadius: 8 }}>
                   <div className="av-circle" style={{ background: p.color, width: 32, height: 32, fontSize: 11, flexShrink: 0 }}>
-                    {(p.first[0] || "") + (p.last ? p.last[0] : "")}
+                    {((p.first || "")[0] || "") + (p.last ? (p.last[0] || "") : "")}
                   </div>
                   <div style={{ flex: 1 }}>
                     <div style={{ fontWeight: 600 }}>{p.first} {p.last}</div>
@@ -665,8 +665,8 @@ const App = () => {
   const mergeFromAirtable = (atData, prev, prevLastLoad = "") => {
     if (!atData || !prev) return prev;
     // prevLastLoad = BEFORE this fetch started — edits after that moment are "newer than Airtable"
-    const atPersonaMap = new Map(atData.personas.map(p => [p.id, p]));
-    const atEntityMap = new Map(atData.entities.map(e => [e.id, e]));
+    const atPersonaMap = new Map((atData.personas || []).map(p => [p.id, p]));
+    const atEntityMap = new Map((atData.entities || []).map(e => [e.id, e]));
 
     // data.js is the authoritative source for p5xxx identity fields.
     // Airtable was seeded from a corrupted CRM export, so its first/last/titulo
@@ -1174,7 +1174,7 @@ const App = () => {
   };
 
   const handleSaveEntity = (form) => {
-    const id = "e" + (data.entities.length + 1);
+    const id = "e" + Date.now();
     const tags = form.tags ? form.tags.split(",").map(s => s.trim()).filter(Boolean) : [];
     const newE = {
       id, name: form.name, type: form.type, denominacion: form.denominacion || "",

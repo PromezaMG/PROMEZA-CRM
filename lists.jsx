@@ -306,7 +306,7 @@ const FField = ({ label, children }) => (
 const PersonasList = ({ t, lang, data, go, onImportPersonas, globalQ = "", onBulkDelete, onBulkUpdateStatus, onBulkAddTag, onBulkAddTask, segments, onAddSegment, onDeleteSegment, users, currentUser }) => {
   const [role, setRole] = React.useState("all");
   const [country, setCountry] = React.useState("all");
-  const [stateFilter, setStateFilter] = React.useState("all");
+  const [stateFilter, setStateFilter] = React.useState("");
   const [status, setStatus] = React.useState("all");
   const [stageFilter, setStageFilter] = React.useState("all");
   const [langFilter, setLangFilter] = React.useState("all");
@@ -343,7 +343,7 @@ const PersonasList = ({ t, lang, data, go, onImportPersonas, globalQ = "", onBul
   const rows = React.useMemo(() => data.personas.filter(p => {
     if (role !== "all" && !(p.roles ? p.roles.includes(role) : p.role === role)) return false;
     if (country !== "all" && p.country !== country) return false;
-    if (stateFilter !== "all" && stateFilter !== "" && normState(p.state) !== stateFilter) return false;
+    if (stateFilter && !(normState(p.state) || "").toLowerCase().includes(stateFilter.toLowerCase())) return false;
     if (status !== "all" && p.status !== status) return false;
     if (stageFilter !== "all" && stageOf(p) !== stageFilter) return false;
     if (langFilter !== "all" && p.language !== langFilter) return false;
@@ -375,7 +375,7 @@ const PersonasList = ({ t, lang, data, go, onImportPersonas, globalQ = "", onBul
     return true;
   }), [data.personas, role, country, stateFilter, status, stageFilter, langFilter, city, countyFilter, zip, tagFilter, emailFilter, phoneFilter, q, globalQ]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const activeFilters = [role !== "all", country !== "all", stateFilter !== "all", status !== "all", stageFilter !== "all", langFilter !== "all", city, countyFilter, zip, tagFilter, emailFilter, phoneFilter, q].filter(Boolean).length;
+  const activeFilters = [role !== "all", country !== "all", stateFilter, status !== "all", stageFilter !== "all", langFilter !== "all", city, countyFilter, zip, tagFilter, emailFilter, phoneFilter, q].filter(Boolean).length;
 
   // Reset to page 0 whenever any filter or search changes
   React.useEffect(() => { setPage(0); }, [role, country, stateFilter, status, stageFilter, langFilter, city, countyFilter, zip, tagFilter, emailFilter, phoneFilter, q, globalQ]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -384,14 +384,14 @@ const PersonasList = ({ t, lang, data, go, onImportPersonas, globalQ = "", onBul
   const pageRows = rows.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
   const clearFilters = () => {
-    setRole("all"); setCountry("all"); setStateFilter("all"); setStatus("all"); setStageFilter("all"); setLangFilter("all");
+    setRole("all"); setCountry("all"); setStateFilter(""); setStatus("all"); setStageFilter("all"); setLangFilter("all");
     setCity(""); setCountyFilter(""); setZip(""); setTagFilter(""); setEmailFilter(""); setPhoneFilter(""); setQ("");
   };
 
   const currentFilters = { role, country, stateFilter, status, stageFilter, langFilter, city, countyFilter, zip, tagFilter, emailFilter, phoneFilter, q };
   const loadSegment = (seg) => {
     const f = seg.filters;
-    setRole(f.role || "all"); setCountry(f.country || "all"); setStateFilter(f.stateFilter || "all"); setStatus(f.status || "all");
+    setRole(f.role || "all"); setCountry(f.country || "all"); setStateFilter(f.stateFilter || ""); setStatus(f.status || "all");
     setStageFilter(f.stageFilter || "all"); setLangFilter(f.langFilter || "all");
     setCity(f.city || ""); setCountyFilter(f.countyFilter || ""); setZip(f.zip || ""); setTagFilter(f.tagFilter || "");
     setEmailFilter(f.emailFilter || ""); setPhoneFilter(f.phoneFilter || ""); setQ(f.q || "");
@@ -524,8 +524,7 @@ const PersonasList = ({ t, lang, data, go, onImportPersonas, globalQ = "", onBul
               <input value={city} onChange={e => setCity(e.target.value)} placeholder="Miami, Bogotá…" />
             </FField>
             <FField label={lang === "es" ? "Estado" : "State"}>
-              <input list="state-datalist" value={stateFilter === "all" ? "" : stateFilter} onChange={e => setStateFilter(e.target.value || "all")} placeholder="Florida, Texas…" />
-              <datalist id="state-datalist">{states.map(s => <option key={s} value={s} />)}</datalist>
+              <input value={stateFilter} onChange={e => setStateFilter(e.target.value)} placeholder="Florida, Texas…" />
             </FField>
             <FField label={lang === "es" ? "Condado" : "County"}>
               <input value={countyFilter} onChange={e => setCountyFilter(e.target.value)} placeholder={lang === "es" ? "Ventura, Los Ángeles…" : "Ventura, Los Angeles…"} />

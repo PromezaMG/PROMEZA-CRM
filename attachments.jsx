@@ -33,31 +33,35 @@ const AttachmentsTab = ({ targetId, attachments, onAdd, onDelete, lang, currentU
   const handleFiles = async (files) => {
     setError("");
     setUploading(true);
-    const results = [];
-    for (const file of Array.from(files)) {
-      if (file.size > MAX_FILE_BYTES) {
-        setError((lang === "es" ? `"${file.name}" supera el límite de ${MAX_FILE_MB} MB` : `"${file.name}" exceeds the ${MAX_FILE_MB} MB limit`));
-        setUploading(false);
-        return;
+    try {
+      const results = [];
+      for (const file of Array.from(files)) {
+        if (file.size > MAX_FILE_BYTES) {
+          setError((lang === "es" ? `"${file.name}" supera el límite de ${MAX_FILE_MB} MB` : `"${file.name}" exceeds the ${MAX_FILE_MB} MB limit`));
+          return;
+        }
+        const data = await new Promise((res, rej) => {
+          const reader = new FileReader();
+          reader.onload = e => res(e.target.result);
+          reader.onerror = rej;
+          reader.readAsDataURL(file);
+        });
+        results.push({
+          id: "att" + Date.now() + Math.random().toString(36).slice(2, 6),
+          name: file.name,
+          type: file.type,
+          size: file.size,
+          data,
+          createdAt: new Date().toISOString().slice(0, 10),
+          author: currentUser || "Usuario",
+        });
       }
-      const data = await new Promise((res, rej) => {
-        const reader = new FileReader();
-        reader.onload = e => res(e.target.result);
-        reader.onerror = rej;
-        reader.readAsDataURL(file);
-      });
-      results.push({
-        id: "att" + Date.now() + Math.random().toString(36).slice(2, 6),
-        name: file.name,
-        type: file.type,
-        size: file.size,
-        data,
-        createdAt: new Date().toISOString().slice(0, 10),
-        author: currentUser || "Usuario",
-      });
+      results.forEach(att => onAdd(att));
+    } catch (err) {
+      setError(lang === "es" ? "Error al leer el archivo" : "Error reading file");
+    } finally {
+      setUploading(false);
     }
-    results.forEach(att => onAdd(att));
-    setUploading(false);
   };
 
   const onDrop = (e) => {
