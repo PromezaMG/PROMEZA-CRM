@@ -940,6 +940,29 @@ const App = () => {
               if (n101 > 0) console.log('PROMEZA: datasync v101 refreshed ' + n101 + ' contacts from corrected data.js');
               localStorage.setItem('promeza_datasync_v101', '1');
             }
+            // v116: restore the 6 interaction notes that had been import-corrupted
+            // into the name fields (names were fixed in data.js v115). Added as
+            // "otro" interactions so they live in each contact's history. Runs once
+            // per browser, so every teammate gets them.
+            if (!localStorage.getItem('promeza_notes_v116')) {
+              const IMP_NOTES = [
+                { id: 'p7166', notes: '9/18 - Cannot Go' },
+                { id: 'p7212', notes: '6/13 - CH He has services on Tuesdays.' },
+                { id: 'p7238', notes: '7/24 - Talked to Pastor Efren and told him about the movie projects we will be hosting. This ministry does not attend the movie theatres.' },
+                { id: 'p7302', notes: '7/21 - Spoke with sister Carmen. She will talk to her pastor about the movie projects. She was interested in these projects.' },
+                { id: 'p7314', notes: '7/24 - Talked to Pastor Mainor and told him about the movie projects we will be hosting. He was not open to give his email address.' },
+                { id: 'p7323', notes: '7/24 - Spoke with sister Mariela and told her about the new movie projects.' },
+              ];
+              loaded.interactions = loaded.interactions || {};
+              IMP_NOTES.forEach(n => {
+                const list = loaded.interactions[n.id] || [];
+                if (!list.some(it => (it.notes || '') === n.notes)) {
+                  loaded.interactions[n.id] = [{ id: 'iimp_' + n.id, type: 'otro', date: '', notes: n.notes, result: '' }, ...list];
+                }
+              });
+              localStorage.setItem('promeza_notes_v116', '1');
+              console.log('PROMEZA: restored 6 import notes as interactions (v116)');
+            }
             setData(loaded);
             setDataReady(true);
             return;
