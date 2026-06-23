@@ -802,6 +802,40 @@ const App = () => {
               localStorage.setItem('promeza_churches_v89', '1');
               console.log('PROMEZA: merged church contacts: +' + newP.length + ' personas, +' + newE.length + ' entities');
             }
+            // One-time sync of p5xxx contacts from current data.js (fixes column-mapping errors
+            // in the original seed: city names in first field, wrong phone/city, etc.)
+            if (!localStorage.getItem('promeza_p5sync_v95') && window.PROMEZA_DATA) {
+              const srcMap = new Map((window.PROMEZA_DATA.personas || []).map(p => [p.id, p]));
+              let synced = 0;
+              loaded.personas = loaded.personas.map(p => {
+                if (!p.id || !p.id.match(/^p\d+$/)) return p; // only system IDs (p5xxx, p6xxx…)
+                const src = srcMap.get(p.id);
+                if (!src) return p;
+                // Safety: at least one email must match to confirm it's the same person
+                const pEmail = (p.email || '').toLowerCase().trim();
+                const sEmail = (src.email || '').toLowerCase().trim();
+                if (pEmail && sEmail && pEmail !== sEmail) return p;
+                if (!pEmail && !sEmail) return p; // can't verify, skip
+                // Overwrite core fields from the correct data.js version
+                synced++;
+                return {
+                  ...p,
+                  first: src.first || p.first,
+                  last: src.last !== undefined ? src.last : p.last,
+                  titulo: src.titulo !== undefined ? src.titulo : p.titulo,
+                  roles: src.roles || p.roles,
+                  city: src.city || p.city,
+                  state: src.state || p.state,
+                  zip: src.zip !== undefined ? src.zip : p.zip,
+                  county: src.county || p.county,
+                  region: src.region || p.region,
+                  church: src.church || p.church,
+                  website: src.website || p.website,
+                };
+              });
+              if (synced > 0) console.log('PROMEZA: synced ' + synced + ' contacts from data.js (column-mapping fix)');
+              localStorage.setItem('promeza_p5sync_v95', '1');
+            }
             setData(loaded);
             setDataReady(true);
             return;
