@@ -1,4 +1,4 @@
-const CACHE = "promeza-v104";
+const CACHE = "promeza-v105";
 const ASSETS = [
   "./styles.css",
   "./i18n.js", "./airtable.js",
@@ -35,9 +35,9 @@ self.addEventListener("fetch", e => {
     );
     return;
   }
-  // Assets: cache-first, network fallback
+  // Assets: cache-first (ignoreSearch so ?v=104 matches cached ./file), network fallback
   e.respondWith(
-    caches.match(e.request).then(cached => cached || fetch(e.request).then(res => {
+    caches.match(e.request, { ignoreSearch: true }).then(cached => cached || fetch(e.request).then(res => {
       if (res.ok) { const clone = res.clone(); caches.open(CACHE).then(c => c.put(e.request, clone)); }
       return res;
     }))
