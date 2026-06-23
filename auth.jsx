@@ -156,10 +156,15 @@ const AuthScreen = ({ onLogin }) => {
       const msalInstance = buildMSALInstance(cfg);
       if (!msalInstance) { setError("Error de configuración (clientId/tenantId inválido)."); setLoading(false); return; }
 
-      const response = await msalInstance.loginPopup({
-        scopes: ["User.Read", "openid", "profile", "email"],
-        prompt: "select_account",
-      });
+      // Process any pending redirect (#code= in URL) and clear stale interaction locks
+      let response = null;
+      try { response = await msalInstance.handleRedirectPromise(); } catch {}
+      if (!response) {
+        response = await msalInstance.loginPopup({
+          scopes: ["User.Read", "openid", "profile", "email"],
+          prompt: "select_account",
+        });
+      }
 
       const email = (response.account?.username || "").toLowerCase();
       if (!email) { setError("No se pudo obtener el correo."); setLoading(false); return; }
@@ -228,8 +233,12 @@ const UnlockScreen = ({ email, onUnlock, onLogout }) => {
     try {
       const msalInstance = buildMSALInstance(cfg);
       if (!msalInstance) { setError("Error de configuración (clientId/tenantId inválido)."); setLoading(false); return; }
-      // prompt: "select_account" lets any @promeza.com user log in, not just the stored account
-      const r = await msalInstance.loginPopup({ scopes: ["User.Read", "openid"], prompt: "select_account" });
+      // Process any pending redirect and clear stale interaction locks before popup
+      let r = null;
+      try { r = await msalInstance.handleRedirectPromise(); } catch {}
+      if (!r) {
+        r = await msalInstance.loginPopup({ scopes: ["User.Read", "openid"], prompt: "select_account" });
+      }
       const account = r?.account;
       const loggedEmail = (account?.username || "").toLowerCase();
       if (!loggedEmail || !loggedEmail.endsWith("@promeza.com")) {
