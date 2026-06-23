@@ -852,6 +852,7 @@ const EntitiesList = ({ t, lang, data, go, onImportEntities, globalQ = "" }) => 
   const [country, setCountry] = React.useState("all");
   const [status, setStatus] = React.useState("all");
   const [city, setCity] = React.useState("");
+  const [stateFilter, setStateFilter] = React.useState("");
   const [countyFilter, setCountyFilter] = React.useState("");
   const [zip, setZip] = React.useState("");
   const [tagFilter, setTagFilter] = React.useState("");
