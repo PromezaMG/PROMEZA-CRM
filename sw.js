@@ -1,4 +1,4 @@
-const CACHE = "promeza-v88";
+const CACHE = "promeza-v89";
 const ASSETS = [
   "./styles.css",
   "./i18n.js", "./airtable.js",
@@ -7,6 +7,7 @@ const ASSETS = [
   "./interactions.jsx", "./tasks.jsx", "./pipeline.jsx", "./projects.jsx",
   "./attachments.jsx", "./campaigns.jsx", "./calendar.jsx", "./goals.jsx",
   "./county.jsx", "./app.jsx", "./msal-browser.min.js",
+  "./data_churches.js",
 ];
 
 self.addEventListener("install", e => {
