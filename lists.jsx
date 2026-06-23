@@ -332,7 +332,10 @@ const PersonasList = ({ t, lang, data, go, onImportPersonas, globalQ = "", onBul
   const PAGE_SIZE = 100;
 
   const countries = React.useMemo(() => ["all", ...new Set(data.personas.map(p => p.country).filter(Boolean))], [data.personas]);
-  const states = React.useMemo(() => ["all", ...[...new Set(data.personas.map(p => p.state).filter(Boolean))].sort()], [data.personas]);
+
+  const STATE_NORM = {"Giorgia":"Georgia","IDAHO":"Idaho","Idaho":"Idaho","Miami":"Florida","m":null,"USA":null,"FL":"Florida","CA":"California","TX":"Texas","NY":"New York","GA":"Georgia","PA":"Pennsylvania","OH":"Ohio","IL":"Illinois","MI":"Michigan","NJ":"New Jersey","NC":"North Carolina","VA":"Virginia","WA":"Washington","AZ":"Arizona","TN":"Tennessee","MO":"Missouri","MD":"Maryland","WI":"Wisconsin","MN":"Minnesota","CO":"Colorado","AL":"Alabama","SC":"South Carolina","LA":"Louisiana","KY":"Kentucky","OR":"Oregon","OK":"Oklahoma","CT":"Connecticut","UT":"Utah","NV":"Nevada","AR":"Arkansas","MS":"Mississippi","KS":"Kansas","NM":"New Mexico","NE":"Nebraska","WV":"West Virginia","ID":"Idaho","HI":"Hawaii","NH":"New Hampshire","ME":"Maine","RI":"Rhode Island","MT":"Montana","DE":"Delaware","SD":"South Dakota","ND":"North Dakota","AK":"Alaska","VT":"Vermont","WY":"Wyoming","DC":"District of Columbia"};
+  const normState = (s) => { if (!s) return null; const n = STATE_NORM[s]; return n === undefined ? s : n; };
+  const states = React.useMemo(() => [...new Set(data.personas.map(p => normState(p.state)).filter(Boolean))].sort(), [data.personas]);
   const roles = ["all", ...Object.keys(t.roles)];
 
   const stageOf = (p) => p.stage || (p.status === "inactivo" ? "inhabilitado" : "activo");
@@ -340,7 +343,7 @@ const PersonasList = ({ t, lang, data, go, onImportPersonas, globalQ = "", onBul
   const rows = React.useMemo(() => data.personas.filter(p => {
     if (role !== "all" && !(p.roles ? p.roles.includes(role) : p.role === role)) return false;
     if (country !== "all" && p.country !== country) return false;
-    if (stateFilter !== "all" && p.state !== stateFilter) return false;
+    if (stateFilter !== "all" && stateFilter !== "" && normState(p.state) !== stateFilter) return false;
     if (status !== "all" && p.status !== status) return false;
     if (stageFilter !== "all" && stageOf(p) !== stageFilter) return false;
     if (langFilter !== "all" && p.language !== langFilter) return false;
@@ -532,9 +535,15 @@ const PersonasList = ({ t, lang, data, go, onImportPersonas, globalQ = "", onBul
               </select>
             </FField>
             <FField label={lang === "es" ? "Estado" : "State"}>
-              <select value={stateFilter} onChange={e => setStateFilter(e.target.value)}>
-                {states.map(s => <option key={s} value={s}>{s === "all" ? (lang === "es" ? "Todos" : "All") : s}</option>)}
-              </select>
+              <input
+                list="state-datalist"
+                value={stateFilter === "all" ? "" : stateFilter}
+                onChange={e => setStateFilter(e.target.value || "all")}
+                placeholder={lang === "es" ? "Todos…" : "All…"}
+              />
+              <datalist id="state-datalist">
+                {states.map(s => <option key={s} value={s} />)}
+              </datalist>
             </FField>
             <FField label={t.common.language}>
               <select value={langFilter} onChange={e => setLangFilter(e.target.value)}>
