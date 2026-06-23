@@ -839,6 +839,51 @@ const App = () => {
               if (synced > 0) console.log('PROMEZA: synced ' + synced + ' contacts from data.js (column-mapping fix)');
               localStorage.setItem('promeza_p5sync_v95', '1');
             }
+            // Email-based sync (v97): catches contacts whose stored email was corrupted
+            // so v95 ID-based migration couldn't match them. Searches by any valid email
+            // in the stored contact; also catches contacts with no stored email but
+            // matching ID (stored email was garbage text without "@").
+            if (!localStorage.getItem('promeza_emailsync_v97') && window.PROMEZA_DATA) {
+              const srcByEmail = new Map();
+              const srcById = new Map();
+              (window.PROMEZA_DATA.personas || []).forEach(src => {
+                srcById.set(src.id, src);
+                if (src.email && src.email.includes('@')) srcByEmail.set(src.email.toLowerCase().trim(), src);
+                if (src.email2 && src.email2.includes('@')) srcByEmail.set(src.email2.toLowerCase().trim(), src);
+              });
+              let emailSynced = 0;
+              loaded.personas = loaded.personas.map(p => {
+                // Gather all valid emails from stored contact
+                const storedEmails = [p.email, p.email2, ...((p.emails || []).map(e => e.value || ''))]
+                  .filter(e => e && e.includes('@')).map(e => e.toLowerCase().trim());
+                // Method 1: email-based match
+                let src = null;
+                for (const se of storedEmails) { if (srcByEmail.has(se)) { src = srcByEmail.get(se); break; } }
+                // Method 2: ID match when stored has no valid email (email field was corrupted with garbage text)
+                if (!src && storedEmails.length === 0 && p.id && p.id.match(/^p\d+$/)) {
+                  const byId = srcById.get(p.id);
+                  if (byId && byId.email && byId.email.includes('@')) src = byId;
+                }
+                if (!src) return p;
+                emailSynced++;
+                return {
+                  ...p,
+                  first: src.first || p.first,
+                  last: src.last !== undefined ? src.last : p.last,
+                  titulo: src.titulo !== undefined ? src.titulo : p.titulo,
+                  roles: src.roles || p.roles,
+                  city: src.city || p.city,
+                  state: src.state || p.state,
+                  zip: src.zip !== undefined ? src.zip : p.zip,
+                  county: src.county || p.county,
+                  region: src.region || p.region,
+                  church: src.church || p.church,
+                  website: src.website || p.website,
+                };
+              });
+              if (emailSynced > 0) console.log('PROMEZA: emailsync fixed ' + emailSynced + ' contacts');
+              localStorage.setItem('promeza_emailsync_v97', '1');
+            }
             setData(loaded);
             setDataReady(true);
             return;
