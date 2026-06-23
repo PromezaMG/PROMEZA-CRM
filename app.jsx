@@ -687,12 +687,19 @@ const App = () => {
       // Remote is source of truth, but use data.js for identity fields on p5xxx contacts
       // (Airtable was synced from corrupted data and may have wrong names/titles)
       const canonical = (local.id && local.id.match(/^p\d+$/)) ? canonicalById.get(local.id) : null;
+      // Helper: pick first non-empty value
+      const geo = (...vs) => vs.find(v => v !== undefined && v !== null && v !== "") || "";
       return {
         ...remote,
         _atId: remote._atId || local._atId,
         first: canonical ? (canonical.first || remote.first) : remote.first,
         last: canonical ? (canonical.last !== undefined ? canonical.last : remote.last) : remote.last,
         titulo: canonical ? (canonical.titulo || remote.titulo) : remote.titulo,
+        // Geographic fields: Airtable often has these empty — use canonical (data.js) or local as fallback
+        state: canonical ? geo(canonical.state, remote.state, local.state) : geo(remote.state, local.state),
+        city: canonical ? geo(canonical.city, remote.city, local.city) : geo(remote.city, local.city),
+        county: canonical ? geo(canonical.county, remote.county, local.county) : geo(remote.county, local.county),
+        zip: canonical ? geo(canonical.zip, remote.zip, local.zip) : geo(remote.zip, local.zip),
         phones: pick(remote.phones, local.phones),
         emails: pick(remote.emails, local.emails),
         addressLabel: remote.addressLabel || local.addressLabel || "domicilio",
