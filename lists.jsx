@@ -534,17 +534,6 @@ const PersonasList = ({ t, lang, data, go, onImportPersonas, globalQ = "", onBul
                 {countries.map(c => <option key={c} value={c}>{c === "all" ? (lang === "es" ? "Todos" : "All") : c}</option>)}
               </select>
             </FField>
-            <FField label={lang === "es" ? "Estado" : "State"}>
-              <input
-                list="state-datalist"
-                value={stateFilter === "all" ? "" : stateFilter}
-                onChange={e => setStateFilter(e.target.value || "all")}
-                placeholder={lang === "es" ? "Todos…" : "All…"}
-              />
-              <datalist id="state-datalist">
-                {states.map(s => <option key={s} value={s} />)}
-              </datalist>
-            </FField>
             <FField label={t.common.language}>
               <select value={langFilter} onChange={e => setLangFilter(e.target.value)}>
                 <option value="all">{lang === "es" ? "Todos" : "All"}</option>
@@ -608,6 +597,21 @@ const PersonasList = ({ t, lang, data, go, onImportPersonas, globalQ = "", onBul
           </div>
         </div>
       )}
+
+      {/* State filter — always visible */}
+      <div style={{ display: "flex", gap: 6, alignItems: "center", marginBottom: 8, overflowX: "auto", flexWrap: "nowrap", paddingBottom: 2 }}>
+        <span style={{ fontSize: 11, fontWeight: 600, color: "var(--ink-3)", textTransform: "uppercase", letterSpacing: ".05em", flexShrink: 0, minWidth: 52 }}>
+          {lang === "es" ? "Estado:" : "State:"}
+        </span>
+        <button className={"chip " + (stateFilter === "all" ? "on" : "")} onClick={() => setStateFilter("all")} style={{ flexShrink: 0 }}>
+          {lang === "es" ? "Todos" : "All"}
+        </button>
+        {states.map(s => (
+          <button key={s} className={"chip " + (stateFilter === s ? "on" : "")} onClick={() => setStateFilter(s)} style={{ flexShrink: 0 }}>
+            {s}
+          </button>
+        ))}
+      </div>
 
       {/* Saved segments */}
       {(segments || []).length > 0 && (
