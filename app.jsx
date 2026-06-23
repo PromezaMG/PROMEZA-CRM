@@ -567,26 +567,64 @@ const App = () => {
     // Normalize fields only — do NOT merge PROMEZA_DATA into existing data.
     // PROMEZA_DATA is only used as a fallback when localStorage has no real data.
     const hasDigit = (v) => /\d/.test(String(v || ""));
-    const cleanPhone = (v) => hasDigit(v) ? v : "";
+
+    // Strip float suffix: "91706.0" → "91706", "35815.0" → "35815"
+    const stripFloat = (v) => String(v || "").replace(/^(\d+)\.0+$/, "$1").trim();
+
+    // Clean a phone string: strip float suffix, reject if no digits remain
+    const normalizePhoneStr = (v) => {
+      const s = stripFloat(v);
+      return hasDigit(s) ? s : "";
+    };
+
+    // Build phones array: existing phones[] OR split legacy phone string on newlines.
+    // Also merges phone2 field if not already present.
+    const buildPhones = (phones, phone, phone2) => {
+      let result;
+      if (Array.isArray(phones) && phones.length > 0) {
+        result = phones.filter(ph => ph && ph.value && hasDigit(ph.value));
+      } else {
+        const parts = String(phone || "").split(/\n/).map(s => normalizePhoneStr(s.trim())).filter(Boolean);
+        result = parts.map((v, i) => ({ value: v, label: i === 0 ? "Personal" : "Otro" }));
+      }
+      if (phone2) {
+        const p2 = normalizePhoneStr(String(phone2).trim());
+        if (p2 && !result.some(ph => ph.value === p2)) result.push({ value: p2, label: "Otro" });
+      }
+      return result;
+    };
+
+    // Build emails array: existing emails[] OR legacy email string. Also merges email2.
+    const buildEmails = (emails, email, email2) => {
+      const result = Array.isArray(emails) && emails.length > 0
+        ? [...emails]
+        : (email && email.trim() ? [{ value: email.trim(), label: "Personal" }] : []);
+      if (email2 && email2.trim()) {
+        const e2 = email2.trim();
+        if (!result.some(e => (e.value || "").toLowerCase() === e2.toLowerCase())) {
+          result.push({ value: e2, label: "Otro" });
+        }
+      }
+      return result;
+    };
+
+    // Zip: strip float suffix, then move city-names in zip field to city.
     const fixZipCity = (zip, city) => {
-      const z = String(zip || ""), c = String(city || "");
+      const z = stripFloat(zip);
+      const c = String(city || "").trim();
       if (z && !hasDigit(z)) return { zip: "", city: c || z };
       return { zip: z, city: c };
     };
-    const cleanPhones = (phones, phone) => {
-      const raw = Array.isArray(phones) ? phones
-        : (phone ? [{ value: phone, label: "Personal" }] : []);
-      return raw.filter(ph => ph && ph.value && hasDigit(ph.value));
-    };
+
     return {
       ...parsed,
       personas: withUIDs(parsed.personas || []).map(p => {
         const { zip, city } = fixZipCity(p.zip, p.city);
         return {
           ...p,
-          phone: cleanPhone(p.phone),
-          phones: cleanPhones(p.phones, p.phone),
-          emails: p.emails || (p.email ? [{ value: p.email, label: "Personal" }] : []),
+          phone: normalizePhoneStr(p.phone),
+          phones: buildPhones(p.phones, p.phone, p.phone2),
+          emails: buildEmails(p.emails, p.email, p.email2),
           entities: p.entities || [],
           tags: p.tags || [],
           zip,
@@ -597,9 +635,9 @@ const App = () => {
         const { zip, city } = fixZipCity(e.zip, e.city);
         return {
           ...e,
-          phone: cleanPhone(e.phone),
-          phones: cleanPhones(e.phones, e.phone),
-          emails: e.emails || (e.email ? [{ value: e.email, label: "Personal" }] : []),
+          phone: normalizePhoneStr(e.phone),
+          phones: buildPhones(e.phones, e.phone, e.phone2),
+          emails: buildEmails(e.emails, e.email, e.email2),
           schedule: e.schedule || [],
           tags: e.tags || [],
           zip,
