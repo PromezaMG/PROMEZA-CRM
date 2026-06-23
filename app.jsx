@@ -901,6 +901,38 @@ const App = () => {
               if (emailSynced > 0) console.log('PROMEZA: fullsync fixed ' + emailSynced + ' contacts');
               localStorage.setItem('promeza_fullsync_v98', '1');
             }
+            // v101: full ID-based re-sync from updated data.js — fixes all CA/CO/CT
+            // field mapping errors corrected in the source data.
+            if (!localStorage.getItem('promeza_datasync_v101') && window.PROMEZA_DATA) {
+              const srcById101 = new Map((window.PROMEZA_DATA.personas || []).map(p => [p.id, p]));
+              let n101 = 0;
+              loaded.personas = loaded.personas.map(p => {
+                if (!p.id || !p.id.match(/^p\d+$/)) return p;
+                const src = srcById101.get(p.id);
+                if (!src) return p;
+                n101++;
+                return {
+                  ...p,
+                  first: src.first || p.first,
+                  last: src.last !== undefined ? src.last : p.last,
+                  titulo: src.titulo || p.titulo,
+                  city: src.city || p.city,
+                  county: src.county || p.county,
+                  region: src.region || p.region,
+                  zip: src.zip !== undefined ? src.zip : p.zip,
+                  phone: src.phone !== undefined ? src.phone : p.phone,
+                  phone2: src.phone2 !== undefined ? src.phone2 : p.phone2,
+                  email: src.email !== undefined ? src.email : p.email,
+                  email2: src.email2 !== undefined ? src.email2 : p.email2,
+                  church: src.church || p.church,
+                  screening: src.screening || p.screening,
+                  members: src.members || p.members,
+                  website: src.website || p.website,
+                };
+              });
+              if (n101 > 0) console.log('PROMEZA: datasync v101 refreshed ' + n101 + ' contacts from corrected data.js');
+              localStorage.setItem('promeza_datasync_v101', '1');
+            }
             setData(loaded);
             setDataReady(true);
             return;
