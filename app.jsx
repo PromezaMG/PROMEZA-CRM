@@ -20,6 +20,9 @@ const SettingsModal = ({ t, lang, data, cryptoKey, onClose, onLogout, onRestoreD
   });
   const [accessLog, setAccessLog] = useState(() => window.AIRTABLE?.getAccessLog() || []);
   const [backupMsg, setBackupMsg] = React.useState(null);
+  const [curPass, setCurPass] = useState("");
+  const [newPass, setNewPass] = useState("");
+  const [confirmPass, setConfirmPass] = useState("");
 
   const doExport = () => {
     const backup = {
@@ -1014,7 +1017,7 @@ const App = () => {
     window.scrollTo({ top: 0 });
   };
 
-  const allTasksFlat = data ? Object.values(data.tasks).flat() : [];
+  const allTasksFlat = data ? Object.values(data.tasks || {}).flat() : [];
   const pendingTasks = allTasksFlat.filter(t => !t.done).length;
   const overdueCount = allTasksFlat.filter(t => t.due && !t.done && t.due < new Date().toISOString().slice(0, 10)).length;
   const completedGoals = data ? (data.goals || []).filter(g => {

@@ -613,7 +613,7 @@ const PersonasList = ({ t, lang, data, go, onImportPersonas, globalQ = "", onBul
           lang={lang}
           onClose={() => setShowImport(false)}
           onImport={(rows) => {
-            const withIds = rows.map((r, i) => ({ ...r, id: "p" + (data.personas.length + i + 1) }));
+            const withIds = rows.map((r, i) => ({ ...r, id: "p" + (Date.now() + i) }));
             onImportPersonas(withIds);
             setShowImport(false);
           }}
@@ -1052,7 +1052,7 @@ const EntitiesList = ({ t, lang, data, go, onImportEntities, globalQ = "" }) => 
           lang={lang}
           onClose={() => setShowImport(false)}
           onImport={(rows) => {
-            const withIds = rows.map((r, i) => ({ ...r, id: "e" + (data.entities.length + i + 1) }));
+            const withIds = rows.map((r, i) => ({ ...r, id: "e" + (Date.now() + i) }));
             onImportEntities(withIds);
             setShowImport(false);
           }}
