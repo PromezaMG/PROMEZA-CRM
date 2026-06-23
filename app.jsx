@@ -876,7 +876,7 @@ const App = () => {
       const entPairs = window.findEntityDuplicatePairs(data.entities, []);
       if (entPairs.length > 0) setEntityDupPairs(entPairs);
     }
-  }, [data && data.personas && data.personas.length > 0]); // run once when data loads
+  }, [dataReady]); // run once when data loads
 
   useEffect(() => {
     if (!dataReady || !data || !userEmail || remindersShown) return;

@@ -725,7 +725,7 @@ const EntityProfile = ({ id, t, lang, data, go, addComment, onUpdateEntity, onUp
           <div className="vid" style={{ marginTop: 6 }}>EID {e.id.toUpperCase()}-{Math.abs(e.id.charCodeAt(1) * 8819) % 999999}</div>
         </div>
         <div className="actions">
-          <button className="btn" onClick={() => window.location.href = "mailto:" + e.email}><Icon name="mail" /> Email</button>
+          {e.email && <button className="btn" onClick={() => window.location.href = "mailto:" + e.email}><Icon name="mail" /> Email</button>}
           {e.website && <button className="btn" onClick={() => window.open("https://" + e.website, "_blank")}><Icon name="globe" /> Web</button>}
           <button className="btn btn-primary" onClick={() => go({ name: "new-person", prefill: { entityId: e.id } })}>
             <Icon name="plus" /> {lang === "es" ? "Agregar persona" : "Add person"}
