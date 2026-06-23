@@ -29,7 +29,7 @@ const parseCSV = (text) => {
   return { headers, rows };
 };
 
-// ─── Parse file to rows (CSV or XLSX) ───
+// ─── Parse file to rows (CSV or XLSX) — reads ALL sheets ───
 const parseFile = (file) => new Promise((resolve, reject) => {
   const reader = new FileReader();
   const ext = file.name.split(".").pop().toLowerCase();
@@ -43,16 +43,36 @@ const parseFile = (file) => new Promise((resolve, reject) => {
     reader.onload = (e) => {
       try {
         const wb = XLSX.read(e.target.result, { type: "array" });
-        const ws = wb.Sheets[wb.SheetNames[0]];
-        const raw = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "" });
-        if (!raw.length) return resolve({ headers: [], rows: [] });
-        const headers = raw[0].map(h => String(h).toLowerCase().trim());
-        const rows = raw.slice(1).map(r => {
-          const obj = {};
-          headers.forEach((h, i) => { obj[h] = String(r[i] || ""); });
-          return obj;
-        });
-        resolve({ headers, rows });
+        const allRows = [];
+        for (const sheetName of wb.SheetNames) {
+          const ws = wb.Sheets[sheetName];
+          const raw = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "" });
+          if (raw.length < 2) continue;
+          if (!raw[0].some(cell => String(cell).trim())) continue; // skip fully empty header row
+          const rawHeaders = raw[0].map(h => String(h).toLowerCase().trim());
+          // Detect "A-B type": has "name" col without "first name", unnamed col right after = last name
+          const nameIdx = rawHeaders.indexOf("name");
+          const useUnnamedAsLastName = nameIdx >= 0
+            && !rawHeaders.includes("first name")
+            && !rawHeaders.some(h => h === "last name")
+            && nameIdx + 1 < rawHeaders.length
+            && rawHeaders[nameIdx + 1] === "";
+          for (const rawRow of raw.slice(1)) {
+            const obj = {};
+            // First occurrence wins — prevents empty/repeated header keys from overwriting real data
+            rawHeaders.forEach((h, i) => {
+              if (h && !Object.prototype.hasOwnProperty.call(obj, h)) {
+                obj[h] = String(rawRow[i] || "").trim();
+              }
+            });
+            // Inject last name from the unnamed column that follows "name" in A-B type sheets
+            if (useUnnamedAsLastName && String(rawRow[nameIdx + 1] || "").trim()) {
+              obj["last name"] = String(rawRow[nameIdx + 1] || "").trim();
+            }
+            if (Object.values(obj).some(v => v)) allRows.push(obj);
+          }
+        }
+        resolve({ headers: [], rows: allRows });
       } catch (err) { reject(err); }
     };
     reader.readAsArrayBuffer(file);
@@ -82,34 +102,49 @@ const ImportModal = ({ type, lang, onClose, onImport }) => {
   const isPersona = type === "personas";
 
   const mapPersonaRow = (row, idx, totalExisting) => {
-    const first = findCol(row, ["nombre", "first", "first name", "given name"]);
-    const last = findCol(row, ["apellido", "last", "last name", "surname"]);
+    const first = findCol(row, ["nombre", "first name", "name", "first", "given name"]);
+    const last = findCol(row, ["apellido", "last name", "last", "surname"]);
     if (!first && !last) return null;
     const palette = ["#2F6BFF", "#0E7C66", "#B45309", "#7C3AED", "#BE185D", "#0369A1", "#15803D"];
     const color = palette[((first.charCodeAt(0) || 0)) % palette.length];
     const ig = findCol(row, ["instagram"]);
     const fb = findCol(row, ["facebook"]);
     const tiktok = findCol(row, ["tiktok"]);
-    const x = findCol(row, ["x", "twitter", "x (twitter)"]);
+    const x = findCol(row, ["x", "twitter"]);
     const tagsRaw = findCol(row, ["etiquetas", "tags", "labels"]);
+    const tagsList = tagsRaw ? tagsRaw.split(/[,;|]/).map(s => s.trim()).filter(Boolean) : [];
+    // Personal phone first, then church/additional phone
+    const phone1 = findCol(row, ["personal telephone", "teléfono", "telefono", "phone", "celular", "móvil", "movil", "telephone"]);
+    const phone2 = findCol(row, ["church telephone", "church phone"]);
+    const phones = [];
+    if (phone1) phones.push({ value: phone1, label: "Personal" });
+    if (phone2) phones.push({ value: phone2, label: "Iglesia" });
+    // Primary email then secondary
+    const email1 = findCol(row, ["email", "correo", "e-mail"]);
+    const email2 = findCol(row, ["email 2", "email2", "correo 2", "correo2"]);
+    const emails = [];
+    if (email1) emails.push({ value: email1, label: "Personal" });
+    if (email2) emails.push({ value: email2, label: "Alternativo" });
     return {
       id: "p" + (totalExisting + idx + 1),
       first,
       last,
       role: findCol(row, ["cargo", "role", "puesto", "title", "position"]) || "otro",
       roleOther: "",
-      email: findCol(row, ["email", "correo"]),
-      phone: findCol(row, ["teléfono", "telefono", "phone", "celular", "móvil", "movil"]),
-      address: findCol(row, ["dirección", "direccion", "address"]),
-      zip: findCol(row, ["zip", "código postal", "codigo postal"]),
+      email: email1,
+      phone: phone1,
+      phones,
+      emails,
+      address: findCol(row, ["dirección", "direccion", "home address", "address"]),
+      zip: findCol(row, ["zip code", "zip", "código postal", "codigo postal"]),
       city: findCol(row, ["ciudad", "city"]),
       state: findCol(row, ["estado/provincia", "state", "provincia"]),
-      country: findCol(row, ["país", "pais", "country"]),
+      country: findCol(row, ["país", "pais", "country"]) || "USA",
       lat: 0, lng: 0,
       website: findCol(row, ["sitio web", "web", "website"]),
       social: { ig, fb, tiktok, x },
       entities: [],
-      tags: tagsRaw ? tagsRaw.split(/[,;|]/).map(s => s.trim()).filter(Boolean) : [],
+      tags: tagsList,
       language: findCol(row, ["idioma", "language"]) || "es",
       status: "activo",
       stage: findCol(row, ["etapa pipeline", "etapa", "stage", "pipeline"]) || "activo",
@@ -122,25 +157,26 @@ const ImportModal = ({ type, lang, onClose, onImport }) => {
   };
 
   const mapEntityRow = (row, idx, totalExisting) => {
-    const name = findCol(row, ["nombre", "name", "entidad"]);
+    // "church name" takes priority over generic "name" so person rows don't become entities
+    const name = findCol(row, ["church name", "nombre", "entidad", "name"]);
     if (!name) return null;
     const ig = findCol(row, ["instagram"]);
     const fb = findCol(row, ["facebook"]);
     const tiktok = findCol(row, ["tiktok"]);
-    const x = findCol(row, ["x", "twitter", "x (twitter)"]);
+    const x = findCol(row, ["x", "twitter"]);
     const tagsRaw = findCol(row, ["etiquetas", "tags"]);
-    const sizeRaw = findCol(row, ["tamaño", "tamano", "size", "miembros"]);
+    const sizeRaw = findCol(row, ["members", "tamaño", "tamano", "size", "miembros"]);
     return {
       id: "e" + (totalExisting + idx + 1),
       name,
-      type: findCol(row, ["tipo", "type"]) || "ong",
+      type: findCol(row, ["tipo", "type"]) || "iglesia",
       email: findCol(row, ["email", "correo"]),
-      phone: findCol(row, ["teléfono", "telefono", "phone"]),
-      address: findCol(row, ["dirección", "direccion", "address"]),
-      zip: findCol(row, ["zip", "código postal"]),
+      phone: findCol(row, ["church telephone", "teléfono", "telefono", "telephone", "phone"]),
+      address: findCol(row, ["adress church", "address church", "dirección", "direccion", "address"]),
+      zip: findCol(row, ["zip code", "zip", "código postal", "codigo postal"]),
       city: findCol(row, ["ciudad", "city"]),
       state: findCol(row, ["estado/provincia", "state", "provincia"]),
-      country: findCol(row, ["país", "pais", "country"]),
+      country: findCol(row, ["país", "pais", "country"]) || "USA",
       lat: 0, lng: 0,
       website: findCol(row, ["sitio web", "web", "website"]),
       social: { ig, fb, tiktok, x },
@@ -148,6 +184,9 @@ const ImportModal = ({ type, lang, onClose, onImport }) => {
       founded: findCol(row, ["año fundación", "ano fundacion", "founded", "fundacion"]),
       parent: null,
       tags: tagsRaw ? tagsRaw.split(/[,;|]/).map(s => s.trim()).filter(Boolean) : [],
+      phones: [],
+      emails: [],
+      schedule: [],
     };
   };
 
@@ -194,8 +233,8 @@ const ImportModal = ({ type, lang, onClose, onImport }) => {
           <div style={{ background: "var(--accent-50)", border: "1px solid var(--accent-100)", borderRadius: 8, padding: "10px 14px", marginBottom: 16, fontSize: 12.5, color: "var(--ink-2)", lineHeight: 1.6 }}>
             <strong>Columnas reconocidas automáticamente:</strong><br />
             {isPersona
-              ? "Nombre, Apellido, Cargo, Email, Teléfono, Dirección, ZIP, Ciudad, País, Instagram, Facebook, TikTok, X, Etiquetas, Idioma, Estado, Cumpleaños, Etapa Pipeline, Fuente, Próxima acción"
-              : "Nombre, Tipo, Email, Teléfono, Dirección, ZIP, Ciudad, País, Instagram, Facebook, Sitio web, Tamaño, Año fundación, Etiquetas"
+              ? "Nombre/First Name/Name, Apellido/Last Name, Title/Cargo, Email, Email 2, Personal Telephone/Teléfono, Church Telephone, Dirección, ZIP/Zip Code, Ciudad/City, State, Country, Church Name, Instagram, Facebook, TikTok, Etiquetas, Cumpleaños, Etapa Pipeline"
+              : "Church Name/Nombre, Tipo, Email, Church Telephone/Teléfono, Dirección, ZIP/Zip Code, Ciudad, State, Country, Members/Tamaño, Website, Etiquetas"
             }
           </div>
 
