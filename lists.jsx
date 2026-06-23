@@ -306,15 +306,23 @@ const PersonasList = ({ t, lang, data, go, onImportPersonas, globalQ = "", onBul
     if (countyFilter && !(p.county || "").toLowerCase().includes(countyFilter.toLowerCase())) return false;
     if (zip && !(p.zip || "").toLowerCase().includes(zip.toLowerCase())) return false;
     if (tagFilter && !(p.tags || []).some(tg => tg.toLowerCase().includes(tagFilter.toLowerCase()))) return false;
-    if (emailFilter && !(p.email || "").toLowerCase().includes(emailFilter.toLowerCase())) return false;
-    if (phoneFilter && !(p.phone || "").toLowerCase().includes(phoneFilter.toLowerCase())) return false;
+    const norm = s => (s || "").toLowerCase();
+    const allEmails = [(p.email||""), ...(p.emails||[]).map(e => e.value||"")].join(" ").toLowerCase();
+    const allPhones = [(p.phone||""), ...(p.phones||[]).map(ph => ph.value||"")].join(" ").toLowerCase();
+    if (emailFilter && !allEmails.includes(emailFilter.toLowerCase())) return false;
+    if (phoneFilter && !allPhones.includes(phoneFilter.toLowerCase())) return false;
     const checkQ = (query) => {
       if (!query) return true;
       const sq = query.trim().toLowerCase();
       const stripped = sq.replace(/^#/, "");
       if (/^\d+$/.test(stripped)) return (p.uid || "").startsWith(stripped);
-      const searchStr = (fullName(p) + " " + (p.email||"") + " " + (p.phone||"") + " " + (p.city||"") + " " + (p.county||"") + " " + (p.state||"") + " " + (p.tags||[]).join(" ")).toLowerCase();
-      // Multi-word: exact phrase OR all words present anywhere
+      const searchStr = [
+        norm(p.first), norm(p.last),
+        allEmails, allPhones,
+        norm(p.city), norm(p.county), norm(p.state), norm(p.country),
+        norm(p.role), (p.roles||[]).map(norm).join(" "),
+        (p.tags||[]).map(norm).join(" "),
+      ].join(" ");
       const words = sq.split(/\s+/).filter(Boolean);
       return searchStr.includes(sq) || words.every(w => searchStr.includes(w));
     };
@@ -822,16 +830,24 @@ const EntitiesList = ({ t, lang, data, go, onImportEntities, globalQ = "" }) => 
     if (countyFilter && !(e.county || "").toLowerCase().includes(countyFilter.toLowerCase())) return false;
     if (zip && !(e.zip || "").toLowerCase().includes(zip.toLowerCase())) return false;
     if (tagFilter && !(e.tags || []).some(tg => tg.toLowerCase().includes(tagFilter.toLowerCase()))) return false;
-    if (emailFilter && !(e.email || "").toLowerCase().includes(emailFilter.toLowerCase())) return false;
-    if (phoneFilter && !(e.phone || "").toLowerCase().includes(phoneFilter.toLowerCase())) return false;
+    const enorm = s => (s || "").toLowerCase();
+    const eAllEmails = [(e.email||""), ...(e.emails||[]).map(em => em.value||"")].join(" ").toLowerCase();
+    const eAllPhones = [(e.phone||""), ...(e.phones||[]).map(ph => ph.value||"")].join(" ").toLowerCase();
+    if (emailFilter && !eAllEmails.includes(emailFilter.toLowerCase())) return false;
+    if (phoneFilter && !eAllPhones.includes(phoneFilter.toLowerCase())) return false;
     if (dayFilter !== "all" && !(e.schedule || []).some(s => s.day === dayFilter)) return false;
     const checkQ = (query) => {
       if (!query) return true;
       const sq = query.trim().toLowerCase();
       const stripped = sq.replace(/^#/, "");
       if (/^\d+$/.test(stripped)) return (e.uid || "").startsWith(stripped);
-      const searchStr = (e.name + " " + (e.email||"") + " " + (e.phone||"") + " " + (e.city||"") + " " + (e.country||"")).toLowerCase();
-      return searchStr.includes(sq);
+      const searchStr = [
+        enorm(e.name), eAllEmails, eAllPhones,
+        enorm(e.city), enorm(e.county), enorm(e.state), enorm(e.country),
+        (e.tags||[]).map(enorm).join(" "),
+      ].join(" ");
+      const words = sq.split(/\s+/).filter(Boolean);
+      return searchStr.includes(sq) || words.every(w => searchStr.includes(w));
     };
     if (!checkQ(q) || !checkQ(globalQ)) return false;
     return true;

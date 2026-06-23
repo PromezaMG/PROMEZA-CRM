@@ -70,7 +70,7 @@ window.fmtDate = (iso, lang) => {
     return d.toLocaleDateString(lang === "en" ? "en-US" : "es-ES", { day: "numeric", month: "short", year: "numeric" });
   } catch (e) { return iso; }
 };
-window.fullName = (p) => `${p.first} ${p.last}`;
+window.fullName = (p) => [p.first, p.last].filter(Boolean).join(" ") || "";
 
 // CSV export utility
 window.exportCSV = (filename, headers, rows) => {
