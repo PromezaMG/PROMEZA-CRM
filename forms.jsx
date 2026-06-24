@@ -452,7 +452,7 @@ const NewEntityForm = ({ t, lang, data, onClose, onSave, initialData, editMode }
   };
 
   const typeOpts = Object.keys(t.types).map(k => ({ value: k, label: t.types[k] }));
-  const parentOpts = [{ value: "", label: lang === "es" ? "— Ninguna —" : "— None —" }, ...data.entities.map(e => ({ value: e.id, label: e.name })).sort((a, b) => (a.label || "").localeCompare(b.label || "", "es", { sensitivity: "base" }))];
+  const parentOpts = [{ value: "", label: lang === "es" ? "— Ninguna —" : "— None —" }, ...data.entities.map(e => ({ value: e.id, label: e.name })).sort((a, b) => window.nameCmp(a.label, b.label))];
 
   return (
     <div className="modal-veil" onClick={onClose}>

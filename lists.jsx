@@ -373,7 +373,7 @@ const PersonasList = ({ t, lang, data, go, onImportPersonas, globalQ = "", onBul
     };
     if (!checkQ(q) || !checkQ(globalQ)) return false;
     return true;
-  }).sort((a, b) => fullName(a).localeCompare(fullName(b), "es", { sensitivity: "base" })), [data.personas, role, country, stateFilter, status, stageFilter, langFilter, city, countyFilter, zip, tagFilter, emailFilter, phoneFilter, q, globalQ]); // eslint-disable-line react-hooks/exhaustive-deps
+  }).sort((a, b) => window.nameCmp(fullName(a), fullName(b))), [data.personas, role, country, stateFilter, status, stageFilter, langFilter, city, countyFilter, zip, tagFilter, emailFilter, phoneFilter, q, globalQ]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const activeFilters = [role !== "all", country !== "all", stateFilter, status !== "all", stageFilter !== "all", langFilter !== "all", city, countyFilter, zip, tagFilter, emailFilter, phoneFilter, q].filter(Boolean).length;
 
@@ -904,7 +904,7 @@ const EntitiesList = ({ t, lang, data, go, onImportEntities, globalQ = "" }) => 
     };
     if (!checkQ(q) || !checkQ(globalQ)) return false;
     return true;
-  }).sort((a, b) => (a.name || "").localeCompare(b.name || "", "es", { sensitivity: "base" }));
+  }).sort((a, b) => window.nameCmp(a.name, b.name));
 
   const activeFilters = [type !== "all", country !== "all", status !== "all", city, stateFilter, countyFilter, zip, tagFilter, emailFilter, phoneFilter, dayFilter !== "all", q].filter(Boolean).length;
 

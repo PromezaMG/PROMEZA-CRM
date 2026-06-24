@@ -186,7 +186,7 @@ const PersonProfile = ({ id, t, lang, data, go, addComment, onUpdatePerson, onEd
   if (!p) return <div className="empty">Not found</div>;
 
   const pEntities = p.entities || [];
-  const availableEntities = data.entities.filter(e => !pEntities.some(le => le.id === e.id)).sort((a, b) => (a.name || "").localeCompare(b.name || "", "es", { sensitivity: "base" }));
+  const availableEntities = data.entities.filter(e => !pEntities.some(le => le.id === e.id)).sort((a, b) => window.nameCmp(a.name, b.name));
 
   const doLinkEntity = () => {
     if (!linkEntityId) return;
@@ -672,7 +672,7 @@ const EntityProfile = ({ id, t, lang, data, go, addComment, onUpdateEntity, onUp
   const parent = e.parent ? data.entities.find(x => x.id === e.parent) : null;
 
   const linkedPersonIds = new Set(linkedPeople.map(x => x.p.id));
-  const availablePersons = data.personas.filter(p => !linkedPersonIds.has(p.id)).sort((a, b) => fullName(a).localeCompare(fullName(b), "es", { sensitivity: "base" }));
+  const availablePersons = data.personas.filter(p => !linkedPersonIds.has(p.id)).sort((a, b) => window.nameCmp(fullName(a), fullName(b)));
 
   const doLinkPerson = () => {
     if (!linkPersonId) return;
