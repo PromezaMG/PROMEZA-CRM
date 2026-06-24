@@ -36,11 +36,11 @@
 </script>
 
 <!-- MSAL.js for Microsoft Entra ID login (hosted locally) -->
-<script src="msal-browser.min.js?v=122"
+<script src="msal-browser.min.js?v=123"
   onload="console.log('MSAL loaded OK, window.msal=', typeof window.msal)"
   onerror="console.error('MSAL LOCAL FILE FAILED TO LOAD')"></script>
 
-<link rel="stylesheet" href="styles.css?v=122" />
+<link rel="stylesheet" href="styles.css?v=123" />
 <link rel="manifest" href="manifest.json" />
 <meta name="theme-color" content="#4f46e5" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -51,36 +51,19 @@
 <body>
 <div id="root"></div>
 
-<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
-<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
-<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<!-- React (production build — faster, smaller than the dev build) -->
+<script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js" crossorigin="anonymous"></script>
 
 <!-- Data + utilities -->
-<script src="data.js?v=122"></script>
-<script src="data_churches.js?v=122"></script>
-<script src="i18n.js?v=122"></script>
-<script src="airtable.js?v=122"></script>
+<script src="data.js?v=123"></script>
+<script src="data_churches.js?v=123"></script>
+<script src="i18n.js?v=123"></script>
+<script src="airtable.js?v=123"></script>
 
-<!-- React JSX components -->
-<script type="text/babel" src="ui.jsx?v=122"></script>
-<script type="text/babel" src="auth.jsx?v=122"></script>
-<script type="text/babel" src="shell.jsx?v=122"></script>
-<script type="text/babel" src="map.jsx?v=122"></script>
-<script type="text/babel" src="home.jsx?v=122"></script>
-<script type="text/babel" src="lists.jsx?v=122"></script>
-<script type="text/babel" src="profile.jsx?v=122"></script>
-<script type="text/babel" src="forms.jsx?v=122"></script>
-<script type="text/babel" src="duplicates.jsx?v=122"></script>
-<script type="text/babel" src="interactions.jsx?v=122"></script>
-<script type="text/babel" src="tasks.jsx?v=122"></script>
-<script type="text/babel" src="pipeline.jsx?v=122"></script>
-<script type="text/babel" src="projects.jsx?v=122"></script>
-<script type="text/babel" src="attachments.jsx?v=122"></script>
-<script type="text/babel" src="campaigns.jsx?v=122"></script>
-<script type="text/babel" src="calendar.jsx?v=122"></script>
-<script type="text/babel" src="goals.jsx?v=122"></script>
-<script type="text/babel" src="county.jsx?v=122"></script>
-<script type="text/babel" src="app.jsx?v=122"></script>
+<!-- Precompiled app: all .jsx files transpiled to plain JS at build time.
+     No in-browser Babel (removed) — this is the main load-speed win. -->
+<script src="bundle.js?v=123"></script>
 
 <script>
   if ('serviceWorker' in navigator) {
@@ -88,8 +71,8 @@
     // so a new deployment is picked up on the next reload while online — no
     // auto-reload (that risked a reload loop during CDN propagation).
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('./sw.js?v=122')
-        .then(r => { console.log('SW v122 registered'); r.update(); })
+      navigator.serviceWorker.register('./sw.js?v=123')
+        .then(r => { console.log('SW v123 registered'); r.update(); })
         .catch(e => console.warn('SW failed:', e));
     });
   }

@@ -1,12 +1,8 @@
-const CACHE = "promeza-v122";
+const CACHE = "promeza-v123";
 const ASSETS = [
   "./styles.css",
   "./i18n.js", "./airtable.js",
-  "./ui.jsx", "./auth.jsx", "./shell.jsx", "./map.jsx", "./home.jsx",
-  "./lists.jsx", "./profile.jsx", "./forms.jsx", "./duplicates.jsx",
-  "./interactions.jsx", "./tasks.jsx", "./pipeline.jsx", "./projects.jsx",
-  "./attachments.jsx", "./campaigns.jsx", "./calendar.jsx", "./goals.jsx",
-  "./county.jsx", "./app.jsx", "./msal-browser.min.js",
+  "./bundle.js", "./msal-browser.min.js",
   "./data_churches.js",
 ];
 
@@ -30,7 +26,7 @@ self.addEventListener("fetch", e => {
   // new deployment is ALWAYS picked up on the next online load. Falls back to
   // cache only when offline. This avoids users getting stuck on a stale version.
   // Big/static assets (data_churches.js, msal, images, fonts) stay cache-first below.
-  const isCode = isHTML || /\.(jsx|css)$/.test(url.pathname) || /\/(i18n|airtable|app)\.js$/.test(url.pathname);
+  const isCode = isHTML || /\.(jsx|css)$/.test(url.pathname) || /\/(i18n|airtable|bundle)\.js$/.test(url.pathname);
   if (isCode) {
     e.respondWith(
       fetch(e.request).then(res => {
