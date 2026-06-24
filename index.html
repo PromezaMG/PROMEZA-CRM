@@ -36,11 +36,11 @@
 </script>
 
 <!-- MSAL.js for Microsoft Entra ID login (hosted locally) -->
-<script src="msal-browser.min.js?v=117"
+<script src="msal-browser.min.js?v=118"
   onload="console.log('MSAL loaded OK, window.msal=', typeof window.msal)"
   onerror="console.error('MSAL LOCAL FILE FAILED TO LOAD')"></script>
 
-<link rel="stylesheet" href="styles.css?v=117" />
+<link rel="stylesheet" href="styles.css?v=118" />
 <link rel="manifest" href="manifest.json" />
 <meta name="theme-color" content="#4f46e5" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -56,37 +56,55 @@
 <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
 
 <!-- Data + utilities -->
-<script src="data.js?v=117"></script>
-<script src="data_churches.js?v=117"></script>
-<script src="i18n.js?v=117"></script>
-<script src="airtable.js?v=117"></script>
+<script src="data.js?v=118"></script>
+<script src="data_churches.js?v=118"></script>
+<script src="i18n.js?v=118"></script>
+<script src="airtable.js?v=118"></script>
 
 <!-- React JSX components -->
-<script type="text/babel" src="ui.jsx?v=117"></script>
-<script type="text/babel" src="auth.jsx?v=117"></script>
-<script type="text/babel" src="shell.jsx?v=117"></script>
-<script type="text/babel" src="map.jsx?v=117"></script>
-<script type="text/babel" src="home.jsx?v=117"></script>
-<script type="text/babel" src="lists.jsx?v=117"></script>
-<script type="text/babel" src="profile.jsx?v=117"></script>
-<script type="text/babel" src="forms.jsx?v=117"></script>
-<script type="text/babel" src="duplicates.jsx?v=117"></script>
-<script type="text/babel" src="interactions.jsx?v=117"></script>
-<script type="text/babel" src="tasks.jsx?v=117"></script>
-<script type="text/babel" src="pipeline.jsx?v=117"></script>
-<script type="text/babel" src="projects.jsx?v=117"></script>
-<script type="text/babel" src="attachments.jsx?v=117"></script>
-<script type="text/babel" src="campaigns.jsx?v=117"></script>
-<script type="text/babel" src="calendar.jsx?v=117"></script>
-<script type="text/babel" src="goals.jsx?v=117"></script>
-<script type="text/babel" src="county.jsx?v=117"></script>
-<script type="text/babel" src="app.jsx?v=117"></script>
+<script type="text/babel" src="ui.jsx?v=118"></script>
+<script type="text/babel" src="auth.jsx?v=118"></script>
+<script type="text/babel" src="shell.jsx?v=118"></script>
+<script type="text/babel" src="map.jsx?v=118"></script>
+<script type="text/babel" src="home.jsx?v=118"></script>
+<script type="text/babel" src="lists.jsx?v=118"></script>
+<script type="text/babel" src="profile.jsx?v=118"></script>
+<script type="text/babel" src="forms.jsx?v=118"></script>
+<script type="text/babel" src="duplicates.jsx?v=118"></script>
+<script type="text/babel" src="interactions.jsx?v=118"></script>
+<script type="text/babel" src="tasks.jsx?v=118"></script>
+<script type="text/babel" src="pipeline.jsx?v=118"></script>
+<script type="text/babel" src="projects.jsx?v=118"></script>
+<script type="text/babel" src="attachments.jsx?v=118"></script>
+<script type="text/babel" src="campaigns.jsx?v=118"></script>
+<script type="text/babel" src="calendar.jsx?v=118"></script>
+<script type="text/babel" src="goals.jsx?v=118"></script>
+<script type="text/babel" src="county.jsx?v=118"></script>
+<script type="text/babel" src="app.jsx?v=118"></script>
 
 <script>
   if ('serviceWorker' in navigator) {
+    // Auto-update: when a new service worker takes control, reload once so the
+    // whole team always runs the latest code without a manual hard-refresh.
+    var _swRefreshing = false;
+    navigator.serviceWorker.addEventListener('controllerchange', function () {
+      if (_swRefreshing) return;
+      _swRefreshing = true;
+      window.location.reload();
+    });
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('./sw.js?v=117')
-        .then(r => { console.log('SW v117 registered'); r.update(); })
+      navigator.serviceWorker.register('./sw.js?v=118')
+        .then(r => {
+          console.log('SW v118 registered');
+          r.update();
+          if (r.waiting) r.waiting.postMessage('SKIP_WAITING');
+          r.addEventListener('updatefound', () => {
+            const nw = r.installing;
+            if (nw) nw.addEventListener('statechange', () => {
+              if (nw.state === 'installed' && navigator.serviceWorker.controller) nw.postMessage('SKIP_WAITING');
+            });
+          });
+        })
         .catch(e => console.warn('SW failed:', e));
     });
   }

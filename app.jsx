@@ -1063,23 +1063,15 @@ const App = () => {
     return () => window.removeEventListener("storage", onStorage);
   }, [cryptoKey, dataReady]);
 
-  // Airtable sync: pull immediately on open, every 2 minutes, and whenever the
-  // user returns to the tab — so teammates always see each other's latest data
-  // instead of waiting up to 2 minutes after opening.
+  // Airtable sync: one pull a few seconds after open (so the UI is interactive
+  // first and teammates' latest data arrives shortly), then every 2 minutes.
+  // Deliberately NOT on every tab focus — that caused repeated full-dataset
+  // merges + re-encryption that froze the page.
   useEffect(() => {
     if (!dataReady || !data) return;
-    let lastPull = 0;
-    const pull = () => { lastPull = Date.now(); syncFromAirtable(); };
-    pull(); // immediate pull on open
-    const interval = setInterval(pull, 120000);
-    const onVisible = () => { if (document.visibilityState === "visible" && Date.now() - lastPull > 20000) pull(); };
-    document.addEventListener("visibilitychange", onVisible);
-    window.addEventListener("focus", onVisible);
-    return () => {
-      clearInterval(interval);
-      document.removeEventListener("visibilitychange", onVisible);
-      window.removeEventListener("focus", onVisible);
-    };
+    const first = setTimeout(syncFromAirtable, 4000);
+    const interval = setInterval(syncFromAirtable, 120000);
+    return () => { clearTimeout(first); clearInterval(interval); };
   }, [dataReady]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Auto-logout on inactivity (1 hour)

@@ -1,4 +1,4 @@
-const CACHE = "promeza-v117";
+const CACHE = "promeza-v118";
 const ASSETS = [
   "./styles.css",
   "./i18n.js", "./airtable.js",
@@ -14,10 +14,18 @@ self.addEventListener("install", e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting()));
 });
 
+// Allow the page to trigger an immediate activation of a waiting worker.
+self.addEventListener("message", e => { if (e.data === "SKIP_WAITING") self.skipWaiting(); });
+
 self.addEventListener("activate", e => {
-  // Delete old caches. Do NOT claim clients — claiming fires controllerchange
-  // on open pages, which can cause reload loops and interrupt Microsoft login.
-  e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))));
+  // Delete old caches, then take control of open pages. The page listens for
+  // controllerchange and reloads exactly once (guarded), so a new deploy is
+  // applied automatically — no manual hard-refresh, and no reload loop.
+  e.waitUntil(
+    caches.keys()
+      .then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))))
+      .then(() => self.clients.claim())
+  );
 });
 
 self.addEventListener("fetch", e => {
