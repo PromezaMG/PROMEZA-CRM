@@ -47,6 +47,21 @@ const PipelineView = ({ t, lang, data, go, onUpdatePerson }) => {
   );
   const filteredReview = reviewPersonas.filter(p => matchesSearch(fullName(p), p.email + " " + p.phone));
 
+  // Render at most this many cards at once. Rendering thousands of cards (one per
+  // contact/entity) froze the page on every navigation. Users narrow with search.
+  const RENDER_CAP = 60;
+  // Precompute personas-per-entity ONCE (was O(n²): filtering all personas per card).
+  const personaCountByEntity = React.useMemo(() => {
+    const m = {};
+    (data.personas || []).forEach(p => (p.entities || []).forEach(le => { m[le.id] = (m[le.id] || 0) + 1; }));
+    return m;
+  }, [data.personas]);
+  const CapNote = ({ total }) => total > RENDER_CAP ? (
+    <div className="muted" style={{ gridColumn: "1 / -1", padding: "10px 2px", fontSize: 12.5 }}>
+      Mostrando {RENDER_CAP} de {total.toLocaleString()}. Usa el buscador para encontrar a alguien específico.
+    </div>
+  ) : null;
+
   // ─── Card components ───
   const PersonaCard = ({ p }) => {
     const sid = stageOf(p);
@@ -125,7 +140,7 @@ const PipelineView = ({ t, lang, data, go, onUpdatePerson }) => {
   };
 
   const EntityCard = ({ e }) => {
-    const personaCount = data.personas.filter(p => (p.entities || []).some(le => le.id === e.id)).length;
+    const personaCount = personaCountByEntity[e.id] || 0;
     const types = window.PROJECT_TYPES || [];
     const daysSince = e.lastContact ? Math.round((new Date(today) - new Date(e.lastContact)) / 86400000) : null;
 
@@ -311,7 +326,8 @@ const PipelineView = ({ t, lang, data, go, onUpdatePerson }) => {
                 ? <div className="empty" style={{ padding: "24px 0", fontSize: 12 }}>Sin resultados</div>
                 : (
                   <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 10 }}>
-                    {filteredActivePersonas.map(p => <PersonaCard key={p.id} p={p} />)}
+                    {filteredActivePersonas.slice(0, RENDER_CAP).map(p => <PersonaCard key={p.id} p={p} />)}
+                    <CapNote total={filteredActivePersonas.length} />
                   </div>
                 )
               }
@@ -324,7 +340,8 @@ const PipelineView = ({ t, lang, data, go, onUpdatePerson }) => {
                 ? <div className="empty" style={{ padding: "24px 0", fontSize: 12 }}>Sin resultados</div>
                 : (
                   <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 10 }}>
-                    {filteredActiveEntities.map(e => <EntityCard key={e.id} e={e} />)}
+                    {filteredActiveEntities.slice(0, RENDER_CAP).map(e => <EntityCard key={e.id} e={e} />)}
+                    <CapNote total={filteredActiveEntities.length} />
                   </div>
                 )
               }
@@ -340,7 +357,8 @@ const PipelineView = ({ t, lang, data, go, onUpdatePerson }) => {
             <div style={{ marginBottom: 24 }}>
               <SectionHeader label="Personas inhabilitadas" count={filteredInactivePersonas.length} icon="users" />
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 10 }}>
-                {filteredInactivePersonas.map(p => <PersonaCard key={p.id} p={p} />)}
+                {filteredInactivePersonas.slice(0, RENDER_CAP).map(p => <PersonaCard key={p.id} p={p} />)}
+                <CapNote total={filteredInactivePersonas.length} />
               </div>
             </div>
           )}
@@ -348,7 +366,8 @@ const PipelineView = ({ t, lang, data, go, onUpdatePerson }) => {
             <div>
               <SectionHeader label="Entidades inhabilitadas" count={filteredInactiveEntities.length} icon="building" />
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 10 }}>
-                {filteredInactiveEntities.map(e => <EntityCard key={e.id} e={e} />)}
+                {filteredInactiveEntities.slice(0, RENDER_CAP).map(e => <EntityCard key={e.id} e={e} />)}
+                <CapNote total={filteredInactiveEntities.length} />
               </div>
             </div>
           )}
@@ -375,7 +394,8 @@ const PipelineView = ({ t, lang, data, go, onUpdatePerson }) => {
                 <Icon name="alert" size={13} /> {filteredReview.length} contacto{filteredReview.length !== 1 ? "s" : ""} con información incompleta o incorrecta. Haz clic en cada uno para corregir.
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 10 }}>
-                {filteredReview.map(p => <ReviewCard key={p.id} p={p} />)}
+                {filteredReview.slice(0, RENDER_CAP).map(p => <ReviewCard key={p.id} p={p} />)}
+                <CapNote total={filteredReview.length} />
               </div>
             </>
           )}

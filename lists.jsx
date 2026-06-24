@@ -1091,7 +1091,7 @@ const EntitiesList = ({ t, lang, data, go, onImportEntities, globalQ = "" }) => 
             </tr>
           </thead>
           <tbody>
-            {rows.map(e => (
+            {rows.slice(0, 100).map(e => (
               <tr key={e.id} onClick={() => go({ name: "entity", id: e.id })}>
                 <td>
                   <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -1141,6 +1141,7 @@ const EntitiesList = ({ t, lang, data, go, onImportEntities, globalQ = "" }) => 
             ))}
           </tbody>
         </table>
+        {rows.length > 100 && <div className="muted" style={{ padding: "12px 4px", fontSize: 12.5 }}>Mostrando 100 de {rows.length.toLocaleString()}. Usa el buscador o los filtros para encontrar una entidad específica.</div>}
         {rows.length === 0 && <div className="empty">{t.common.noResults}</div>}
       </div>
     </div>
