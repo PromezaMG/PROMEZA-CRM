@@ -396,9 +396,7 @@ const SearchPicker = ({
     return () => document.removeEventListener("mousedown", onDoc);
   }, []);
   const norm = s => (s == null ? "" : String(s)).toLowerCase();
-  const sorted = [...(items || [])].sort((a, b) => getLabel(a).localeCompare(getLabel(b), "es", {
-    sensitivity: "base"
-  }));
+  const sorted = [...(items || [])].sort((a, b) => getLabel(a).localeCompare(getLabel(b)));
   const q = norm(query);
   const filtering = q && !(selected && q === norm(getLabel(selected)));
   const matches = (filtering ? sorted.filter(it => norm(getLabel(it)).includes(q) || getSub && norm(getSub(it)).includes(q) || getPhone && norm(getPhone(it)).includes(q) || norm(it.id).includes(q)) : sorted).slice(0, 40);
@@ -4810,9 +4808,7 @@ const PersonasList = ({
     };
     if (!checkQ(q) || !checkQ(globalQ)) return false;
     return true;
-  }).sort((a, b) => fullName(a).localeCompare(fullName(b), "es", {
-    sensitivity: "base"
-  })), [data.personas, role, country, stateFilter, status, stageFilter, langFilter, city, countyFilter, zip, tagFilter, emailFilter, phoneFilter, q, globalQ]); // eslint-disable-line react-hooks/exhaustive-deps
+  }).sort((a, b) => fullName(a).localeCompare(fullName(b))), [data.personas, role, country, stateFilter, status, stageFilter, langFilter, city, countyFilter, zip, tagFilter, emailFilter, phoneFilter, q, globalQ]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const activeFilters = [role !== "all", country !== "all", stateFilter, status !== "all", stageFilter !== "all", langFilter !== "all", city, countyFilter, zip, tagFilter, emailFilter, phoneFilter, q].filter(Boolean).length;
 
@@ -5879,9 +5875,7 @@ const EntitiesList = ({
     };
     if (!checkQ(q) || !checkQ(globalQ)) return false;
     return true;
-  }).sort((a, b) => (a.name || "").localeCompare(b.name || "", "es", {
-    sensitivity: "base"
-  }));
+  }).sort((a, b) => (a.name || "").localeCompare(b.name || ""));
   const activeFilters = [type !== "all", country !== "all", status !== "all", city, stateFilter, countyFilter, zip, tagFilter, emailFilter, phoneFilter, dayFilter !== "all", q].filter(Boolean).length;
   const clearFilters = () => {
     setType("all");
@@ -6673,9 +6667,7 @@ const PersonProfile = ({
     className: "empty"
   }, "Not found");
   const pEntities = p.entities || [];
-  const availableEntities = data.entities.filter(e => !pEntities.some(le => le.id === e.id)).sort((a, b) => (a.name || "").localeCompare(b.name || "", "es", {
-    sensitivity: "base"
-  }));
+  const availableEntities = data.entities.filter(e => !pEntities.some(le => le.id === e.id)).sort((a, b) => (a.name || "").localeCompare(b.name || ""));
   const doLinkEntity = () => {
     if (!linkEntityId) return;
     onUpdatePerson && onUpdatePerson(p.id, {
@@ -7678,9 +7670,7 @@ const EntityProfile = ({
   const children = data.entities.filter(c => c.parent === e.id);
   const parent = e.parent ? data.entities.find(x => x.id === e.parent) : null;
   const linkedPersonIds = new Set(linkedPeople.map(x => x.p.id));
-  const availablePersons = data.personas.filter(p => !linkedPersonIds.has(p.id)).sort((a, b) => fullName(a).localeCompare(fullName(b), "es", {
-    sensitivity: "base"
-  }));
+  const availablePersons = data.personas.filter(p => !linkedPersonIds.has(p.id)).sort((a, b) => fullName(a).localeCompare(fullName(b)));
   const doLinkPerson = () => {
     if (!linkPersonId) return;
     const target = data.personas.find(p => p.id === linkPersonId);
@@ -9360,9 +9350,7 @@ const NewEntityForm = ({
   }, ...data.entities.map(e => ({
     value: e.id,
     label: e.name
-  })).sort((a, b) => (a.label || "").localeCompare(b.label || "", "es", {
-    sensitivity: "base"
-  }))];
+  })).sort((a, b) => (a.label || "").localeCompare(b.label || ""))];
   return /*#__PURE__*/React.createElement("div", {
     className: "modal-veil",
     onClick: onClose
