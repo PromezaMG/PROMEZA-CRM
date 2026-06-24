@@ -990,6 +990,31 @@ const App = () => {
               if (rFixed > 0) console.log('PROMEZA: fixed ' + rFixed + ' corrupted roles from data.js (v117)');
               localStorage.setItem('promeza_roles_v117', '1');
             }
+            // v119: force-restore name/title/role from the corrected data.js for ALL
+            // p#### contacts. Earlier name fixes (v101) ran BEFORE data.js was
+            // corrected, so their flag was set with stale data and never re-ran —
+            // leaving notes stuck in the name field for some contacts. A fresh flag
+            // re-applies the corrected identity fields from data.js.
+            if (!localStorage.getItem('promeza_idfix_v119') && window.PROMEZA_DATA) {
+              const srcId119 = new Map((window.PROMEZA_DATA.personas || []).map(p => [p.id, p]));
+              let nId = 0;
+              loaded.personas = loaded.personas.map(p => {
+                if (!p.id || !p.id.match(/^p\d+$/)) return p;
+                const src = srcId119.get(p.id);
+                if (!src) return p;
+                nId++;
+                return {
+                  ...p,
+                  first: src.first || p.first,
+                  last: src.last !== undefined ? src.last : p.last,
+                  titulo: src.titulo !== undefined ? src.titulo : p.titulo,
+                  roles: src.roles || p.roles,
+                  roleOther: src.roleOther !== undefined ? src.roleOther : p.roleOther,
+                };
+              });
+              if (nId > 0) console.log('PROMEZA: v119 re-synced name/title/role for ' + nId + ' contacts');
+              localStorage.setItem('promeza_idfix_v119', '1');
+            }
             setData(loaded);
             setDataReady(true);
             return;
@@ -1022,7 +1047,9 @@ const App = () => {
       setData(seeded);
       setDataReady(true);
       localStorage.setItem('promeza_last_load', new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString());
-      try { delete window.PROMEZA_DATA; } catch(e) {}
+      // Keep window.PROMEZA_DATA available: mergeFromAirtable uses it as the
+      // canonical source for p#### identity fields (name/title/role). Deleting it
+      // let Airtable's values win unchecked, which could re-introduce corruption.
     };
     if (userEmail) initData();
   }, [userEmail]);

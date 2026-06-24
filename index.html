@@ -36,11 +36,11 @@
 </script>
 
 <!-- MSAL.js for Microsoft Entra ID login (hosted locally) -->
-<script src="msal-browser.min.js?v=118"
+<script src="msal-browser.min.js?v=119"
   onload="console.log('MSAL loaded OK, window.msal=', typeof window.msal)"
   onerror="console.error('MSAL LOCAL FILE FAILED TO LOAD')"></script>
 
-<link rel="stylesheet" href="styles.css?v=118" />
+<link rel="stylesheet" href="styles.css?v=119" />
 <link rel="manifest" href="manifest.json" />
 <meta name="theme-color" content="#4f46e5" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -56,31 +56,31 @@
 <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
 
 <!-- Data + utilities -->
-<script src="data.js?v=118"></script>
-<script src="data_churches.js?v=118"></script>
-<script src="i18n.js?v=118"></script>
-<script src="airtable.js?v=118"></script>
+<script src="data.js?v=119"></script>
+<script src="data_churches.js?v=119"></script>
+<script src="i18n.js?v=119"></script>
+<script src="airtable.js?v=119"></script>
 
 <!-- React JSX components -->
-<script type="text/babel" src="ui.jsx?v=118"></script>
-<script type="text/babel" src="auth.jsx?v=118"></script>
-<script type="text/babel" src="shell.jsx?v=118"></script>
-<script type="text/babel" src="map.jsx?v=118"></script>
-<script type="text/babel" src="home.jsx?v=118"></script>
-<script type="text/babel" src="lists.jsx?v=118"></script>
-<script type="text/babel" src="profile.jsx?v=118"></script>
-<script type="text/babel" src="forms.jsx?v=118"></script>
-<script type="text/babel" src="duplicates.jsx?v=118"></script>
-<script type="text/babel" src="interactions.jsx?v=118"></script>
-<script type="text/babel" src="tasks.jsx?v=118"></script>
-<script type="text/babel" src="pipeline.jsx?v=118"></script>
-<script type="text/babel" src="projects.jsx?v=118"></script>
-<script type="text/babel" src="attachments.jsx?v=118"></script>
-<script type="text/babel" src="campaigns.jsx?v=118"></script>
-<script type="text/babel" src="calendar.jsx?v=118"></script>
-<script type="text/babel" src="goals.jsx?v=118"></script>
-<script type="text/babel" src="county.jsx?v=118"></script>
-<script type="text/babel" src="app.jsx?v=118"></script>
+<script type="text/babel" src="ui.jsx?v=119"></script>
+<script type="text/babel" src="auth.jsx?v=119"></script>
+<script type="text/babel" src="shell.jsx?v=119"></script>
+<script type="text/babel" src="map.jsx?v=119"></script>
+<script type="text/babel" src="home.jsx?v=119"></script>
+<script type="text/babel" src="lists.jsx?v=119"></script>
+<script type="text/babel" src="profile.jsx?v=119"></script>
+<script type="text/babel" src="forms.jsx?v=119"></script>
+<script type="text/babel" src="duplicates.jsx?v=119"></script>
+<script type="text/babel" src="interactions.jsx?v=119"></script>
+<script type="text/babel" src="tasks.jsx?v=119"></script>
+<script type="text/babel" src="pipeline.jsx?v=119"></script>
+<script type="text/babel" src="projects.jsx?v=119"></script>
+<script type="text/babel" src="attachments.jsx?v=119"></script>
+<script type="text/babel" src="campaigns.jsx?v=119"></script>
+<script type="text/babel" src="calendar.jsx?v=119"></script>
+<script type="text/babel" src="goals.jsx?v=119"></script>
+<script type="text/babel" src="county.jsx?v=119"></script>
+<script type="text/babel" src="app.jsx?v=119"></script>
 
 <script>
   if ('serviceWorker' in navigator) {
@@ -93,9 +93,9 @@
       window.location.reload();
     });
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('./sw.js?v=118')
+      navigator.serviceWorker.register('./sw.js?v=119')
         .then(r => {
-          console.log('SW v118 registered');
+          console.log('SW v119 registered');
           r.update();
           if (r.waiting) r.waiting.postMessage('SKIP_WAITING');
           r.addEventListener('updatefound', () => {
