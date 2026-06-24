@@ -790,13 +790,25 @@ const App = () => {
         // but keep the remote role when it is a genuine, valid role.
         roles: (canonical && canonical.roles && !rolesLookValid(remote.roles)) ? canonical.roles : remote.roles,
         roleOther: (canonical && canonical.roles && !rolesLookValid(remote.roles)) ? (canonical.roleOther || "") : remote.roleOther,
+        // Airtable's contact columns are column-shifted for p#### imports (e.g. the
+        // phone field holds a name like "Claudio"). data.js is authoritative — restore
+        // phone/email/website from it so search and display use the real values.
+        phone: canonClean ? (canonical.phone !== undefined ? canonical.phone : remote.phone) : remote.phone,
+        phone2: canonClean ? (canonical.phone2 !== undefined ? canonical.phone2 : remote.phone2) : remote.phone2,
+        email: canonClean ? (canonical.email !== undefined ? canonical.email : remote.email) : remote.email,
+        email2: canonClean ? (canonical.email2 !== undefined ? canonical.email2 : remote.email2) : remote.email2,
+        website: canonClean ? (canonical.website || remote.website) : remote.website,
         // Geographic fields: Airtable often has these empty — use canonical (data.js) or local as fallback
         state: canonical ? geo(canonical.state, remote.state, local.state) : geo(remote.state, local.state),
         city: canonical ? geo(canonical.city, remote.city, local.city) : geo(remote.city, local.city),
         county: canonical ? geo(canonical.county, remote.county, local.county) : geo(remote.county, local.county),
         zip: canonical ? geo(canonical.zip, remote.zip, local.zip) : geo(remote.zip, local.zip),
-        phones: pick(remote.phones, local.phones),
-        emails: pick(remote.emails, local.emails),
+        phones: canonClean
+          ? [canonical.phone, canonical.phone2].filter(v => v && /\d/.test(v)).map((v, i) => ({ value: v, label: i === 0 ? "Personal" : "Otro" }))
+          : pick(remote.phones, local.phones),
+        emails: canonClean
+          ? [canonical.email, canonical.email2].filter(v => v && v.indexOf("@") >= 0).map((v, i) => ({ value: v, label: i === 0 ? "Personal" : "Otro" }))
+          : pick(remote.emails, local.emails),
         addressLabel: remote.addressLabel || local.addressLabel || "domicilio",
       };
     });
@@ -1152,6 +1164,40 @@ const App = () => {
               loaded.tasks = tk;
               if (removed > 0) console.log('PROMEZA: v124 removed ' + removed + ' duplicate-review tasks');
               localStorage.setItem('promeza_detask_v124', '1');
+            }
+            // v133: restore phone/email/website from data.js for p#### contacts. The
+            // Airtable import column-shifted these (e.g. phone held a name like "Claudio"),
+            // so search by phone failed. data.js is authoritative. Runs once data.js is
+            // confirmed clean; rebuilds the phones/emails arrays too.
+            if (!localStorage.getItem('promeza_contactfix_v133') && window.PROMEZA_DATA) {
+              const noteRx = /\d{1,2}\/\d{1,2}|Spoke |Talked |services on|Cannot Go|movie project|told (him|her)/i;
+              const srcMap = new Map((window.PROMEZA_DATA.personas || []).map(p => [p.id, p]));
+              const probe = srcMap.get('p5294') || srcMap.get('p7238');
+              const sourceClean = probe && probe.first && !noteRx.test(probe.first);
+              if (sourceClean) {
+                let cFix = 0;
+                loaded.personas = loaded.personas.map(p => {
+                  if (!p.id || !p.id.match(/^p\d+$/)) return p;
+                  const s = srcMap.get(p.id);
+                  if (!s || !s.first || noteRx.test(s.first)) return p;
+                  cFix++;
+                  const phones = [s.phone, s.phone2].filter(v => v && /\d/.test(v)).map((v, i) => ({ value: v, label: i === 0 ? "Personal" : "Otro" }));
+                  const emails = [s.email, s.email2].filter(v => v && v.indexOf("@") >= 0).map((v, i) => ({ value: v, label: i === 0 ? "Personal" : "Otro" }));
+                  return {
+                    ...p,
+                    phone: s.phone !== undefined ? s.phone : p.phone,
+                    phone2: s.phone2 !== undefined ? s.phone2 : p.phone2,
+                    email: s.email !== undefined ? s.email : p.email,
+                    email2: s.email2 !== undefined ? s.email2 : p.email2,
+                    website: s.website || p.website,
+                    phones, emails,
+                  };
+                });
+                if (cFix > 0) console.log('PROMEZA: v133 restored phone/email for ' + cFix + ' contacts');
+                localStorage.setItem('promeza_contactfix_v133', '1');
+              } else {
+                console.log('PROMEZA: v133 skipped — data.js not confirmed clean yet, retry next load');
+              }
             }
             setData(loaded);
             setDataReady(true);
