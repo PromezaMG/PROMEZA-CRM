@@ -1159,9 +1159,14 @@ const App = () => {
     return () => { clearTimeout(timer); events.forEach(e => window.removeEventListener(e, reset)); };
   }, [userEmail]);
 
-  // Auto-scan for duplicates on load + auto-generate tasks for new pairs
+  // Auto-scan for duplicates AFTER the page is interactive. This scan compares
+  // thousands of contacts and is heavy; running it on load froze the UI. We defer
+  // it so the list is usable first, then scan in the background.
   useEffect(() => {
-    if (!data) return;
+    if (!dataReady) return;
+    let cancelled = false;
+    const run = () => {
+      if (cancelled || !data) return;
     const personaPairs = findDuplicatePairs(data.personas, []);
     if (personaPairs.length > 0) {
       setDupPairs(personaPairs);
@@ -1194,6 +1199,12 @@ const App = () => {
       const entPairs = window.findEntityDuplicatePairs(data.entities, []);
       if (entPairs.length > 0) setEntityDupPairs(entPairs);
     }
+    };
+    // Defer to idle time (or 2.5s) so the contacts list paints and is clickable first.
+    let t;
+    if (typeof requestIdleCallback !== "undefined") t = requestIdleCallback(run, { timeout: 3000 });
+    else t = setTimeout(run, 2500);
+    return () => { cancelled = true; if (typeof cancelIdleCallback !== "undefined" && typeof requestIdleCallback !== "undefined") cancelIdleCallback(t); else clearTimeout(t); };
   }, [dataReady]); // run once when data loads
 
   useEffect(() => {
