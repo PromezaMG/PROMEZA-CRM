@@ -17651,6 +17651,75 @@ var {
   useRef
 } = React;
 
+// ─── Large storage (IndexedDB) ───
+// The encrypted dataset outgrew localStorage's ~5MB limit (QuotaExceededError).
+// IndexedDB allows far more, so the big blob lives here instead.
+const idbReady = () => new Promise((resolve, reject) => {
+  try {
+    const req = indexedDB.open("promeza_db", 1);
+    req.onupgradeneeded = () => {
+      try {
+        req.result.createObjectStore("kv");
+      } catch (e) {}
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  } catch (e) {
+    reject(e);
+  }
+});
+const idbGet = async key => {
+  try {
+    const db = await idbReady();
+    return await new Promise(resolve => {
+      const g = db.transaction("kv", "readonly").objectStore("kv").get(key);
+      g.onsuccess = () => resolve(g.result === undefined ? null : g.result);
+      g.onerror = () => resolve(null);
+    });
+  } catch (e) {
+    return null;
+  }
+};
+const idbSet = async (key, val) => {
+  try {
+    const db = await idbReady();
+    return await new Promise(resolve => {
+      const tx = db.transaction("kv", "readwrite");
+      tx.objectStore("kv").put(val, key);
+      tx.oncomplete = () => resolve(true);
+      tx.onerror = () => resolve(false);
+    });
+  } catch (e) {
+    return false;
+  }
+};
+// Read the encrypted blob from IndexedDB, migrating any old localStorage copy once.
+const loadEncBlob = async () => {
+  let enc = await idbGet("promeza_data_enc");
+  if (!enc) {
+    const ls = (() => {
+      try {
+        return localStorage.getItem("promeza_data_enc");
+      } catch (e) {
+        return null;
+      }
+    })();
+    if (ls) {
+      enc = ls;
+      await idbSet("promeza_data_enc", ls);
+    }
+  }
+  return enc;
+};
+const saveEncBlob = async enc => {
+  const ok = await idbSet("promeza_data_enc", enc);
+  // Free the old localStorage slot so it can never hit the 5MB quota again.
+  try {
+    localStorage.removeItem("promeza_data_enc");
+  } catch (e) {}
+  return ok;
+};
+
 // ─── Settings Modal ───
 
 const SettingsModal = ({
@@ -19035,7 +19104,7 @@ const App = () => {
       }
       setCryptoKey(key);
       try {
-        const enc = localStorage.getItem("promeza_data_enc");
+        const enc = await loadEncBlob();
         if (enc) {
           const json = await window.CryptoUtils.decrypt(enc, key);
           const loaded = processLoadedData(JSON.parse(json));
@@ -19304,12 +19373,33 @@ const App = () => {
                 console.log('PROMEZA: v121 skipped — data.js not confirmed clean yet, will retry next load');
               }
             }
+            // v124: remove the auto-generated "Revisar posible duplicado" tasks that
+            // had accumulated by the thousands and bloated storage (duplicates are
+            // still listed on the Duplicados page). One-time cleanup.
+            if (!localStorage.getItem('promeza_detask_v124') && loaded.tasks) {
+              let removed = 0;
+              const tk = {
+                ...loaded.tasks
+              };
+              Object.keys(tk).forEach(pid => {
+                const before = (tk[pid] || []).length;
+                tk[pid] = (tk[pid] || []).filter(t => t && t.type !== 'duplicate');
+                removed += before - tk[pid].length;
+                if (tk[pid].length === 0) delete tk[pid];
+              });
+              loaded.tasks = tk;
+              if (removed > 0) console.log('PROMEZA: v124 removed ' + removed + ' duplicate-review tasks');
+              localStorage.setItem('promeza_detask_v124', '1');
+            }
             setData(loaded);
             setDataReady(true);
             return;
           }
           // Wrong format or too few contacts — clear and re-seed
-          localStorage.removeItem("promeza_data_enc");
+          await idbSet("promeza_data_enc", null);
+          try {
+            localStorage.removeItem("promeza_data_enc");
+          } catch (e) {}
           console.log("PROMEZA: cleared stale/wrong-format data, re-seeding");
         }
       } catch (err) {
@@ -19355,7 +19445,7 @@ const App = () => {
     // requestIdleCallback defers to idle time; setTimeout is the Safari fallback.
     const doSave = () => {
       window.CryptoUtils.encrypt(JSON.stringify(data), cryptoKey).then(enc => {
-        localStorage.setItem("promeza_data_enc", enc);
+        saveEncBlob(enc);
       }).catch(console.error);
     };
     let timer;
@@ -19433,53 +19523,11 @@ const App = () => {
     let cancelled = false;
     const run = () => {
       if (cancelled || !data) return;
+      // Detect duplicates for the Duplicados page/badge only. We no longer
+      // auto-create a task per pair — that accumulated thousands of tasks and
+      // bloated storage. The Duplicados page already lists every pair.
       const personaPairs = findDuplicatePairs(data.personas, []);
-      if (personaPairs.length > 0) {
-        setDupPairs(personaPairs);
-        // Auto-create a task on each persona in the pair if not already there
-        setData(d => {
-          if (!d) return d;
-          let tasks = {
-            ...d.tasks
-          };
-          personaPairs.forEach(pair => {
-            const pA = d.personas.find(p => p.id === pair.idA);
-            const pB = d.personas.find(p => p.id === pair.idB);
-            if (!pA || !pB) return;
-            const nameB = pB.first + " " + pB.last;
-            const nameA = pA.first + " " + pA.last;
-            const textA = "Revisar posible duplicado con: " + nameB;
-            const textB = "Revisar posible duplicado con: " + nameA;
-            const listA = tasks[pair.idA] || [];
-            const listB = tasks[pair.idB] || [];
-            if (!listA.some(t => t.text === textA)) {
-              tasks[pair.idA] = [...listA, {
-                id: "dup_" + pair.idA + "_" + pair.idB,
-                text: textA,
-                due: null,
-                done: false,
-                createdAt: new Date().toISOString().slice(0, 10),
-                type: "duplicate"
-              }];
-            }
-            if (!listB.some(t => t.text === textB)) {
-              tasks[pair.idB] = [...listB, {
-                id: "dup_" + pair.idB + "_" + pair.idA,
-                text: textB,
-                due: null,
-                done: false,
-                createdAt: new Date().toISOString().slice(0, 10),
-                type: "duplicate"
-              }];
-            }
-          });
-          return {
-            ...d,
-            tasks
-          };
-        });
-      }
-      // Entity duplicates
+      if (personaPairs.length > 0) setDupPairs(personaPairs);
       if (window.findEntityDuplicatePairs) {
         const entPairs = window.findEntityDuplicatePairs(data.entities, []);
         if (entPairs.length > 0) setEntityDupPairs(entPairs);
@@ -20294,7 +20342,7 @@ const App = () => {
         // Trigger re-init of data by toggling userEmail briefly isn't needed;
         // instead reload data directly
         try {
-          const enc = localStorage.getItem("promeza_data_enc");
+          const enc = await loadEncBlob();
           if (enc && key) {
             const json = await window.CryptoUtils.decrypt(enc, key);
             const parsed = JSON.parse(json);
