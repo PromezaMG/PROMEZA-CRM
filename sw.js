@@ -1,4 +1,4 @@
-const CACHE = "promeza-v119";
+const CACHE = "promeza-v120";
 const ASSETS = [
   "./styles.css",
   "./i18n.js", "./airtable.js",
@@ -14,18 +14,11 @@ self.addEventListener("install", e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting()));
 });
 
-// Allow the page to trigger an immediate activation of a waiting worker.
-self.addEventListener("message", e => { if (e.data === "SKIP_WAITING") self.skipWaiting(); });
-
 self.addEventListener("activate", e => {
-  // Delete old caches, then take control of open pages. The page listens for
-  // controllerchange and reloads exactly once (guarded), so a new deploy is
-  // applied automatically — no manual hard-refresh, and no reload loop.
-  e.waitUntil(
-    caches.keys()
-      .then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))))
-      .then(() => self.clients.claim())
-  );
+  // Delete old caches only. Do NOT claim clients or auto-reload — that risked a
+  // reload loop during CDN propagation. Code is network-first (below), so new
+  // deployments are picked up on the next normal reload while online.
+  e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))));
 });
 
 self.addEventListener("fetch", e => {
