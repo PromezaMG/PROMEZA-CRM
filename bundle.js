@@ -6230,7 +6230,7 @@ const EntitiesList = ({
     style: {
       width: 320
     }
-  }, t.common.profile), /*#__PURE__*/React.createElement("th", null, t.common.type), /*#__PURE__*/React.createElement("th", null, t.common.address), /*#__PURE__*/React.createElement("th", null, t.common.contact), /*#__PURE__*/React.createElement("th", null, t.common.relatedPersonas), /*#__PURE__*/React.createElement("th", null, t.common.size), /*#__PURE__*/React.createElement("th", null, "Horario"), /*#__PURE__*/React.createElement("th", null, t.common.tags))), /*#__PURE__*/React.createElement("tbody", null, rows.map(e => /*#__PURE__*/React.createElement("tr", {
+  }, t.common.profile), /*#__PURE__*/React.createElement("th", null, t.common.type), /*#__PURE__*/React.createElement("th", null, t.common.address), /*#__PURE__*/React.createElement("th", null, t.common.contact), /*#__PURE__*/React.createElement("th", null, t.common.relatedPersonas), /*#__PURE__*/React.createElement("th", null, t.common.size), /*#__PURE__*/React.createElement("th", null, "Horario"), /*#__PURE__*/React.createElement("th", null, t.common.tags))), /*#__PURE__*/React.createElement("tbody", null, rows.slice(0, 100).map(e => /*#__PURE__*/React.createElement("tr", {
     key: e.id,
     onClick: () => go({
       name: "entity",
@@ -6350,7 +6350,13 @@ const EntitiesList = ({
   }, (e.tags || []).map(tg => /*#__PURE__*/React.createElement("span", {
     key: tg,
     className: "tag-chip"
-  }, tg)))))))), rows.length === 0 && /*#__PURE__*/React.createElement("div", {
+  }, tg)))))))), rows.length > 100 && /*#__PURE__*/React.createElement("div", {
+    className: "muted",
+    style: {
+      padding: "12px 4px",
+      fontSize: 12.5
+    }
+  }, "Mostrando 100 de ", rows.length.toLocaleString(), ". Usa el buscador o los filtros para encontrar una entidad espec\xEDfica."), rows.length === 0 && /*#__PURE__*/React.createElement("div", {
     className: "empty"
   }, t.common.noResults)));
 };
@@ -12518,6 +12524,28 @@ const PipelineView = ({
   const filteredInactiveEntities = inactiveEntities.filter(e => (typeFilter === "all" || typeFilter === "entidades") && matchesSearch(e.name, e.city));
   const filteredReview = reviewPersonas.filter(p => matchesSearch(fullName(p), p.email + " " + p.phone));
 
+  // Render at most this many cards at once. Rendering thousands of cards (one per
+  // contact/entity) froze the page on every navigation. Users narrow with search.
+  const RENDER_CAP = 60;
+  // Precompute personas-per-entity ONCE (was O(n²): filtering all personas per card).
+  const personaCountByEntity = React.useMemo(() => {
+    const m = {};
+    (data.personas || []).forEach(p => (p.entities || []).forEach(le => {
+      m[le.id] = (m[le.id] || 0) + 1;
+    }));
+    return m;
+  }, [data.personas]);
+  const CapNote = ({
+    total
+  }) => total > RENDER_CAP ? /*#__PURE__*/React.createElement("div", {
+    className: "muted",
+    style: {
+      gridColumn: "1 / -1",
+      padding: "10px 2px",
+      fontSize: 12.5
+    }
+  }, "Mostrando ", RENDER_CAP, " de ", total.toLocaleString(), ". Usa el buscador para encontrar a alguien espec\xEDfico.") : null;
+
   // ─── Card components ───
   const PersonaCard = ({
     p
@@ -12699,7 +12727,7 @@ const PipelineView = ({
   const EntityCard = ({
     e
   }) => {
-    const personaCount = data.personas.filter(p => (p.entities || []).some(le => le.id === e.id)).length;
+    const personaCount = personaCountByEntity[e.id] || 0;
     const types = window.PROJECT_TYPES || [];
     const daysSince = e.lastContact ? Math.round((new Date(today) - new Date(e.lastContact)) / 86400000) : null;
     return /*#__PURE__*/React.createElement("div", {
@@ -13098,10 +13126,12 @@ const PipelineView = ({
       gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
       gap: 10
     }
-  }, filteredActivePersonas.map(p => /*#__PURE__*/React.createElement(PersonaCard, {
+  }, filteredActivePersonas.slice(0, RENDER_CAP).map(p => /*#__PURE__*/React.createElement(PersonaCard, {
     key: p.id,
     p: p
-  })))), (typeFilter === "all" || typeFilter === "entidades") && /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement(SectionHeader, {
+  })), /*#__PURE__*/React.createElement(CapNote, {
+    total: filteredActivePersonas.length
+  }))), (typeFilter === "all" || typeFilter === "entidades") && /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement(SectionHeader, {
     label: "Entidades activas",
     count: filteredActiveEntities.length,
     icon: "building"
@@ -13117,10 +13147,12 @@ const PipelineView = ({
       gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
       gap: 10
     }
-  }, filteredActiveEntities.map(e => /*#__PURE__*/React.createElement(EntityCard, {
+  }, filteredActiveEntities.slice(0, RENDER_CAP).map(e => /*#__PURE__*/React.createElement(EntityCard, {
     key: e.id,
     e: e
-  }))))), tab === "inhabilitados" && /*#__PURE__*/React.createElement("div", null, (typeFilter === "all" || typeFilter === "personas") && filteredInactivePersonas.length > 0 && /*#__PURE__*/React.createElement("div", {
+  })), /*#__PURE__*/React.createElement(CapNote, {
+    total: filteredActiveEntities.length
+  })))), tab === "inhabilitados" && /*#__PURE__*/React.createElement("div", null, (typeFilter === "all" || typeFilter === "personas") && filteredInactivePersonas.length > 0 && /*#__PURE__*/React.createElement("div", {
     style: {
       marginBottom: 24
     }
@@ -13134,10 +13166,12 @@ const PipelineView = ({
       gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
       gap: 10
     }
-  }, filteredInactivePersonas.map(p => /*#__PURE__*/React.createElement(PersonaCard, {
+  }, filteredInactivePersonas.slice(0, RENDER_CAP).map(p => /*#__PURE__*/React.createElement(PersonaCard, {
     key: p.id,
     p: p
-  })))), (typeFilter === "all" || typeFilter === "entidades") && filteredInactiveEntities.length > 0 && /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement(SectionHeader, {
+  })), /*#__PURE__*/React.createElement(CapNote, {
+    total: filteredInactivePersonas.length
+  }))), (typeFilter === "all" || typeFilter === "entidades") && filteredInactiveEntities.length > 0 && /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement(SectionHeader, {
     label: "Entidades inhabilitadas",
     count: filteredInactiveEntities.length,
     icon: "building"
@@ -13147,10 +13181,12 @@ const PipelineView = ({
       gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
       gap: 10
     }
-  }, filteredInactiveEntities.map(e => /*#__PURE__*/React.createElement(EntityCard, {
+  }, filteredInactiveEntities.slice(0, RENDER_CAP).map(e => /*#__PURE__*/React.createElement(EntityCard, {
     key: e.id,
     e: e
-  })))), filteredInactivePersonas.length === 0 && filteredInactiveEntities.length === 0 && /*#__PURE__*/React.createElement("div", {
+  })), /*#__PURE__*/React.createElement(CapNote, {
+    total: filteredInactiveEntities.length
+  }))), filteredInactivePersonas.length === 0 && filteredInactiveEntities.length === 0 && /*#__PURE__*/React.createElement("div", {
     className: "empty",
     style: {
       padding: "60px 0"
@@ -13190,10 +13226,12 @@ const PipelineView = ({
       gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
       gap: 10
     }
-  }, filteredReview.map(p => /*#__PURE__*/React.createElement(ReviewCard, {
+  }, filteredReview.slice(0, RENDER_CAP).map(p => /*#__PURE__*/React.createElement(ReviewCard, {
     key: p.id,
     p: p
-  }))))));
+  })), /*#__PURE__*/React.createElement(CapNote, {
+    total: filteredReview.length
+  })))));
 };
 window.PipelineView = PipelineView;
 
