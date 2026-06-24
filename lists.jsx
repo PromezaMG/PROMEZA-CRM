@@ -359,6 +359,10 @@ const PersonasList = ({ t, lang, data, go, onImportPersonas, globalQ = "", onBul
     const checkQ = (query) => {
       if (!query) return true;
       const sq = query.trim().toLowerCase();
+      // Phone search: compare digits only so "(562) 209-9991", "562-209-9991",
+      // "5622099991" all match regardless of how the number is stored.
+      const qDigits = sq.replace(/\D/g, "");
+      if (qDigits.length >= 7 && allPhones.replace(/\D/g, "").includes(qDigits)) return true;
       const stripped = sq.replace(/^#/, "");
       if (/^\d+$/.test(stripped)) return (p.uid || "").startsWith(stripped);
       const searchStr = [
@@ -892,6 +896,8 @@ const EntitiesList = ({ t, lang, data, go, onImportEntities, globalQ = "" }) => 
     const checkQ = (query) => {
       if (!query) return true;
       const sq = query.trim().toLowerCase();
+      const qDigits = sq.replace(/\D/g, "");
+      if (qDigits.length >= 7 && eAllPhones.replace(/\D/g, "").includes(qDigits)) return true;
       const stripped = sq.replace(/^#/, "");
       if (/^\d+$/.test(stripped)) return (e.uid || "").startsWith(stripped);
       const searchStr = [

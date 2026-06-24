@@ -285,8 +285,20 @@ const Topbar = ({ t, lang, setLang, query, setQuery, onSearchSubmit, onSettings,
     const q = raw.toLowerCase();
     const stripped = q.replace(/^#/, "");
     const norm = s => (s || "").toLowerCase();
+    // Phone search by digits only — "(562) 209-9991", "562-209-9991" and "5622099991"
+    // all match regardless of how the number is stored.
+    const qDigits = q.replace(/\D/g, "");
+    const phoneHit = (x) => qDigits.length >= 7 &&
+      ((x.phones || []).map(ph => ph.value || "").concat([x.phone || ""]).join(" ").replace(/\D/g, "")).includes(qDigits);
 
-    // UID search: pure digits (with or without #)
+    // A 7+ digit query is a phone number — search phones, not the UID.
+    if (qDigits.length >= 7) {
+      const personas = data.personas.filter(phoneHit).slice(0, 8);
+      const entities = data.entities.filter(phoneHit).slice(0, 4);
+      return { personas, entities, projects: [], total: personas.length + entities.length };
+    }
+
+    // UID search: short pure digits (with or without #)
     if (/^\d+$/.test(stripped)) {
       const personas = data.personas.filter(p => (p.uid || "").startsWith(stripped)).slice(0, 8);
       const entities = data.entities.filter(e => (e.uid || "").startsWith(stripped)).slice(0, 4);
