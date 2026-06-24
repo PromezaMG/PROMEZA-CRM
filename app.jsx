@@ -69,6 +69,18 @@ const clearStoredData = async () => {
   try { localStorage.removeItem("promeza_data_enc"); } catch (e) {}
 };
 
+// Cheap content signature of the Airtable data. The periodic sync uses it to skip
+// the expensive merge + full re-render + re-encrypt when nothing actually changed
+// (the common case) — that recurring work was freezing the UI mid-use.
+const atSignature = (d) => {
+  if (!d) return "";
+  let h = 0;
+  const acc = (s) => { s = s == null ? "" : ("" + s); for (let i = 0; i < s.length; i++) h = (Math.imul(31, h) + s.charCodeAt(i)) | 0; };
+  (d.personas || []).forEach(p => { acc(p.id); acc(p.first); acc(p.last); acc(p.phone); acc(p.email); acc(p.titulo); acc((p.roles || []).join(",")); });
+  (d.entities || []).forEach(e => { acc(e.id); acc(e.name); acc(e.phone); acc(e.email); });
+  return (d.personas ? d.personas.length : 0) + ":" + (d.entities ? d.entities.length : 0) + ":" + h;
+};
+
 // ─── Settings Modal ───
 
 const SettingsModal = ({ t, lang, data, cryptoKey, onClose, onLogout, onRestoreData, onForcePull }) => {
@@ -728,6 +740,7 @@ const App = () => {
 
   const [atSyncing, setAtSyncing] = useState(false);
   const [atSyncMsg, setAtSyncMsg] = useState(null); // { type:"ok"|"warn"|"err", text }
+  const lastSyncSigRef = useRef(""); // signature of last-applied Airtable data (skip no-op syncs)
 
   const mergeFromAirtable = (atData, prev, prevLastLoad = "") => {
     if (!atData || !prev) return prev;
@@ -835,6 +848,13 @@ const App = () => {
     const prevLastLoad = window.AIRTABLE.getLastLoad() || "";
     window.AIRTABLE.loadData().then(atData => {
       if (atData && (atData.personas.length > 0 || atData.entities.length > 0)) {
+        const sig = atSignature(atData);
+        if (sig === lastSyncSigRef.current) {
+          // Airtable unchanged since last sync — skip the heavy merge/re-render/
+          // re-encrypt so the UI doesn't freeze while the user is working.
+          return;
+        }
+        lastSyncSigRef.current = sig;
         setData(prev => mergeFromAirtable(atData, prev, prevLastLoad));
         setAtSyncMsg({ type: "ok", text: "↓ Airtable: " + atData.personas.length + " personas · " + atData.entities.length + " entidades" });
       } else if (atData) {
