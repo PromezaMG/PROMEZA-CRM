@@ -1224,30 +1224,10 @@ const App = () => {
     return () => { clearTimeout(timer); events.forEach(e => window.removeEventListener(e, reset)); };
   }, [userEmail]);
 
-  // Auto-scan for duplicates AFTER the page is interactive. This scan compares
-  // thousands of contacts and is heavy; running it on load froze the UI. We defer
-  // it so the list is usable first, then scan in the background.
-  useEffect(() => {
-    if (!dataReady) return;
-    let cancelled = false;
-    const run = () => {
-      if (cancelled || !data) return;
-      // Detect duplicates for the Duplicados page/badge only. We no longer
-      // auto-create a task per pair — that accumulated thousands of tasks and
-      // bloated storage. The Duplicados page already lists every pair.
-      const personaPairs = findDuplicatePairs(data.personas, []);
-      if (personaPairs.length > 0) setDupPairs(personaPairs);
-      if (window.findEntityDuplicatePairs) {
-        const entPairs = window.findEntityDuplicatePairs(data.entities, []);
-        if (entPairs.length > 0) setEntityDupPairs(entPairs);
-      }
-    };
-    // Defer to idle time (or 2.5s) so the contacts list paints and is clickable first.
-    let t;
-    if (typeof requestIdleCallback !== "undefined") t = requestIdleCallback(run, { timeout: 3000 });
-    else t = setTimeout(run, 2500);
-    return () => { cancelled = true; if (typeof cancelIdleCallback !== "undefined" && typeof requestIdleCallback !== "undefined") cancelIdleCallback(t); else clearTimeout(t); };
-  }, [dataReady]); // run once when data loads
+  // NOTE: duplicate detection is O(n²) — comparing every contact against every
+  // other (~10 million comparisons for 4500 contacts) froze the page for 10-30s on
+  // every load. It now runs ONLY on demand, when the user opens the Duplicados page
+  // (see handleScanAll / the Duplicados view). Nothing heavy happens on load.
 
   useEffect(() => {
     if (!dataReady || !data || !userEmail || remindersShown) return;
