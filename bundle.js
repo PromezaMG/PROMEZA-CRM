@@ -14775,7 +14775,7 @@ window.AttachmentsTab = AttachmentsTab;
 ;/* ===== campaigns.jsx ===== */
 // PROMEZA CRM — Email Campaigns
 
-const {
+var {
   useState,
   useEffect,
   useRef,
@@ -15612,7 +15612,7 @@ const CalendarView = ({
   onDeleteCalendarEvent,
   onAddTask
 }) => {
-  const {
+  var {
     useState,
     useMemo
   } = React;
@@ -16232,7 +16232,7 @@ window.CalendarView = CalendarView;
 ;/* ===== goals.jsx ===== */
 // PROMEZA CRM — Metas y seguimiento
 
-const {
+var {
   useState,
   useEffect,
   useMemo
@@ -17644,7 +17644,7 @@ window.CountyView = CountyView;
 ;/* ===== app.jsx ===== */
 // PROMEZA CRM — App root with auth + settings modal
 
-const {
+var {
   useState,
   useMemo,
   useEffect,
