@@ -35,19 +35,38 @@ const idbSet = async (key, val) => {
   } catch (e) { return false; }
 };
 // Read the encrypted blob from IndexedDB, migrating any old localStorage copy once.
-const loadEncBlob = async () => {
-  let enc = await idbGet("promeza_data_enc");
-  if (!enc) {
-    const ls = (() => { try { return localStorage.getItem("promeza_data_enc"); } catch (e) { return null; } })();
-    if (ls) { enc = ls; await idbSet("promeza_data_enc", ls); }
-  }
-  return enc;
+const DATA_BYTES_KEY = "promeza_data_bytes";
+// Load and decrypt the dataset. Stored as raw encrypted bytes in IndexedDB (no
+// base64 — that char-by-char conversion over megabytes was the main freeze).
+// Migrates any older base64 copy (IDB or localStorage) once, then drops it.
+const loadDecrypted = async (key) => {
+  try {
+    const bytes = await idbGet(DATA_BYTES_KEY);
+    if (bytes) return await window.CryptoUtils.decryptBytes(bytes, key);
+    let b64 = await idbGet("promeza_data_enc");
+    if (!b64) { try { b64 = localStorage.getItem("promeza_data_enc"); } catch (e) {} }
+    if (b64) {
+      const json = await window.CryptoUtils.decrypt(b64, key);
+      try {
+        const nb = await window.CryptoUtils.encryptBytes(json, key);
+        await idbSet(DATA_BYTES_KEY, nb);
+        await idbSet("promeza_data_enc", null);
+        localStorage.removeItem("promeza_data_enc");
+      } catch (e) {}
+      return json;
+    }
+    return null;
+  } catch (e) { return null; }
 };
-const saveEncBlob = async (enc) => {
-  const ok = await idbSet("promeza_data_enc", enc);
-  // Free the old localStorage slot so it can never hit the 5MB quota again.
+// Encrypt + store as raw bytes. crypto.subtle is async/off-thread; no base64.
+const saveEncrypted = async (json, key) => {
+  try { return await idbSet(DATA_BYTES_KEY, await window.CryptoUtils.encryptBytes(json, key)); }
+  catch (e) { return false; }
+};
+const clearStoredData = async () => {
+  try { await idbSet(DATA_BYTES_KEY, null); } catch (e) {}
+  try { await idbSet("promeza_data_enc", null); } catch (e) {}
   try { localStorage.removeItem("promeza_data_enc"); } catch (e) {}
-  return ok;
 };
 
 // ─── Settings Modal ───
@@ -863,9 +882,8 @@ const App = () => {
       setCryptoKey(key);
 
       try {
-        const enc = await loadEncBlob();
-        if (enc) {
-          const json = await window.CryptoUtils.decrypt(enc, key);
+        const json = await loadDecrypted(key);
+        if (json) {
           const loaded = processLoadedData(JSON.parse(json));
           // Validate: must have real data AND correct English field names (first/last).
           // Old Airtable data used Spanish names (nombre/apellido) — unusable for search.
@@ -1120,8 +1138,7 @@ const App = () => {
             return;
           }
           // Wrong format or too few contacts — clear and re-seed
-          await idbSet("promeza_data_enc", null);
-          try { localStorage.removeItem("promeza_data_enc"); } catch (e) {}
+          await clearStoredData();
           console.log("PROMEZA: cleared stale/wrong-format data, re-seeding");
         }
       } catch (err) { console.error("Data load error:", err); }
@@ -1160,9 +1177,7 @@ const App = () => {
     // Save when browser is idle so JSON.stringify(5MB) doesn't freeze the UI.
     // requestIdleCallback defers to idle time; setTimeout is the Safari fallback.
     const doSave = () => {
-      window.CryptoUtils.encrypt(JSON.stringify(data), cryptoKey).then(enc => {
-        saveEncBlob(enc);
-      }).catch(console.error);
+      saveEncrypted(JSON.stringify(data), cryptoKey).catch(console.error);
     };
     let timer;
     if (typeof requestIdleCallback !== "undefined") {
@@ -1717,9 +1732,8 @@ const App = () => {
         // Trigger re-init of data by toggling userEmail briefly isn't needed;
         // instead reload data directly
         try {
-          const enc = await loadEncBlob();
-          if (enc && key) {
-            const json = await window.CryptoUtils.decrypt(enc, key);
+          const json = key ? await loadDecrypted(key) : null;
+          if (json) {
             const parsed = JSON.parse(json);
             setData(processLoadedData(parsed));
           } else {

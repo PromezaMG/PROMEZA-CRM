@@ -93,6 +93,24 @@ window.CryptoUtils = {
     const dec = await crypto.subtle.decrypt({ name: "AES-GCM", iv }, key, data);
     return new TextDecoder().decode(dec);
   },
+
+  // Binary variants — store the raw encrypted bytes (Uint8Array) directly in
+  // IndexedDB. This skips the base64 encode/decode that ran char-by-char over
+  // megabytes and froze the UI ~1.8s per save (and would be ~5s at 12k contacts).
+  // Only crypto.subtle (async, off the main thread) + TextEncoder/Decoder remain.
+  encryptBytes: async (str, key) => {
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    const enc = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, new TextEncoder().encode(str));
+    const combined = new Uint8Array(12 + enc.byteLength);
+    combined.set(iv, 0); combined.set(new Uint8Array(enc), 12);
+    return combined;
+  },
+  decryptBytes: async (bytes, key) => {
+    const b = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
+    const iv = b.subarray(0, 12), data = b.subarray(12);
+    const dec = await crypto.subtle.decrypt({ name: "AES-GCM", iv }, key, data);
+    return new TextDecoder().decode(dec);
+  },
 };
 
 // ─── Session management ───
