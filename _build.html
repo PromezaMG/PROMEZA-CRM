@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<title>PROMEZA build</title>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js"></script>
+</head>
+<body>
+<h1>PROMEZA — compilar bundle</h1>
+<pre id="log">iniciando…</pre>
+<script>
+(async () => {
+  const logEl = document.getElementById('log');
+  const log = (m) => { logEl.textContent += '\n' + m; };
+  const files = ['ui','auth','shell','map','home','lists','profile','forms','duplicates','interactions','tasks','pipeline','projects','attachments','campaigns','calendar','goals','county','app'];
+  try {
+    if (typeof Babel === 'undefined') { log('ERROR: Babel no cargó'); return; }
+    let bundle = '';
+    for (const f of files) {
+      const src = await fetch('./' + f + '.jsx?c=' + Date.now()).then(r => r.text());
+      const code = Babel.transform(src, { presets: ['react'], filename: f + '.jsx' }).code;
+      bundle += '\n;/* ===== ' + f + '.jsx ===== */\n' + code + '\n';
+      log('ok ' + f + ' (' + code.length + ')');
+    }
+    // Fix: several files declare `const {useState,...} = React` at top level; in one
+    // concatenated script that redeclares. Convert those to `var` (redeclare-safe).
+    bundle = bundle.replace(/const(\s*\{[^}]*\}\s*=\s*React\b)/g, 'var$1');
+    window.__BUNDLE__ = bundle;
+    log('TOTAL ' + bundle.length + ' chars');
+    const blob = new Blob([bundle], { type: 'text/javascript' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'promeza-bundle.js';
+    document.body.appendChild(a);
+    a.click();
+    log('descarga iniciada: promeza-bundle.js');
+  } catch (e) {
+    log('ERROR: ' + (e.message || e));
+  }
+})();
+</script>
+</body>
+</html>
