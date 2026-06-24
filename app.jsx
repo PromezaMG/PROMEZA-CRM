@@ -678,6 +678,8 @@ const App = () => {
     // every entry is a known role key. Corrupted ones are restored from data.js.
     const VALID_ROLES = new Set(["pastor", "co-pastor", "copastor", "lider", "líder", "miembro", "tesorero", "ujier", "adorador", "musico", "músico", "comunicador", "influencer", "presidente", "vicepresidente", "secretario", "diacono", "diácono", "maestro", "director-ministerio", "voluntario", "evangelista", "misionero", "otro"]);
     const rolesLookValid = (arr) => Array.isArray(arr) && arr.length > 0 && arr.every(r => VALID_ROLES.has((r || "").toLowerCase().trim()));
+    // A name that looks like an imported interaction note (date + text), not a real name.
+    const looksLikeNote = (s) => !s || /\d{1,2}\/\d{1,2}|Spoke |Talked |services on|Cannot Go|movie project|told (him|her)/i.test(s);
 
     // Merge helper: pick the non-empty value, preferring the base entity's value
     const pick = (base, fallback) => (base && base.length > 0) ? base : (fallback || []);
@@ -693,14 +695,17 @@ const App = () => {
       // Remote is source of truth, but use data.js for identity fields on p5xxx contacts
       // (Airtable was synced from corrupted data and may have wrong names/titles)
       const canonical = (local.id && local.id.match(/^p\d+$/)) ? canonicalById.get(local.id) : null;
+      // Only trust data.js identity fields when its name looks clean — never let a
+      // stale/corrupted data.js (note text in the name) override a clean Airtable value.
+      const canonClean = canonical && !looksLikeNote(canonical.first);
       // Helper: pick first non-empty value
       const geo = (...vs) => vs.find(v => v !== undefined && v !== null && v !== "") || "";
       return {
         ...remote,
         _atId: remote._atId || local._atId,
-        first: canonical ? (canonical.first || remote.first) : remote.first,
-        last: canonical ? (canonical.last !== undefined ? canonical.last : remote.last) : remote.last,
-        titulo: canonical ? (canonical.titulo || remote.titulo) : remote.titulo,
+        first: canonClean ? (canonical.first || remote.first) : remote.first,
+        last: canonClean ? (canonical.last !== undefined ? canonical.last : remote.last) : remote.last,
+        titulo: canonClean ? (canonical.titulo || remote.titulo) : remote.titulo,
         // Restore a corrupted role (city/county stuck in the role field) from data.js,
         // but keep the remote role when it is a genuine, valid role.
         roles: (canonical && canonical.roles && !rolesLookValid(remote.roles)) ? canonical.roles : remote.roles,
@@ -1014,6 +1019,37 @@ const App = () => {
               });
               if (nId > 0) console.log('PROMEZA: v119 re-synced name/title/role for ' + nId + ' contacts');
               localStorage.setItem('promeza_idfix_v119', '1');
+            }
+            // v121: robust name/role repair for the whole team. Earlier fixes could run
+            // with a stale (corrupted) data.js and then mark themselves done. This only
+            // runs once data.js is CONFIRMED clean (probe a known contact); otherwise it
+            // does NOT set its flag, so it retries on the next load when data.js is fresh.
+            if (!localStorage.getItem('promeza_idfix_v121') && window.PROMEZA_DATA) {
+              const noteRx = /\d{1,2}\/\d{1,2}|Spoke |Talked |services on|Cannot Go|movie project|told (him|her)/i;
+              const srcMap = new Map((window.PROMEZA_DATA.personas || []).map(p => [p.id, p]));
+              const probe = srcMap.get('p7238') || srcMap.get('p7212');
+              const sourceClean = probe && probe.first && !noteRx.test(probe.first);
+              if (sourceClean) {
+                let nFix = 0;
+                loaded.personas = loaded.personas.map(p => {
+                  if (!p.id || !p.id.match(/^p\d+$/)) return p;
+                  const s = srcMap.get(p.id);
+                  if (!s || !s.first || noteRx.test(s.first)) return p; // only apply clean source names
+                  if ((p.first || '') !== s.first) nFix++;
+                  return {
+                    ...p,
+                    first: s.first,
+                    last: s.last !== undefined ? s.last : p.last,
+                    titulo: s.titulo !== undefined ? s.titulo : p.titulo,
+                    roles: s.roles || p.roles,
+                    roleOther: s.roleOther !== undefined ? s.roleOther : p.roleOther,
+                  };
+                });
+                if (nFix > 0) console.log('PROMEZA: v121 repaired ' + nFix + ' contact names from clean data.js');
+                localStorage.setItem('promeza_idfix_v121', '1');
+              } else {
+                console.log('PROMEZA: v121 skipped — data.js not confirmed clean yet, will retry next load');
+              }
             }
             setData(loaded);
             setDataReady(true);
