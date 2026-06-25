@@ -790,7 +790,7 @@ const App = () => {
       if (!e || !looksLikePhone(e.name)) return e;
       const d = (e.name || "").replace(/\D/g, "");
       const f = ENTITY_PHONE_FIX[d];
-      if (f) return { ...e, name: f.name, phone: e.phone || e.name, email: e.email || f.email, zip: e.zip || f.zip, type: e.type || "iglesia" };
+      if (f) return { ...e, name: f.name, phone: e.name, phones: [{ value: e.name, label: "Principal" }], email: f.email, emails: f.email ? [{ value: f.email, label: "Principal" }] : [], zip: f.zip, type: e.type || "iglesia" };
       const src = churchByPhone[d];
       if (!src) return e;
       return { ...e, name: src.name, phone: e.phone || src.phone, email: e.email || src.email, city: e.city || src.city, state: e.state || src.state, zip: e.zip || src.zip, type: e.type || src.type || "iglesia" };
@@ -1245,7 +1245,7 @@ const App = () => {
                 if (!isPhoneName(e.name)) return e;
                 const d = (e.name || "").replace(/\D/g, "");
                 const f = ENTITY_PHONE_FIX[d];
-                if (f) { eFix++; return { ...e, name: f.name, phone: e.phone || e.name, email: e.email || f.email, zip: e.zip || f.zip, type: e.type || "iglesia" }; }
+                if (f) { eFix++; return { ...e, name: f.name, phone: e.name, phones: [{ value: e.name, label: "Principal" }], email: f.email, emails: f.email ? [{ value: f.email, label: "Principal" }] : [], zip: f.zip, type: e.type || "iglesia" }; }
                 const src = byPhone[d];
                 if (!src) return e;
                 eFix++;
@@ -1253,6 +1253,23 @@ const App = () => {
               });
               if (eFix > 0) console.log('PROMEZA: v137 fixed ' + eFix + ' entity names');
               localStorage.setItem('promeza_entfix_v137', '1');
+            }
+            // v138: remove junk contacts created by the bulk import — rows where the
+            // Excel had a phone or a note in the name column. Only touches import ids
+            // (px*) whose name doesn't start with a letter or looks like a note; never
+            // touches real contacts. Mirrors the cleanup already done in Airtable.
+            if (!localStorage.getItem('promeza_cleanjunk_v138')) {
+              const noteRx = /Spoke |Talked |services on|Cannot Go|movie project|told (him|her)|retreat|projects\.|Went to/i;
+              const isJunk = (n) => { n = (n || "").trim(); return !n || !/^\p{L}/u.test(n) || noteRx.test(n); };
+              const before = (loaded.personas || []).length;
+              loaded.personas = (loaded.personas || []).filter(p => {
+                const full = ((p.first || "") + " " + (p.last || "")).trim();
+                if (/^px/.test(p.id || "") && isJunk(p.first || full)) return false;
+                return true;
+              });
+              const removed = before - loaded.personas.length;
+              if (removed > 0) console.log('PROMEZA: v138 removed ' + removed + ' junk imported contacts');
+              localStorage.setItem('promeza_cleanjunk_v138', '1');
             }
             setData(loaded);
             setDataReady(true);
