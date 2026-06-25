@@ -1281,6 +1281,17 @@ const App = () => {
               if (removedE > 0) console.log('PROMEZA: v140 removed ' + removedE + ' junk imported entities');
               localStorage.setItem('promeza_cleanent_v140', '1');
             }
+            // v142: remove imported entities whose name is an EMAIL or other non-name
+            // (the Excel's CHURCH NAME column held an email for some rows). v140 missed
+            // these because emails start with a letter.
+            if (!localStorage.getItem('promeza_cleanent_v142')) {
+              const isJunkE2 = (n) => { n = (n || "").trim(); return !n || !/^\p{L}/u.test(n) || /@/.test(n); };
+              const beforeE = (loaded.entities || []).length;
+              loaded.entities = (loaded.entities || []).filter(e => !(/^exb/.test(e.id || "") && isJunkE2(e.name)));
+              const removedE = beforeE - loaded.entities.length;
+              if (removedE > 0) console.log('PROMEZA: v142 removed ' + removedE + ' email/junk imported entities');
+              localStorage.setItem('promeza_cleanent_v142', '1');
+            }
             setData(loaded);
             setDataReady(true);
             return;
