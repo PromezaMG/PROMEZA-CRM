@@ -81,6 +81,18 @@ const atSignature = (d) => {
   return (d.personas ? d.personas.length : 0) + ":" + (d.entities ? d.entities.length : 0) + ":" + h;
 };
 
+// Church entities whose imported NAME is actually a phone number. Correct
+// name/email/zip come from the source spreadsheet (Churches in USA.xlsx),
+// matched by phone digits. data_churches.js missed a couple, so these are explicit.
+const ENTITY_PHONE_FIX = {
+  "8187470347": { name: "Iglesia Siervos de Dios", email: "mart.medina542@gmail.com", zip: "91324" },
+  "7145431460": { name: "Iglesia de Dios Pentecostal MI", email: "pastor.samuelmejia@gmail.com", zip: "92706" },
+  "7143658341": { name: "Iglesia Fe y Amistad Cristiana", email: "joelbac@yahoo.com", zip: "92703" },
+  "13038706055": { name: "Iglesia Mosaico de Aurora", email: "reidhettich@gmail.com", zip: "80010" },
+  "8058746063": { name: "Iglesia Llamada Final Oxnard", email: "info@oasis1079.com", zip: "93033" },
+  "5625078614": { name: "Iglesia Mi Fortaleza / Plymouth Church", email: "edgardomorenov@gmail.com", zip: "90601" },
+};
+
 // ─── Settings Modal ───
 
 const SettingsModal = ({ t, lang, data, cryptoKey, onClose, onLogout, onRestoreData, onForcePull }) => {
@@ -776,7 +788,10 @@ const App = () => {
     const looksLikePhone = (s) => /^[\s(+]*\d[\d()+\-. ]{6,}$/.test((s || "").trim());
     const fixEntityName = (e) => {
       if (!e || !looksLikePhone(e.name)) return e;
-      const src = churchByPhone[(e.name || "").replace(/\D/g, "")];
+      const d = (e.name || "").replace(/\D/g, "");
+      const f = ENTITY_PHONE_FIX[d];
+      if (f) return { ...e, name: f.name, phone: e.phone || e.name, email: e.email || f.email, zip: e.zip || f.zip, type: e.type || "iglesia" };
+      const src = churchByPhone[d];
       if (!src) return e;
       return { ...e, name: src.name, phone: e.phone || src.phone, email: e.email || src.email, city: e.city || src.city, state: e.state || src.state, zip: e.zip || src.zip, type: e.type || src.type || "iglesia" };
     };
@@ -1215,11 +1230,12 @@ const App = () => {
                 console.log('PROMEZA: v133 skipped — data.js not confirmed clean yet, retry next load');
               }
             }
-            // v135: fix church entities whose NAME holds the phone number (import
-            // column-shift) — match by phone digits to data_churches.js, restore name.
-            if (!localStorage.getItem('promeza_entfix_v135') && window.PROMEZA_CHURCHES) {
+            // v137: fix church entities whose NAME holds the phone number (import
+            // column-shift). Uses the explicit ENTITY_PHONE_FIX map (from the source
+            // spreadsheet) plus data_churches.js, matched by phone digits.
+            if (!localStorage.getItem('promeza_entfix_v137')) {
               const byPhone = {};
-              (window.PROMEZA_CHURCHES.entities || []).forEach(e => {
+              ((window.PROMEZA_CHURCHES && window.PROMEZA_CHURCHES.entities) || []).forEach(e => {
                 const d = (e.phone || "").replace(/\D/g, "");
                 if (d.length >= 7 && !byPhone[d]) byPhone[d] = e;
               });
@@ -1227,13 +1243,16 @@ const App = () => {
               let eFix = 0;
               loaded.entities = (loaded.entities || []).map(e => {
                 if (!isPhoneName(e.name)) return e;
-                const src = byPhone[(e.name || "").replace(/\D/g, "")];
+                const d = (e.name || "").replace(/\D/g, "");
+                const f = ENTITY_PHONE_FIX[d];
+                if (f) { eFix++; return { ...e, name: f.name, phone: e.phone || e.name, email: e.email || f.email, zip: e.zip || f.zip, type: e.type || "iglesia" }; }
+                const src = byPhone[d];
                 if (!src) return e;
                 eFix++;
                 return { ...e, name: src.name, phone: e.phone || src.phone, email: e.email || src.email, city: e.city || src.city, state: e.state || src.state, zip: e.zip || src.zip, type: e.type || src.type || "iglesia" };
               });
-              if (eFix > 0) console.log('PROMEZA: v135 fixed ' + eFix + ' entity names from data_churches');
-              localStorage.setItem('promeza_entfix_v135', '1');
+              if (eFix > 0) console.log('PROMEZA: v137 fixed ' + eFix + ' entity names');
+              localStorage.setItem('promeza_entfix_v137', '1');
             }
             setData(loaded);
             setDataReady(true);
