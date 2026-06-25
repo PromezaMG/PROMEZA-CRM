@@ -48,8 +48,9 @@ const PipelineView = ({ t, lang, data, go, onUpdatePerson }) => {
   const filteredReview = reviewPersonas.filter(p => matchesSearch(fullName(p), p.email + " " + p.phone));
 
   // Render at most this many cards at once. Rendering thousands of cards (one per
-  // contact/entity) froze the page on every navigation. Users narrow with search.
-  const RENDER_CAP = 60;
+  // contact/entity) froze the page on every navigation. "Ver más" loads more.
+  const [showCount, setShowCount] = React.useState(60);
+  const RENDER_CAP = showCount;
   // Precompute personas-per-entity ONCE (was O(n²): filtering all personas per card).
   const personaCountByEntity = React.useMemo(() => {
     const m = {};
@@ -57,8 +58,10 @@ const PipelineView = ({ t, lang, data, go, onUpdatePerson }) => {
     return m;
   }, [data.personas]);
   const CapNote = ({ total }) => total > RENDER_CAP ? (
-    <div className="muted" style={{ gridColumn: "1 / -1", padding: "10px 2px", fontSize: 12.5 }}>
-      Mostrando {RENDER_CAP} de {total.toLocaleString()}. Usa el buscador para encontrar a alguien específico.
+    <div style={{ gridColumn: "1 / -1", padding: "12px 2px", textAlign: "center" }}>
+      <button className="btn btn-sm" onClick={() => setShowCount(c => c + 200)}>
+        Ver más — mostrando {RENDER_CAP.toLocaleString()} de {total.toLocaleString()}
+      </button>
     </div>
   ) : null;
 

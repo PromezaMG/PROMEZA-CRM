@@ -879,9 +879,12 @@ const EntitiesList = ({ t, lang, data, go, onImportEntities, globalQ = "" }) => 
   const [q, setQ] = React.useState(EF.q !== undefined ? EF.q : "");
   const [showFilters, setShowFilters] = React.useState(EF.showFilters !== undefined ? EF.showFilters : false);
   const [showImport, setShowImport] = React.useState(false);
+  const [page, setPage] = React.useState(EF.page !== undefined ? EF.page : 0);
+  const E_PAGE_SIZE = 100;
   React.useEffect(() => {
-    Object.assign(_entitiesFilters, { type, country, status, city, stateFilter, countyFilter, zip, tagFilter, emailFilter, phoneFilter, dayFilter, q, showFilters });
-  }, [type, country, status, city, stateFilter, countyFilter, zip, tagFilter, emailFilter, phoneFilter, dayFilter, q, showFilters]);
+    Object.assign(_entitiesFilters, { type, country, status, city, stateFilter, countyFilter, zip, tagFilter, emailFilter, phoneFilter, dayFilter, q, showFilters, page });
+  }, [type, country, status, city, stateFilter, countyFilter, zip, tagFilter, emailFilter, phoneFilter, dayFilter, q, showFilters, page]);
+  React.useEffect(() => { setPage(0); }, [type, country, status, city, stateFilter, countyFilter, zip, tagFilter, emailFilter, phoneFilter, dayFilter, q]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const types = ["all", ...Object.keys(t.types)];
   const countries = ["all", ...new Set(data.entities.map(e => e.country).filter(Boolean))];
@@ -1113,7 +1116,7 @@ const EntitiesList = ({ t, lang, data, go, onImportEntities, globalQ = "" }) => 
             </tr>
           </thead>
           <tbody>
-            {rows.slice(0, 100).map(e => (
+            {rows.slice(page * E_PAGE_SIZE, (page + 1) * E_PAGE_SIZE).map(e => (
               <tr key={e.id} onClick={() => go({ name: "entity", id: e.id })}>
                 <td>
                   <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -1163,8 +1166,18 @@ const EntitiesList = ({ t, lang, data, go, onImportEntities, globalQ = "" }) => 
             ))}
           </tbody>
         </table>
-        {rows.length > 100 && <div className="muted" style={{ padding: "12px 4px", fontSize: 12.5 }}>Mostrando 100 de {rows.length.toLocaleString()}. Usa el buscador o los filtros para encontrar una entidad específica.</div>}
         {rows.length === 0 && <div className="empty">{t.common.noResults}</div>}
+        {Math.ceil(rows.length / E_PAGE_SIZE) > 1 && (
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "12px 16px", borderTop: "1px solid var(--border)" }}>
+            <button className="btn btn-sm" onClick={() => setPage(0)} disabled={page === 0}>«</button>
+            <button className="btn btn-sm" onClick={() => setPage(p => p - 1)} disabled={page === 0}>‹</button>
+            <span style={{ fontSize: 13, color: "var(--ink-3)", minWidth: 140, textAlign: "center" }}>
+              {page * E_PAGE_SIZE + 1}–{Math.min((page + 1) * E_PAGE_SIZE, rows.length)} de {rows.length.toLocaleString()}
+            </span>
+            <button className="btn btn-sm" onClick={() => setPage(p => p + 1)} disabled={page >= Math.ceil(rows.length / E_PAGE_SIZE) - 1}>›</button>
+            <button className="btn btn-sm" onClick={() => setPage(Math.ceil(rows.length / E_PAGE_SIZE) - 1)} disabled={page >= Math.ceil(rows.length / E_PAGE_SIZE) - 1}>»</button>
+          </div>
+        )}
       </div>
     </div>
   );
