@@ -303,21 +303,26 @@ const FField = ({ label, children }) => (
   </div>
 );
 
+// Remember Contactos filters across navigation: entering a profile and pressing
+// Back restores the same filter / search / page instead of resetting to the full list.
+const _personasFilters = {};
+
 const PersonasList = ({ t, lang, data, go, onImportPersonas, globalQ = "", onBulkDelete, onBulkUpdateStatus, onBulkAddTag, onBulkAddTask, segments, onAddSegment, onDeleteSegment, users, currentUser }) => {
-  const [role, setRole] = React.useState("all");
-  const [country, setCountry] = React.useState("all");
-  const [stateFilter, setStateFilter] = React.useState("");
-  const [status, setStatus] = React.useState("all");
-  const [stageFilter, setStageFilter] = React.useState("all");
-  const [langFilter, setLangFilter] = React.useState("all");
-  const [city, setCity] = React.useState("");
-  const [countyFilter, setCountyFilter] = React.useState("");
-  const [zip, setZip] = React.useState("");
-  const [tagFilter, setTagFilter] = React.useState("");
-  const [emailFilter, setEmailFilter] = React.useState("");
-  const [phoneFilter, setPhoneFilter] = React.useState("");
-  const [q, setQ] = React.useState("");
-  const [showFilters, setShowFilters] = React.useState(false);
+  const F = _personasFilters;
+  const [role, setRole] = React.useState(F.role !== undefined ? F.role : "all");
+  const [country, setCountry] = React.useState(F.country !== undefined ? F.country : "all");
+  const [stateFilter, setStateFilter] = React.useState(F.stateFilter !== undefined ? F.stateFilter : "");
+  const [status, setStatus] = React.useState(F.status !== undefined ? F.status : "all");
+  const [stageFilter, setStageFilter] = React.useState(F.stageFilter !== undefined ? F.stageFilter : "all");
+  const [langFilter, setLangFilter] = React.useState(F.langFilter !== undefined ? F.langFilter : "all");
+  const [city, setCity] = React.useState(F.city !== undefined ? F.city : "");
+  const [countyFilter, setCountyFilter] = React.useState(F.countyFilter !== undefined ? F.countyFilter : "");
+  const [zip, setZip] = React.useState(F.zip !== undefined ? F.zip : "");
+  const [tagFilter, setTagFilter] = React.useState(F.tagFilter !== undefined ? F.tagFilter : "");
+  const [emailFilter, setEmailFilter] = React.useState(F.emailFilter !== undefined ? F.emailFilter : "");
+  const [phoneFilter, setPhoneFilter] = React.useState(F.phoneFilter !== undefined ? F.phoneFilter : "");
+  const [q, setQ] = React.useState(F.q !== undefined ? F.q : "");
+  const [showFilters, setShowFilters] = React.useState(F.showFilters !== undefined ? F.showFilters : false);
   const [showImport, setShowImport] = React.useState(false);
   const [selected, setSelected] = React.useState(new Set());
   const [bulkTag, setBulkTag] = React.useState("");
@@ -328,8 +333,13 @@ const PersonasList = ({ t, lang, data, go, onImportPersonas, globalQ = "", onBul
   const [bulkTaskAssignee, setBulkTaskAssignee] = React.useState("");
   const [savingSegment, setSavingSegment] = React.useState(false);
   const [segmentName, setSegmentName] = React.useState("");
-  const [page, setPage] = React.useState(0);
+  const [page, setPage] = React.useState(F.page !== undefined ? F.page : 0);
   const PAGE_SIZE = 100;
+
+  // Persist filters so they survive entering a profile and pressing Back.
+  React.useEffect(() => {
+    Object.assign(_personasFilters, { role, country, stateFilter, status, stageFilter, langFilter, city, countyFilter, zip, tagFilter, emailFilter, phoneFilter, q, page, showFilters });
+  }, [role, country, stateFilter, status, stageFilter, langFilter, city, countyFilter, zip, tagFilter, emailFilter, phoneFilter, q, page, showFilters]);
 
   const countries = React.useMemo(() => ["all", ...new Set(data.personas.map(p => p.country).filter(Boolean))], [data.personas]);
 
@@ -851,21 +861,27 @@ const PersonasList = ({ t, lang, data, go, onImportPersonas, globalQ = "", onBul
   );
 };
 
+const _entitiesFilters = {};
+
 const EntitiesList = ({ t, lang, data, go, onImportEntities, globalQ = "" }) => {
-  const [type, setType] = React.useState("all");
-  const [country, setCountry] = React.useState("all");
-  const [status, setStatus] = React.useState("all");
-  const [city, setCity] = React.useState("");
-  const [stateFilter, setStateFilter] = React.useState("");
-  const [countyFilter, setCountyFilter] = React.useState("");
-  const [zip, setZip] = React.useState("");
-  const [tagFilter, setTagFilter] = React.useState("");
-  const [emailFilter, setEmailFilter] = React.useState("");
-  const [phoneFilter, setPhoneFilter] = React.useState("");
-  const [dayFilter, setDayFilter] = React.useState("all");
-  const [q, setQ] = React.useState("");
-  const [showFilters, setShowFilters] = React.useState(false);
+  const EF = _entitiesFilters;
+  const [type, setType] = React.useState(EF.type !== undefined ? EF.type : "all");
+  const [country, setCountry] = React.useState(EF.country !== undefined ? EF.country : "all");
+  const [status, setStatus] = React.useState(EF.status !== undefined ? EF.status : "all");
+  const [city, setCity] = React.useState(EF.city !== undefined ? EF.city : "");
+  const [stateFilter, setStateFilter] = React.useState(EF.stateFilter !== undefined ? EF.stateFilter : "");
+  const [countyFilter, setCountyFilter] = React.useState(EF.countyFilter !== undefined ? EF.countyFilter : "");
+  const [zip, setZip] = React.useState(EF.zip !== undefined ? EF.zip : "");
+  const [tagFilter, setTagFilter] = React.useState(EF.tagFilter !== undefined ? EF.tagFilter : "");
+  const [emailFilter, setEmailFilter] = React.useState(EF.emailFilter !== undefined ? EF.emailFilter : "");
+  const [phoneFilter, setPhoneFilter] = React.useState(EF.phoneFilter !== undefined ? EF.phoneFilter : "");
+  const [dayFilter, setDayFilter] = React.useState(EF.dayFilter !== undefined ? EF.dayFilter : "all");
+  const [q, setQ] = React.useState(EF.q !== undefined ? EF.q : "");
+  const [showFilters, setShowFilters] = React.useState(EF.showFilters !== undefined ? EF.showFilters : false);
   const [showImport, setShowImport] = React.useState(false);
+  React.useEffect(() => {
+    Object.assign(_entitiesFilters, { type, country, status, city, stateFilter, countyFilter, zip, tagFilter, emailFilter, phoneFilter, dayFilter, q, showFilters });
+  }, [type, country, status, city, stateFilter, countyFilter, zip, tagFilter, emailFilter, phoneFilter, dayFilter, q, showFilters]);
 
   const types = ["all", ...Object.keys(t.types)];
   const countries = ["all", ...new Set(data.entities.map(e => e.country).filter(Boolean))];
