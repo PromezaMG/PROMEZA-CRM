@@ -765,6 +765,22 @@ const App = () => {
     const pick = (base, fallback) => (base && base.length > 0) ? base : (fallback || []);
     const pickStr = (base, fallback) => base || fallback || "";
 
+    // Some church entities were imported column-shifted: the NAME field holds the
+    // phone number (e.g. "(805) 874-6063"). Match by phone digits to data_churches.js
+    // to restore the real name and contact fields.
+    const churchByPhone = {};
+    ((window.PROMEZA_CHURCHES && window.PROMEZA_CHURCHES.entities) || []).forEach(e => {
+      const d = (e.phone || "").replace(/\D/g, "");
+      if (d.length >= 7 && !churchByPhone[d]) churchByPhone[d] = e;
+    });
+    const looksLikePhone = (s) => /^[\s(+]*\d[\d()+\-. ]{6,}$/.test((s || "").trim());
+    const fixEntityName = (e) => {
+      if (!e || !looksLikePhone(e.name)) return e;
+      const src = churchByPhone[(e.name || "").replace(/\D/g, "")];
+      if (!src) return e;
+      return { ...e, name: src.name, phone: e.phone || src.phone, email: e.email || src.email, city: e.city || src.city, state: e.state || src.state, zip: e.zip || src.zip, type: e.type || src.type || "iglesia" };
+    };
+
     const mergedPersonas = prev.personas.map(local => {
       const remote = atPersonaMap.get(local.id);
       if (!remote) return local;
@@ -831,17 +847,17 @@ const App = () => {
         };
       }
       // Remote is source of truth, but never blank out complex fields if only one side has them
-      return {
+      return fixEntityName({
         ...remote,
         _atId: remote._atId || local._atId,
         schedule: pick(remote.schedule, local.schedule),
         denominacion: pickStr(remote.denominacion, local.denominacion),
         phones: pick(remote.phones, local.phones),
         emails: pick(remote.emails, local.emails),
-      };
+      });
     });
     const localEntityIds = new Set(prev.entities.map(e => e.id));
-    const remoteOnlyEntities = atData.entities.filter(e => !localEntityIds.has(e.id)).map(e => ({
+    const remoteOnlyEntities = atData.entities.filter(e => !localEntityIds.has(e.id)).map(e => fixEntityName({
       ...e,
       schedule: e.schedule || [],
       phones: e.phones || [],
@@ -1198,6 +1214,26 @@ const App = () => {
               } else {
                 console.log('PROMEZA: v133 skipped — data.js not confirmed clean yet, retry next load');
               }
+            }
+            // v135: fix church entities whose NAME holds the phone number (import
+            // column-shift) — match by phone digits to data_churches.js, restore name.
+            if (!localStorage.getItem('promeza_entfix_v135') && window.PROMEZA_CHURCHES) {
+              const byPhone = {};
+              (window.PROMEZA_CHURCHES.entities || []).forEach(e => {
+                const d = (e.phone || "").replace(/\D/g, "");
+                if (d.length >= 7 && !byPhone[d]) byPhone[d] = e;
+              });
+              const isPhoneName = (s) => /^[\s(+]*\d[\d()+\-. ]{6,}$/.test((s || "").trim());
+              let eFix = 0;
+              loaded.entities = (loaded.entities || []).map(e => {
+                if (!isPhoneName(e.name)) return e;
+                const src = byPhone[(e.name || "").replace(/\D/g, "")];
+                if (!src) return e;
+                eFix++;
+                return { ...e, name: src.name, phone: e.phone || src.phone, email: e.email || src.email, city: e.city || src.city, state: e.state || src.state, zip: e.zip || src.zip, type: e.type || src.type || "iglesia" };
+              });
+              if (eFix > 0) console.log('PROMEZA: v135 fixed ' + eFix + ' entity names from data_churches');
+              localStorage.setItem('promeza_entfix_v135', '1');
             }
             setData(loaded);
             setDataReady(true);
