@@ -387,7 +387,7 @@ const PersonasList = ({ t, lang, data, go, onImportPersonas, globalQ = "", onBul
     };
     if (!checkQ(q) || !checkQ(globalQ)) return false;
     return true;
-  }).sort((a, b) => window.nameCmp(fullName(a), fullName(b))), [data.personas, role, country, stateFilter, status, stageFilter, langFilter, city, countyFilter, zip, tagFilter, emailFilter, phoneFilter, q, globalQ]); // eslint-disable-line react-hooks/exhaustive-deps
+  }).sort((a, b) => { const fa = fullName(a), fb = fullName(b); if (!fa && !fb) return 0; if (!fa) return 1; if (!fb) return -1; return window.nameCmp(fa, fb); }), [data.personas, role, country, stateFilter, status, stageFilter, langFilter, city, countyFilter, zip, tagFilter, emailFilter, phoneFilter, q, globalQ]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const activeFilters = [role !== "all", country !== "all", stateFilter, status !== "all", stageFilter !== "all", langFilter !== "all", city, countyFilter, zip, tagFilter, emailFilter, phoneFilter, q].filter(Boolean).length;
 
@@ -807,7 +807,7 @@ const PersonasList = ({ t, lang, data, go, onImportPersonas, globalQ = "", onBul
                   <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                     <div className="av-circle" style={{ background: p.color }}>{initials(fullName(p))}</div>
                     <div style={{ minWidth: 0 }}>
-                      <div style={{ fontWeight: 600 }}>{fullName(p)}</div>
+                      <div style={{ fontWeight: 600 }}>{fullName(p) || p.email || "(sin nombre)"}</div>
                       <div className="num">#{window.getUID ? window.getUID(p.id) : p.id} · <span className={"status-dot " + (p.status === "inactivo" ? "off" : "")} />{t.common[p.status === "inactivo" ? "inactivos" : "activos"]}</div>
                     </div>
                   </div>
