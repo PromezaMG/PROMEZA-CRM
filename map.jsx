@@ -41,7 +41,12 @@ const MiniMap = ({ personas = [], entities = [], focus = null, go = null, county
     const L = _L();
     if (!L || !mapRef.current) return;
     if (layerRef.current) { layerRef.current.remove(); }
-    const layer = L.layerGroup().addTo(mapRef.current);
+    // Cluster thousands of points into groups so the map stays smooth. Falls back
+    // to a plain layer group if the markercluster plugin failed to load.
+    const layer = (L.markerClusterGroup
+      ? L.markerClusterGroup({ chunkedLoading: true, maxClusterRadius: 55, showCoverageOnHover: false, spiderfyOnMaxZoom: true })
+      : L.layerGroup());
+    layer.addTo(mapRef.current);
     const points = [];
 
     entities.forEach(e => {
@@ -182,7 +187,7 @@ const MapPage = ({ t, lang, data, go }) => {
           {sideTab === "lista" && (
             <div className="list">
               {items.length === 0 && <div style={{ padding: 20, textAlign: "center", color: "var(--ink-4)", fontSize: 12 }}>{es ? "Sin ubicaciones" : "No locations"}</div>}
-              {items.map(it => (
+              {items.slice(0, 400).map(it => (
                 <div key={it.kind + it.id} className="row" onClick={() => go({ name: it.kind, id: it.id })}>
                   {it.kind === "entity" ? (
                     <div className="ent-icon" style={{ width: 28, height: 28, background: it.color + "22", border: "1.5px solid " + it.color + "66" }}><Icon name="building" style={{ color: it.color }} /></div>
@@ -195,6 +200,11 @@ const MapPage = ({ t, lang, data, go }) => {
                   </div>
                 </div>
               ))}
+              {items.length > 400 && (
+                <div style={{ padding: "10px 14px", textAlign: "center", color: "var(--ink-4)", fontSize: 11 }}>
+                  {es ? `Mostrando 400 de ${items.length}. Usa el filtro de condado o la búsqueda para afinar.` : `Showing 400 of ${items.length}. Filter by county to narrow.`}
+                </div>
+              )}
             </div>
           )}
 

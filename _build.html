@@ -27,13 +27,19 @@
     bundle = bundle.replace(/const(\s*\{[^}]*\}\s*=\s*React\b)/g, 'var$1');
     window.__BUNDLE__ = bundle;
     log('TOTAL ' + bundle.length + ' chars');
+    // Save straight to disk via the local build server (downloads don't land here).
+    try {
+      const r = await fetch('/save?name=bundle.151.js', { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: bundle });
+      log('POST /save -> ' + r.status + ' ' + (await r.text()));
+    } catch (e) { log('POST /save FAILED: ' + (e.message || e)); }
+    // Also offer a download as a fallback.
     const blob = new Blob([bundle], { type: 'text/javascript' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
     a.download = 'promeza-bundle.js';
     document.body.appendChild(a);
     a.click();
-    log('descarga iniciada: promeza-bundle.js');
+    log('listo (POST + descarga)');
   } catch (e) {
     log('ERROR: ' + (e.message || e));
   }
