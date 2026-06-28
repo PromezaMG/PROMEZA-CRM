@@ -29,13 +29,19 @@ const useLeafletMap = (ref, opts) => {
   return mapRef;
 };
 
-const MiniMap = ({ personas = [], entities = [], focus = null, go = null, countyColorMap = null }) => {
+// Popup button that opens the full profile (so clicking a marker/list item shows
+// the point on the map first, instead of immediately navigating away).
+const _goBtn = (label) =>
+  `<button class="map-go-btn" style="margin-top:7px;width:100%;padding:6px 8px;border:1px solid #4f46e5;background:#4f46e5;color:#fff;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;">${label} →</button>`;
+
+const MiniMap = ({ personas = [], entities = [], focus = null, go = null, countyColorMap = null, selected = null }) => {
   const ref = React.useRef(null);
   const mapRef = useLeafletMap(ref, {
     center: focus ? [focus.lat, focus.lng] : [10, -60],
     zoom: focus ? 13 : 2,
   });
   const layerRef = React.useRef(null);
+  const markersRef = React.useRef({});
 
   React.useEffect(() => {
     const L = _L();
@@ -48,6 +54,17 @@ const MiniMap = ({ personas = [], entities = [], focus = null, go = null, county
       : L.layerGroup());
     layer.addTo(mapRef.current);
     const points = [];
+    const markers = {};
+
+    // Wire the "Ver perfil" button inside a popup once it opens.
+    const wireGo = (m, dest) => {
+      if (!go) return;
+      m.on("popupopen", () => {
+        const el = m.getPopup() && m.getPopup().getElement();
+        const btn = el && el.querySelector(".map-go-btn");
+        if (btn) btn.onclick = (ev) => { ev.preventDefault(); go(dest); };
+      });
+    };
 
     entities.forEach(e => {
       if (!e.lat && !e.lng) return;
@@ -57,8 +74,9 @@ const MiniMap = ({ personas = [], entities = [], focus = null, go = null, county
         className: "", iconSize: [20, 20], iconAnchor: [10, 10],
       });
       const m = L.marker([e.lat, e.lng], { icon: ic }).addTo(layer);
-      m.bindPopup(`<div class="pop-title">${e.name}</div><div class="pop-sub">${e.city}${e.county ? " · " + e.county : ""}</div>`);
-      if (go) m.on("click", () => go({ name: "entity", id: e.id }));
+      m.bindPopup(`<div class="pop-title">${e.name || ""}</div><div class="pop-sub">${e.city || ""}${e.county ? " · " + e.county : ""}</div>${go ? _goBtn("Ver entidad") : ""}`);
+      wireGo(m, { name: "entity", id: e.id });
+      markers["entity:" + e.id] = m;
       points.push([e.lat, e.lng]);
     });
 
@@ -70,12 +88,14 @@ const MiniMap = ({ personas = [], entities = [], focus = null, go = null, county
         className: "", iconSize: [16, 16], iconAnchor: [8, 8],
       });
       const m = L.marker([p.lat, p.lng], { icon: ic }).addTo(layer);
-      m.bindPopup(`<div class="pop-title">${p.first} ${p.last}</div><div class="pop-sub">${p.city}${p.county ? " · " + p.county : ""}${p.country ? ", " + p.country : ""}</div>`);
-      if (go) m.on("click", () => go({ name: "person", id: p.id }));
+      m.bindPopup(`<div class="pop-title">${(p.first || "") + " " + (p.last || "")}</div><div class="pop-sub">${p.city || ""}${p.county ? " · " + p.county : ""}${p.country ? ", " + p.country : ""}</div>${go ? _goBtn("Ver perfil") : ""}`);
+      wireGo(m, { name: "person", id: p.id });
+      markers["person:" + p.id] = m;
       points.push([p.lat, p.lng]);
     });
 
     layerRef.current = layer;
+    markersRef.current = markers;
 
     if (focus) {
       mapRef.current.setView([focus.lat, focus.lng], 13);
@@ -85,6 +105,21 @@ const MiniMap = ({ personas = [], entities = [], focus = null, go = null, county
     }
   }, [personas, entities, focus, countyColorMap]);
 
+  // When a list item is selected, fly to its marker and open its popup (instead of
+  // navigating away). Works through clustering via zoomToShowLayer.
+  React.useEffect(() => {
+    if (!selected || !mapRef.current) return;
+    const m = markersRef.current[selected.kind + ":" + selected.id];
+    if (!m) return;
+    const layer = layerRef.current;
+    if (layer && layer.zoomToShowLayer) {
+      layer.zoomToShowLayer(m, () => m.openPopup());
+    } else {
+      mapRef.current.setView(m.getLatLng(), 14, { animate: true });
+      m.openPopup();
+    }
+  }, [selected]);
+
   return <div ref={ref} style={{ width: "100%", height: "100%" }} />;
 };
 
@@ -93,6 +128,7 @@ const MapPage = ({ t, lang, data, go }) => {
   const [showEntities, setShowEntities] = React.useState(true);
   const [sideTab, setSideTab] = React.useState("lista");
   const [selectedCounty, setSelectedCounty] = React.useState(null);
+  const [focusItem, setFocusItem] = React.useState(null); // {kind,id} clicked in the list → center map
   const es = lang === "es";
 
   // Build county map
@@ -187,8 +223,14 @@ const MapPage = ({ t, lang, data, go }) => {
           {sideTab === "lista" && (
             <div className="list">
               {items.length === 0 && <div style={{ padding: 20, textAlign: "center", color: "var(--ink-4)", fontSize: 12 }}>{es ? "Sin ubicaciones" : "No locations"}</div>}
-              {items.slice(0, 400).map(it => (
-                <div key={it.kind + it.id} className="row" onClick={() => go({ name: it.kind, id: it.id })}>
+              {items.slice(0, 400).map(it => {
+                const isSel = focusItem && focusItem.kind === it.kind && focusItem.id === it.id;
+                const hasCoords = it.lat && it.lng;
+                return (
+                <div key={it.kind + it.id} className="row"
+                  style={{ background: isSel ? "var(--accent-50)" : undefined }}
+                  title={hasCoords ? (es ? "Ver en el mapa" : "Show on map") : (es ? "Sin ubicación" : "No location")}
+                  onClick={() => { if (hasCoords) setFocusItem({ kind: it.kind, id: it.id }); else go({ name: it.kind, id: it.id }); }}>
                   {it.kind === "entity" ? (
                     <div className="ent-icon" style={{ width: 28, height: 28, background: it.color + "22", border: "1.5px solid " + it.color + "66" }}><Icon name="building" style={{ color: it.color }} /></div>
                   ) : (
@@ -198,8 +240,14 @@ const MapPage = ({ t, lang, data, go }) => {
                     <div style={{ fontWeight: 600, fontSize: 13, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{it.name}</div>
                     <div className="muted" style={{ fontSize: 11 }}>{it.sub || "—"}</div>
                   </div>
+                  <button className="icon-btn" title={es ? "Abrir perfil" : "Open profile"}
+                    style={{ flexShrink: 0, width: 28, height: 28 }}
+                    onClick={(ev) => { ev.stopPropagation(); go({ name: it.kind, id: it.id }); }}>
+                    <Icon name="chev-right" />
+                  </button>
                 </div>
-              ))}
+                );
+              })}
               {items.length > 400 && (
                 <div style={{ padding: "10px 14px", textAlign: "center", color: "var(--ink-4)", fontSize: 11 }}>
                   {es ? `Mostrando 400 de ${items.length}. Usa el filtro de condado o la búsqueda para afinar.` : `Showing 400 of ${items.length}. Filter by county to narrow.`}
@@ -259,6 +307,7 @@ const MapPage = ({ t, lang, data, go }) => {
             entities={entitiesFiltered.filter(e => e.lat && e.lng)}
             go={go}
             countyColorMap={countyColorMap}
+            selected={focusItem}
           />
           {/* County legend overlay */}
           {sideTab === "condados" && allCounties.length > 0 && (

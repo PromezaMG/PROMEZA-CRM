@@ -624,5 +624,36 @@ window.AIRTABLE = (function () {
     } catch (err) { console.warn("deleteRecord failed:", err); }
   };
 
-  return { getConfig, saveConfig, getLastSync, getLastLoad, syncAll, loadData, savePersona, saveEntity, deleteRecord, logAccess, getAccessLog, DEFAULT_PERSONAS_TABLE, DEFAULT_ENTIDADES_TABLE };
+  // ─── Shared app state (small JSON blobs shared across all devices) ───
+  // Used e.g. for the duplicate-review state so a scan done on one device shows
+  // up on the others. One record per key in the "ESTADO PROMEZA CRM" table.
+  const STATE_TABLE = "ESTADO PROMEZA CRM";
+  const loadAppState = async (key) => {
+    const cfg = getConfig();
+    if (!cfg.pat || !cfg.baseId) return null;
+    try {
+      const url = "https://api.airtable.com/v0/" + cfg.baseId + "/" + encodeURIComponent(STATE_TABLE)
+        + "?maxRecords=1&filterByFormula=" + encodeURIComponent("{key}='" + key + "'");
+      const r = await req("GET", url, null, cfg.pat);
+      const rec = (r.records || [])[0];
+      if (rec && rec.fields && rec.fields._data) { try { return JSON.parse(rec.fields._data); } catch {} }
+      return null;
+    } catch (e) { console.warn("loadAppState " + key + ":", e.message); return null; }
+  };
+  const saveAppState = async (key, obj) => {
+    const cfg = getConfig();
+    if (!cfg.pat || !cfg.baseId) return false;
+    try {
+      const base = "https://api.airtable.com/v0/" + cfg.baseId + "/" + encodeURIComponent(STATE_TABLE);
+      const find = base + "?maxRecords=1&filterByFormula=" + encodeURIComponent("{key}='" + key + "'");
+      const r = await req("GET", find, null, cfg.pat);
+      const rec = (r.records || [])[0];
+      const fields = { "key": key, "_data": JSON.stringify(obj) };
+      if (rec) await req("PATCH", base, { records: [{ id: rec.id, fields }] }, cfg.pat);
+      else await req("POST", base, { records: [{ fields }] }, cfg.pat);
+      return true;
+    } catch (e) { console.warn("saveAppState " + key + ":", e.message); return false; }
+  };
+
+  return { getConfig, saveConfig, getLastSync, getLastLoad, syncAll, loadData, savePersona, saveEntity, deleteRecord, logAccess, getAccessLog, loadAppState, saveAppState, DEFAULT_PERSONAS_TABLE, DEFAULT_ENTIDADES_TABLE };
 })();

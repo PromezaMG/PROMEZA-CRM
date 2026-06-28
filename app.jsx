@@ -753,6 +753,7 @@ const App = () => {
   const [atSyncing, setAtSyncing] = useState(false);
   const [atSyncMsg, setAtSyncMsg] = useState(null); // { type:"ok"|"warn"|"err", text }
   const lastSyncSigRef = useRef(""); // signature of last-applied Airtable data (skip no-op syncs)
+  const dupLoadedRef = useRef(false); // duplicate-review state has been loaded (don't save before then)
 
   const mergeFromAirtable = (atData, prev, prevLastLoad = "") => {
     if (!atData || !prev) return prev;
@@ -1395,6 +1396,41 @@ const App = () => {
     const interval = setInterval(syncFromAirtable, 120000);
     return () => { clearTimeout(first); clearInterval(interval); };
   }, [dataReady]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Duplicate-review state: SHARED across devices via Airtable (+ localStorage for
+  // instant same-device reload). Without this, a scan done on the tablet never
+  // reached the computer (dupPairs was in-memory only). Load once when data is ready.
+  useEffect(() => {
+    if (!dataReady) return;
+    let cancelled = false;
+    (async () => {
+      let local = null;
+      try { local = JSON.parse(localStorage.getItem("promeza_dupreview") || "null"); } catch {}
+      if (local && !cancelled) {
+        if (Array.isArray(local.personas)) setDupPairs(local.personas);
+        if (Array.isArray(local.entities)) setEntityDupPairs(local.entities);
+      }
+      let remote = null;
+      try { remote = await window.AIRTABLE.loadAppState("dupReview"); } catch {}
+      if (remote && !cancelled) {
+        // Remote is the shared truth; prefer it when present.
+        if (Array.isArray(remote.personas)) setDupPairs(remote.personas);
+        if (Array.isArray(remote.entities)) setEntityDupPairs(remote.entities);
+      }
+      dupLoadedRef.current = true;
+    })();
+    return () => { cancelled = true; };
+  }, [dataReady]);
+
+  // Persist duplicate-review state on change (after the initial load). Saves to
+  // localStorage immediately and to Airtable (debounced) so all devices share it.
+  useEffect(() => {
+    if (!dupLoadedRef.current) return;
+    const state = { personas: dupPairs, entities: entityDupPairs };
+    try { localStorage.setItem("promeza_dupreview", JSON.stringify(state)); } catch {}
+    const id = setTimeout(() => { window.AIRTABLE.saveAppState("dupReview", state).catch(() => {}); }, 1500);
+    return () => clearTimeout(id);
+  }, [dupPairs, entityDupPairs]);
 
   // Auto-logout on inactivity (1 hour)
   const INACTIVITY_MS = 60 * 60 * 1000;
