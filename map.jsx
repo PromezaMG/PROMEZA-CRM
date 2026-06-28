@@ -49,12 +49,24 @@ const MiniMap = ({ personas = [], entities = [], focus = null, go = null, county
     if (layerRef.current) { layerRef.current.remove(); }
     // Cluster thousands of points into groups so the map stays smooth. Falls back
     // to a plain layer group if the markercluster plugin failed to load.
-    const layer = (L.markerClusterGroup
-      ? L.markerClusterGroup({ chunkedLoading: true, maxClusterRadius: 55, showCoverageOnHover: false, spiderfyOnMaxZoom: true })
+    const clustered = !!L.markerClusterGroup;
+    const layer = (clustered
+      ? L.markerClusterGroup({ chunkedLoading: true, maxClusterRadius: 55, showCoverageOnHover: false, spiderfyOnMaxZoom: true, removeOutsideVisibleBounds: true })
       : L.layerGroup());
     layer.addTo(mapRef.current);
     const points = [];
     const markers = {};
+    const all = [];
+
+    // Many contacts share a city-centroid coordinate (we geocode by city when no
+    // ZIP). Stacked at the exact same point they can't be separated by zoom and
+    // explode into a huge unusable spider. Spread them with a small DETERMINISTIC
+    // offset (~±0.9 km) so they cluster normally and resolve into clickable points.
+    // Not applied on the single-point profile map (focus mode).
+    const hash = (s) => { let h = 2166136261; s = String(s || ""); for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; };
+    const SPREAD = 0.018;
+    const jLat = (id) => focus ? 0 : ((hash(id) % 2000) / 2000 - 0.5) * SPREAD;
+    const jLng = (id) => focus ? 0 : ((hash(id + "#") % 2000) / 2000 - 0.5) * SPREAD;
 
     // Wire the "Ver perfil" button inside a popup once it opens.
     const wireGo = (m, dest) => {
@@ -73,11 +85,13 @@ const MiniMap = ({ personas = [], entities = [], focus = null, go = null, county
         html: `<div class="map-marker entity" style="border-color:${color};background:${color}22"></div>`,
         className: "", iconSize: [20, 20], iconAnchor: [10, 10],
       });
-      const m = L.marker([e.lat, e.lng], { icon: ic }).addTo(layer);
+      const ll = [e.lat + jLat(e.id), e.lng + jLng(e.id)];
+      const m = L.marker(ll, { icon: ic });
       m.bindPopup(`<div class="pop-title">${e.name || ""}</div><div class="pop-sub">${e.city || ""}${e.county ? " · " + e.county : ""}</div>${go ? _goBtn("Ver entidad") : ""}`);
       wireGo(m, { name: "entity", id: e.id });
       markers["entity:" + e.id] = m;
-      points.push([e.lat, e.lng]);
+      all.push(m);
+      points.push(ll);
     });
 
     personas.forEach(p => {
@@ -87,12 +101,18 @@ const MiniMap = ({ personas = [], entities = [], focus = null, go = null, county
         html: `<div class="map-marker" style="background:${color}"></div>`,
         className: "", iconSize: [16, 16], iconAnchor: [8, 8],
       });
-      const m = L.marker([p.lat, p.lng], { icon: ic }).addTo(layer);
+      const ll = [p.lat + jLat(p.id), p.lng + jLng(p.id)];
+      const m = L.marker(ll, { icon: ic });
       m.bindPopup(`<div class="pop-title">${(p.first || "") + " " + (p.last || "")}</div><div class="pop-sub">${p.city || ""}${p.county ? " · " + p.county : ""}${p.country ? ", " + p.country : ""}</div>${go ? _goBtn("Ver perfil") : ""}`);
       wireGo(m, { name: "person", id: p.id });
       markers["person:" + p.id] = m;
-      points.push([p.lat, p.lng]);
+      all.push(m);
+      points.push(ll);
     });
+
+    // Bulk-add (markercluster's addLayers is far faster than per-marker addTo).
+    if (clustered) layer.addLayers(all);
+    else all.forEach(m => m.addTo(layer));
 
     layerRef.current = layer;
     markersRef.current = markers;
@@ -160,10 +180,19 @@ const MapPage = ({ t, lang, data, go }) => {
     return e;
   }, [data.entities, showEntities, selectedCounty]);
 
-  const items = [
+  // Sidebar list — memoized so it is NOT rebuilt+resorted on every render (e.g. on
+  // every click). Uses the cached collator (window.nameCmp); per-element
+  // localeCompare on thousands of rows froze the page.
+  const cmp = window.nameCmp || ((a, b) => (a || "").localeCompare(b || ""));
+  const items = React.useMemo(() => [
     ...entitiesFiltered.map(e => ({ kind: "entity", id: e.id, name: e.name, sub: [e.city, e.county].filter(Boolean).join(" · "), lat: e.lat, lng: e.lng, color: (countyColorMap && e.county) ? countyColorMap[e.county] : "#0ea5e9", county: e.county })),
     ...personasFiltered.map(p => ({ kind: "person", id: p.id, name: fullName(p), sub: [p.city, p.county].filter(Boolean).join(" · "), lat: p.lat, lng: p.lng, color: (countyColorMap && p.county) ? countyColorMap[p.county] : p.color, county: p.county })),
-  ].sort((a, b) => a.name.localeCompare(b.name));
+  ].sort((a, b) => cmp(a.name, b.name)), [entitiesFiltered, personasFiltered, countyColorMap]);
+
+  // Stable point arrays for the map — without memoizing, the inline .filter() made
+  // a new array each render, so the map rebuilt all ~7000 markers on every click.
+  const mapPersonas = React.useMemo(() => personasFiltered.filter(p => p.lat && p.lng), [personasFiltered]);
+  const mapEntities = React.useMemo(() => entitiesFiltered.filter(e => e.lat && e.lng), [entitiesFiltered]);
 
   // County stats
   const countyStats = React.useMemo(() => {
@@ -303,8 +332,8 @@ const MapPage = ({ t, lang, data, go }) => {
 
         <div className="map-canvas">
           <MiniMap
-            personas={personasFiltered.filter(p => p.lat && p.lng)}
-            entities={entitiesFiltered.filter(e => e.lat && e.lng)}
+            personas={mapPersonas}
+            entities={mapEntities}
             go={go}
             countyColorMap={countyColorMap}
             selected={focusItem}
