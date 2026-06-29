@@ -969,6 +969,23 @@ const App = () => {
         const json = await loadDecrypted(key);
         if (json) {
           const loaded = processLoadedData(JSON.parse(json));
+          // ── Self-heal stale pre-rebuild data ──
+          // A device that never ran the clean-slate rebuild can keep the OLD contacts
+          // (ids p#### / e####) ALONGSIDE the new clean ones (pc#### / ec####), which
+          // inflates the count (~11k seen in Brazil). The clean database uses ONLY
+          // pc####/ec####, so any p####/e#### record is leftover stale data — drop it
+          // once. Preserves local notes/tasks (unlike the full clean-slate reload).
+          if (!localStorage.getItem('promeza_purgeold_v154')) {
+            const hasStale = (loaded.personas || []).some(p => /^p\d+$/.test(p.id)) || (loaded.entities || []).some(e => /^e\d+$/.test(e.id));
+            if (hasStale) {
+              const bp = loaded.personas.length, be = loaded.entities.length;
+              loaded.personas = loaded.personas.filter(p => !/^p\d+$/.test(p.id));
+              loaded.entities = loaded.entities.filter(e => !/^e\d+$/.test(e.id));
+              console.log('PROMEZA: purged stale pre-rebuild records: -' + (bp - loaded.personas.length) + ' personas, -' + (be - loaded.entities.length) + ' entities');
+              try { const bytes = await window.CryptoUtils.encryptBytes(JSON.stringify(loaded), key); await idbSet('promeza_data_bytes', bytes); } catch (e) {}
+            }
+            localStorage.setItem('promeza_purgeold_v154', '1');
+          }
           // Validate: must have real data AND correct English field names (first/last).
           // Old Airtable data used Spanish names (nombre/apellido) — unusable for search.
           const sample = (loaded.personas || [])[0];
