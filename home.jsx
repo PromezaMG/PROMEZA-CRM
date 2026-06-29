@@ -300,11 +300,11 @@ const Home = ({ t, lang, data, go }) => {
           </div>
           <div style={{ padding: "8px 12px 12px" }}>
             {[
-              { label: lang === "en" ? "Active" : "Activos", sub: lang === "en" ? "With active follow-up" : "Con seguimiento vigente", value: activePersonas, color: "var(--good)", icon: "users" },
-              { label: lang === "en" ? "Disabled" : "Inhabilitados", sub: lang === "en" ? "Archived or inactive" : "Archivados o inactivos", value: inhabilitados, color: "var(--ink-4)", icon: "shield" },
-              { label: lang === "en" ? "Under review" : "Por revisar", sub: lang === "en" ? "Information with issues" : "Información con problemas", value: porRevisar, color: porRevisar > 0 ? "#f59e0b" : "var(--good)", icon: "alert" },
+              { label: lang === "en" ? "Active" : "Activos", sub: lang === "en" ? "With active follow-up" : "Con seguimiento vigente", value: activePersonas, color: "var(--good)", icon: "users", preset: "activos" },
+              { label: lang === "en" ? "Disabled" : "Inhabilitados", sub: lang === "en" ? "Archived or inactive" : "Archivados o inactivos", value: inhabilitados, color: "var(--ink-4)", icon: "shield", preset: "inhabilitados" },
+              { label: lang === "en" ? "Under review" : "Por revisar", sub: lang === "en" ? "Information with issues" : "Información con problemas", value: porRevisar, color: porRevisar > 0 ? "#f59e0b" : "var(--good)", icon: "alert", preset: "revisar" },
             ].map((row, i) => (
-              <div key={row.label} className="status-row-card" style={{ animationDelay: (i * 60) + "ms" }} onClick={() => go({ name: "personas" })}>
+              <div key={row.label} className="status-row-card" style={{ animationDelay: (i * 60) + "ms" }} onClick={() => go({ name: "personas", preset: row.preset })}>
                 <div style={{ width: 36, height: 36, borderRadius: 9, background: row.color + "15", display: "grid", placeItems: "center", flexShrink: 0 }}>
                   <Icon name={row.icon} size={16} />
                 </div>
