@@ -75,10 +75,13 @@ const Home = ({ t, lang, data, go }) => {
       return { p, diff, dt };
     }).sort((a, b) => a.diff - b.diff).slice(0, 5);
 
-    return { topEntityTypes, maxEntityType, topEntitiesByCount, maxEntityCount, topCities, maxCity, stageActivo, stageRevisar, inhabilitados: inhabilitados, activePersonas, porRevisar, recentPersonas, recentlyAdded, bdays };
+    const entInactivas = entities.filter(e => (e.status || "activo") === "inactivo").length;
+    const entActivas = entities.length - entInactivas;
+
+    return { topEntityTypes, maxEntityType, topEntitiesByCount, maxEntityCount, topCities, maxCity, stageActivo, stageRevisar, inhabilitados: inhabilitados, activePersonas, porRevisar, entActivas, entInactivas, recentPersonas, recentlyAdded, bdays };
   }, [personas, entities]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const { topEntityTypes, maxEntityType, topEntitiesByCount, maxEntityCount, topCities, maxCity, stageActivo, stageRevisar, inhabilitados, activePersonas, porRevisar, recentPersonas, recentlyAdded, bdays } = personaStats;
+  const { topEntityTypes, maxEntityType, topEntitiesByCount, maxEntityCount, topCities, maxCity, stageActivo, stageRevisar, inhabilitados, activePersonas, porRevisar, entActivas, entInactivas, recentPersonas, recentlyAdded, bdays } = personaStats;
   const stageInhabilitado = inhabilitados;
 
   const ENTITY_LABELS = { iglesia: "Iglesia", ong: "ONG", escuela: "Escuela", universidad: "Universidad", sinagoga: "Sinagoga", estudio: "Estudio", oficina: "Oficina", ministerio: "Ministerio" };
@@ -260,6 +263,14 @@ const Home = ({ t, lang, data, go }) => {
               </div>
             ))}
             {topEntityTypes.length === 0 && <div style={{ fontSize: 12, color: "var(--ink-4)", textAlign: "center", padding: "24px 0" }}>{lang === "en" ? "No entities" : "Sin entidades"}</div>}
+            <div onClick={() => go({ name: "entities", preset: "inactivas" })}
+              title={lang === "en" ? "Show inactive entities" : "Ver entidades inactivas"}
+              style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 8, paddingTop: 10, borderTop: "1px solid var(--line)", cursor: "pointer", fontSize: 12 }}>
+              <span style={{ width: 9, height: 9, borderRadius: 3, background: "#94a3b8", flexShrink: 0 }} />
+              <span style={{ flex: 1, color: "var(--ink-3)", fontWeight: 600 }}>{lang === "en" ? "No longer broadcasting / inactive" : "Ya no transmiten / inactivas"}</span>
+              <span style={{ fontSize: 14, fontWeight: 800, color: entInactivas > 0 ? "#64748b" : "var(--good)" }}>{entInactivas}</span>
+              <span style={{ color: "var(--ink-4)" }}>›</span>
+            </div>
           </div>
         </div>
 

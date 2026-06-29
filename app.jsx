@@ -2003,7 +2003,7 @@ const App = () => {
     case "home": view = <ViewErrorBoundary key="home"><Home t={t} lang={lang} data={data} go={go} /></ViewErrorBoundary>; break;
     case "personas": view = <PersonasList t={t} lang={lang} data={data} go={go} route={route} onImportPersonas={handleImportPersonas} globalQ={query} onBulkDelete={handleBulkDeletePersonas} onBulkUpdateStatus={handleBulkUpdatePersonas} onBulkAddTag={handleBulkAddTagPersonas} onBulkAddTask={handleBulkAddTask} segments={data.segments || []} onAddSegment={addSegment} onDeleteSegment={deleteSegment} users={window.PROMEZA_USERS || []} currentUser={userEmail} />; break;
     case "pipeline": view = <PipelineView t={t} lang={lang} data={data} go={go} onUpdatePerson={handleUpdatePerson} />; break;
-    case "entities": view = <EntitiesList t={t} lang={lang} data={data} go={go} onImportEntities={handleImportEntities} globalQ={query} />; break;
+    case "entities": view = <EntitiesList t={t} lang={lang} data={data} go={go} route={route} onImportEntities={handleImportEntities} globalQ={query} />; break;
     case "person": view = <ViewErrorBoundary key={"person-" + route.id}><PersonProfile id={route.id} t={t} lang={lang} data={data} go={go} addComment={addComment}
       onUpdatePerson={handleUpdatePerson} onEditPerson={handleEditPerson} onDeletePerson={handleDeletePerson}
       interactions={data.interactions[route.id] || []}

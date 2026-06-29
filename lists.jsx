@@ -893,7 +893,7 @@ const PersonasList = ({ t, lang, data, go, route, onImportPersonas, globalQ = ""
 
 const _entitiesFilters = {};
 
-const EntitiesList = ({ t, lang, data, go, onImportEntities, globalQ = "" }) => {
+const EntitiesList = ({ t, lang, data, go, route, onImportEntities, globalQ = "" }) => {
   const EF = _entitiesFilters;
   const [type, setType] = React.useState(EF.type !== undefined ? EF.type : "all");
   const [country, setCountry] = React.useState(EF.country !== undefined ? EF.country : "all");
@@ -915,6 +915,17 @@ const EntitiesList = ({ t, lang, data, go, onImportEntities, globalQ = "" }) => 
     Object.assign(_entitiesFilters, { type, country, status, city, stateFilter, countyFilter, zip, tagFilter, emailFilter, phoneFilter, dayFilter, q, showFilters, page });
   }, [type, country, status, city, stateFilter, countyFilter, zip, tagFilter, emailFilter, phoneFilter, dayFilter, q, showFilters, page]);
   React.useEffect(() => { setPage(0); }, [type, country, status, city, stateFilter, countyFilter, zip, tagFilter, emailFilter, phoneFilter, dayFilter, q]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Apply a preset from the Home dashboard (e.g. "inactivas" → entities that no
+  // longer broadcast). Resets filters then applies the requested status.
+  React.useEffect(() => {
+    const preset = route && route.preset;
+    if (!preset) return;
+    setType("all"); setCountry("all"); setStatus("all"); setCity(""); setStateFilter(""); setCountyFilter("");
+    setZip(""); setTagFilter(""); setEmailFilter(""); setPhoneFilter(""); setDayFilter("all"); setQ(""); setPage(0);
+    if (preset === "inactivas") setStatus("inactivo");
+    else if (preset === "activas") setStatus("activo");
+  }, [route && route.preset]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const types = ["all", ...Object.keys(t.types)];
   const countries = ["all", ...new Set(data.entities.map(e => e.country).filter(Boolean))];
