@@ -463,7 +463,14 @@ const Topbar = ({ t, lang, setLang, query, setQuery, onSearchSubmit, onSettings,
           onChange={(e) => { setQuery(e.target.value); setShowSearch(true); }}
           onFocus={() => { if (query.trim().length >= 2) setShowSearch(true); }}
           onKeyDown={(e) => {
-            if (e.key === "Enter") { onSearchSubmit(); closeSearch(); }
+            if (e.key === "Enter") {
+              // Smart destination: if the query matches more entities than contacts
+              // (e.g. searching a church name), open the Entidades list instead of
+              // Contactos. Keeps the query so the list stays filtered.
+              const r = searchResults;
+              if (r && r.entitiesTotal > 0 && r.entitiesTotal >= r.personasTotal) { viewAll({ name: "entities" }); }
+              else { onSearchSubmit(); closeSearch(); }
+            }
             if (e.key === "Escape") { setQuery(""); closeSearch(); }
           }}
         />
