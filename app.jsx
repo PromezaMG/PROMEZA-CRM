@@ -76,8 +76,13 @@ const atSignature = (d) => {
   if (!d) return "";
   let h = 0;
   const acc = (s) => { s = s == null ? "" : ("" + s); for (let i = 0; i < s.length; i++) h = (Math.imul(31, h) + s.charCodeAt(i)) | 0; };
-  (d.personas || []).forEach(p => { acc(p.id); acc(p.first); acc(p.last); acc(p.phone); acc(p.email); acc(p.titulo); acc((p.roles || []).join(",")); });
-  (d.entities || []).forEach(e => { acc(e.id); acc(e.name); acc(e.phone); acc(e.email); });
+  // Include the ARRAY contact fields (phones[]/emails[]) and other commonly-edited
+  // fields — otherwise adding a phone (which lands in phones[], not the legacy single
+  // p.phone) leaves the signature unchanged, so the 2-min sync thinks nothing changed
+  // and never propagates the edit to other devices.
+  const arr = (a, k) => (a || []).map(x => x && x[k]).join(",");
+  (d.personas || []).forEach(p => { acc(p.id); acc(p.first); acc(p.last); acc(p.phone); acc(arr(p.phones, "value")); acc(p.email); acc(arr(p.emails, "value")); acc(p.titulo); acc((p.roles || []).join(",")); acc(p.address); acc(p.city); acc(p.country); acc(p.gender); acc((p.tags || []).join(",")); acc((p.entities || []).map(e => e && e.id).join(",")); acc(p.birthday); acc(p.status); });
+  (d.entities || []).forEach(e => { acc(e.id); acc(e.name); acc(e.phone); acc(arr(e.phones, "value")); acc(e.email); acc(e.address); acc(e.city); acc(e.country); acc((e.tags || []).join(",")); acc(e.status); });
   return (d.personas ? d.personas.length : 0) + ":" + (d.entities ? d.entities.length : 0) + ":" + h;
 };
 
