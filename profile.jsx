@@ -471,6 +471,7 @@ const PersonProfile = ({ id, t, lang, data, go, goBack, addComment, onUpdatePers
                   <dt>{lang === "es" ? "Fuente" : "Source"}</dt>
                   <dd>{p.source ? ((window.CONTACT_SOURCES || []).find(s => s.id === p.source)?.label || p.source) : <span className="muted">—</span>}</dd>
                   <dt>{t.common.language}</dt><dd>{p.language === "en" ? "English" : "Español"}</dd>
+                  <dt>{lang === "es" ? "Sexo" : "Gender"}</dt><dd>{p.gender === "F" ? (lang === "es" ? "Mujer" : "Female") : p.gender === "M" ? (lang === "es" ? "Hombre" : "Male") : <span className="muted">—</span>}</dd>
                   <dt>{t.common.tags}</dt><dd>{p.tags && p.tags.length > 0 ? (
                     <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
                       {p.tags.map(tg => <span key={tg} className="tag-chip">{tg}</span>)}

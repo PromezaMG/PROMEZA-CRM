@@ -1,8 +1,8 @@
-// PROMEZA CRM — App root with auth + settings modal
+// PROMEZA CRM â€” App root with auth + settings modal
 
 const { useState, useMemo, useEffect, useRef } = React;
 
-// ─── Large storage (IndexedDB) ───
+// â”€â”€â”€ Large storage (IndexedDB) â”€â”€â”€
 // The encrypted dataset outgrew localStorage's ~5MB limit (QuotaExceededError).
 // IndexedDB allows far more, so the big blob lives here instead.
 const idbReady = () => new Promise((resolve, reject) => {
@@ -37,7 +37,7 @@ const idbSet = async (key, val) => {
 // Read the encrypted blob from IndexedDB, migrating any old localStorage copy once.
 const DATA_BYTES_KEY = "promeza_data_bytes";
 // Load and decrypt the dataset. Stored as raw encrypted bytes in IndexedDB (no
-// base64 — that char-by-char conversion over megabytes was the main freeze).
+// base64 â€” that char-by-char conversion over megabytes was the main freeze).
 // Migrates any older base64 copy (IDB or localStorage) once, then drops it.
 const loadDecrypted = async (key) => {
   try {
@@ -71,7 +71,7 @@ const clearStoredData = async () => {
 
 // Cheap content signature of the Airtable data. The periodic sync uses it to skip
 // the expensive merge + full re-render + re-encrypt when nothing actually changed
-// (the common case) — that recurring work was freezing the UI mid-use.
+// (the common case) â€” that recurring work was freezing the UI mid-use.
 const atSignature = (d) => {
   if (!d) return "";
   let h = 0;
@@ -93,7 +93,7 @@ const ENTITY_PHONE_FIX = {
   "5625078614": { name: "Iglesia Mi Fortaleza / Plymouth Church", email: "edgardomorenov@gmail.com", zip: "90601" },
 };
 
-// ─── Settings Modal ───
+// â”€â”€â”€ Settings Modal â”€â”€â”€
 
 const SettingsModal = ({ t, lang, data, cryptoKey, onClose, onLogout, onRestoreData, onForcePull }) => {
   const [ejsCfg, setEjsCfg] = useState(() => {
@@ -148,10 +148,10 @@ const SettingsModal = ({ t, lang, data, cryptoKey, onClose, onLogout, onRestoreD
       try {
         const parsed = JSON.parse(e.target.result);
         if (!parsed.personas || !parsed.entities) {
-          setBackupMsg({ type: "err", text: lang === "es" ? "Archivo inválido: faltan personas o entidades" : "Invalid file: missing personas or entities" });
+          setBackupMsg({ type: "err", text: lang === "es" ? "Archivo invÃ¡lido: faltan personas o entidades" : "Invalid file: missing personas or entities" });
           return;
         }
-        if (window.confirm(lang === "es" ? "¿Restaurar estos datos? Se reemplazarán TODOS los datos actuales." : "Restore this data? ALL current data will be replaced.")) {
+        if (window.confirm(lang === "es" ? "Â¿Restaurar estos datos? Se reemplazarÃ¡n TODOS los datos actuales." : "Restore this data? ALL current data will be replaced.")) {
           onRestoreData({
             personas: parsed.personas || [],
             entities: parsed.entities || [],
@@ -166,7 +166,7 @@ const SettingsModal = ({ t, lang, data, cryptoKey, onClose, onLogout, onRestoreD
             goals: parsed.goals || [],
             segments: parsed.segments || [],
           });
-          setBackupMsg({ type: "ok", text: lang === "es" ? `✓ Datos restaurados: ${parsed.personas.length} personas, ${parsed.entities.length} entidades` : `✓ Data restored: ${parsed.personas.length} people, ${parsed.entities.length} entities` });
+          setBackupMsg({ type: "ok", text: lang === "es" ? `âœ“ Datos restaurados: ${parsed.personas.length} personas, ${parsed.entities.length} entidades` : `âœ“ Data restored: ${parsed.personas.length} people, ${parsed.entities.length} entities` });
         }
       } catch {
         setBackupMsg({ type: "err", text: lang === "es" ? "Error al leer el archivo" : "Error reading file" });
@@ -187,13 +187,13 @@ const SettingsModal = ({ t, lang, data, cryptoKey, onClose, onLogout, onRestoreD
   const doChangePassword = async () => {
     setSecMsg(null);
     if (!curPass || !newPass || !confirmPass) { setSecMsg({ type: "err", text: "Completa todos los campos." }); return; }
-    if (newPass !== confirmPass) { setSecMsg({ type: "err", text: "Las contraseñas nuevas no coinciden." }); return; }
-    if (newPass.length < 8) { setSecMsg({ type: "err", text: "Mínimo 8 caracteres." }); return; }
+    if (newPass !== confirmPass) { setSecMsg({ type: "err", text: "Las contraseÃ±as nuevas no coinciden." }); return; }
+    if (newPass.length < 8) { setSecMsg({ type: "err", text: "MÃ­nimo 8 caracteres." }); return; }
     setSecLoading(true);
     try {
       const result = await window.CryptoUtils.changePassword(curPass, newPass, data);
       if (result.error) { setSecMsg({ type: "err", text: result.error }); }
-      else { setSecMsg({ type: "ok", text: "Contraseña cambiada correctamente." }); setCurPass(""); setNewPass(""); setConfirmPass(""); }
+      else { setSecMsg({ type: "ok", text: "ContraseÃ±a cambiada correctamente." }); setCurPass(""); setNewPass(""); setConfirmPass(""); }
     } catch (err) {
       setSecMsg({ type: "err", text: "Error: " + err.message });
     }
@@ -217,12 +217,12 @@ const SettingsModal = ({ t, lang, data, cryptoKey, onClose, onLogout, onRestoreD
     try {
       const result = await window.AIRTABLE.syncAll(data);
       setSyncStatus(
-        "✓ " + (st.syncDone || "Sync completed") + " — " +
-        result.personas.created + " personas creadas, " + result.personas.updated + " actualizadas · " +
+        "âœ“ " + (st.syncDone || "Sync completed") + " â€” " +
+        result.personas.created + " personas creadas, " + result.personas.updated + " actualizadas Â· " +
         result.entities.created + " entidades creadas, " + result.entities.updated + " actualizadas"
       );
     } catch (err) {
-      setSyncStatus("⚠ " + (st.syncError || "Error:") + " " + err.message);
+      setSyncStatus("âš  " + (st.syncError || "Error:") + " " + err.message);
     }
     setSyncing(false);
   };
@@ -248,7 +248,7 @@ const SettingsModal = ({ t, lang, data, cryptoKey, onClose, onLogout, onRestoreD
     <div className="modal-veil" onClick={onClose}>
       <div className="modal" style={{ width: "min(640px,100%)" }} onClick={e => e.stopPropagation()}>
         <div className="modal-head">
-          <div style={{ fontWeight: 600, fontSize: 16 }}>{st.title || "Configuración"}</div>
+          <div style={{ fontWeight: 600, fontSize: 16 }}>{st.title || "ConfiguraciÃ³n"}</div>
           <button className="icon-btn" onClick={onClose}><Icon name="x" /></button>
         </div>
 
@@ -269,7 +269,7 @@ const SettingsModal = ({ t, lang, data, cryptoKey, onClose, onLogout, onRestoreD
 
         <div className="modal-body">
 
-          {/* ─── Airtable ─── */}
+          {/* â”€â”€â”€ Airtable â”€â”€â”€ */}
           {tab === "airtable" && (
             <div>
               <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 8, padding: "12px 16px", marginBottom: 16, display: "flex", alignItems: "center", gap: 10 }}>
@@ -278,42 +278,42 @@ const SettingsModal = ({ t, lang, data, cryptoKey, onClose, onLogout, onRestoreD
                 </div>
                 <div>
                   <div style={{ fontWeight: 700, fontSize: 13, color: "#166534" }}>{lang === "es" ? "Conectado a la base compartida" : "Connected to shared base"}</div>
-                  <div style={{ fontSize: 12, color: "#166534", opacity: 0.8 }}>PROMEZA CRM · app0MYHVyhTYFsDqV</div>
+                  <div style={{ fontSize: 12, color: "#166534", opacity: 0.8 }}>PROMEZA CRM Â· app0MYHVyhTYFsDqV</div>
                 </div>
               </div>
               <div style={{ background: "var(--bg-soft)", borderRadius: 8, padding: "10px 14px", marginBottom: 14, fontSize: 12, color: "var(--ink-3)" }}>
-                {st.lastSync || "Última sync:"} <strong>{lastSyncFmt}</strong>
+                {st.lastSync || "Ãšltima sync:"} <strong>{lastSyncFmt}</strong>
               </div>
               {syncStatus && (
                 <div style={{
                   marginBottom: 12, padding: "10px 14px", borderRadius: 8, fontSize: 12.5,
-                  background: syncStatus.startsWith("✓") ? "#f0fdf4" : "#fff5f5",
-                  color: syncStatus.startsWith("✓") ? "#166534" : "#991b1b",
-                  border: "1px solid " + (syncStatus.startsWith("✓") ? "#bbf7d0" : "#fecaca"),
+                  background: syncStatus.startsWith("âœ“") ? "#f0fdf4" : "#fff5f5",
+                  color: syncStatus.startsWith("âœ“") ? "#166534" : "#991b1b",
+                  border: "1px solid " + (syncStatus.startsWith("âœ“") ? "#bbf7d0" : "#fecaca"),
                 }}>
                   {syncStatus}
                 </div>
               )}
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 <button className="btn btn-primary" style={{ width: "100%" }} disabled={syncing} onClick={doSync}>
-                  <Icon name="sync" /> {syncing ? "Enviando…" : "⬆ Enviar mis datos a Airtable"}
+                  <Icon name="sync" /> {syncing ? "Enviandoâ€¦" : "â¬† Enviar mis datos a Airtable"}
                 </button>
                 <button className="btn" style={{ width: "100%", fontWeight: 600 }} disabled={syncing} onClick={() => { if (onForcePull) { onClose(); onForcePull(); } }}>
-                  ⬇ Recibir cambios de Airtable
+                  â¬‡ Recibir cambios de Airtable
                 </button>
                 <div style={{ fontSize: 11, color: "var(--ink-4)", lineHeight: 1.5, padding: "4px 2px" }}>
-                  <strong>⬆ Enviar</strong> = sube TUS datos a Airtable (hazlo desde la MacBook).<br/>
-                  <strong>⬇ Recibir</strong> = descarga lo que hay en Airtable (hazlo desde Windows).
+                  <strong>â¬† Enviar</strong> = sube TUS datos a Airtable (hazlo desde la MacBook).<br/>
+                  <strong>â¬‡ Recibir</strong> = descarga lo que hay en Airtable (hazlo desde Windows).
                 </div>
               </div>
             </div>
           )}
 
-          {/* ─── EmailJS ─── */}
+          {/* â”€â”€â”€ EmailJS â”€â”€â”€ */}
           {tab === "emailjs" && (
             <div>
               <div style={{ background: "var(--accent-50)", border: "1px solid var(--accent-100)", borderRadius: 8, padding: "10px 14px", marginBottom: 16, fontSize: 12.5, color: "var(--ink-2)" }}>
-                <strong>{lang === "es" ? "EmailJS se usa para recuperar contraseña." : "EmailJS is used for password recovery."}</strong>
+                <strong>{lang === "es" ? "EmailJS se usa para recuperar contraseÃ±a." : "EmailJS is used for password recovery."}</strong>
                 {" "}{lang === "es" ? "Crea una cuenta gratis en" : "Create a free account at"}{" "}
                 <a href="https://www.emailjs.com/" target="_blank" rel="noopener">emailjs.com</a>
                 {" "}{lang === "es" ? "y una plantilla con la variable" : "and a template with the variable"}{" "}
@@ -325,22 +325,22 @@ const SettingsModal = ({ t, lang, data, cryptoKey, onClose, onLogout, onRestoreD
             </div>
           )}
 
-          {/* ─── Security ─── */}
+          {/* â”€â”€â”€ Security â”€â”€â”€ */}
           {tab === "security" && (
             <div>
               {/* Info bar */}
               <div style={{ background: "var(--bg-soft)", borderRadius: 10, padding: "12px 16px", marginBottom: 18, display: "flex", alignItems: "center", gap: 10 }}>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent-700)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
                 <div>
-                  <div style={{ fontSize: 13, fontWeight: 600 }}>Microsoft Entra ID · AES-256</div>
-                  <div style={{ fontSize: 12, color: "var(--ink-3)" }}>Auto-cierre: 1 hora de inactividad · Solo @promeza.com</div>
+                  <div style={{ fontSize: 13, fontWeight: 600 }}>Microsoft Entra ID Â· AES-256</div>
+                  <div style={{ fontSize: 12, color: "var(--ink-3)" }}>Auto-cierre: 1 hora de inactividad Â· Solo @promeza.com</div>
                 </div>
               </div>
 
               {/* Authorized emails */}
               <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 6 }}>Correos autorizados</div>
               <div style={{ fontSize: 12, color: "var(--ink-3)", marginBottom: 8 }}>
-                Deja vacío para permitir cualquier cuenta @promeza.com. Si escribes correos específicos, solo ellos podrán entrar.
+                Deja vacÃ­o para permitir cualquier cuenta @promeza.com. Si escribes correos especÃ­ficos, solo ellos podrÃ¡n entrar.
               </div>
               <div className="field" style={{ marginBottom: 4 }}>
                 <textarea
@@ -351,7 +351,7 @@ const SettingsModal = ({ t, lang, data, cryptoKey, onClose, onLogout, onRestoreD
                   style={{ width: "100%", fontFamily: "var(--mono, monospace)", fontSize: 12, resize: "vertical" }}
                 />
               </div>
-              <div style={{ fontSize: 11, color: "var(--ink-4)", marginBottom: 18 }}>Un correo por línea o separados por coma. Se guarda al presionar "Guardar configuración".</div>
+              <div style={{ fontSize: 11, color: "var(--ink-4)", marginBottom: 18 }}>Un correo por lÃ­nea o separados por coma. Se guarda al presionar "Guardar configuraciÃ³n".</div>
 
               {/* Access log */}
               <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 8, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
@@ -361,13 +361,13 @@ const SettingsModal = ({ t, lang, data, cryptoKey, onClose, onLogout, onRestoreD
                 </button>
               </div>
               {accessLog.length === 0 ? (
-                <div style={{ fontSize: 13, color: "var(--ink-3)", textAlign: "center", padding: "20px 0" }}>Sin registros aún</div>
+                <div style={{ fontSize: 13, color: "var(--ink-3)", textAlign: "center", padding: "20px 0" }}>Sin registros aÃºn</div>
               ) : (
                 <div style={{ maxHeight: 260, overflowY: "auto", border: "1px solid var(--line)", borderRadius: 8 }}>
                   <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11 }}>
                     <thead>
                       <tr style={{ background: "var(--bg-soft)", position: "sticky", top: 0 }}>
-                        {["Fecha", "Usuario", "Acción", "Dispositivo", "Localidad"].map(h => (
+                        {["Fecha", "Usuario", "AcciÃ³n", "Dispositivo", "Localidad"].map(h => (
                           <th key={h} style={{ padding: "6px 10px", textAlign: "left", fontWeight: 600, color: "var(--ink-2)", borderBottom: "1px solid var(--line)", whiteSpace: "nowrap" }}>{h}</th>
                         ))}
                       </tr>
@@ -389,15 +389,15 @@ const SettingsModal = ({ t, lang, data, cryptoKey, onClose, onLogout, onRestoreD
 
               <div style={{ marginTop: 18, borderTop: "1px solid var(--line)", paddingTop: 14 }}>
                 <button className="btn" style={{ color: "var(--bad)", borderColor: "var(--bad)" }}
-                  onClick={() => { if (window.confirm("¿Cerrar esta sesión?")) { clearSession(); sessionStorage.removeItem(window.CryptoUtils?.SESSION_CRYPTO_KEY || "promeza_sk"); onLogout(); } }}>
-                  <Icon name="log-out" /> Cerrar esta sesión
+                  onClick={() => { if (window.confirm("Â¿Cerrar esta sesiÃ³n?")) { clearSession(); sessionStorage.removeItem(window.CryptoUtils?.SESSION_CRYPTO_KEY || "promeza_sk"); onLogout(); } }}>
+                  <Icon name="log-out" /> Cerrar esta sesiÃ³n
                 </button>
               </div>
             </div>
           )}
 
 
-          {/* ─── Account ─── */}
+          {/* â”€â”€â”€ Account â”€â”€â”€ */}
           {tab === "account" && (
             <div>
               <div style={{ background: "var(--bg-soft)", borderRadius: 10, padding: "14px 16px", marginBottom: 16 }}>
@@ -409,25 +409,25 @@ const SettingsModal = ({ t, lang, data, cryptoKey, onClose, onLogout, onRestoreD
               </div>
               <button className="btn" style={{ color: "var(--bad)", borderColor: "var(--bad)" }}
                 onClick={() => {
-                  if (confirm(st.logoutConfirm || "¿Cerrar sesión?")) {
+                  if (confirm(st.logoutConfirm || "Â¿Cerrar sesiÃ³n?")) {
                     clearSession();
                     onLogout();
                   }
                 }}>
-                <Icon name="log-out" /> {st.logout || "Cerrar sesión"}
+                <Icon name="log-out" /> {st.logout || "Cerrar sesiÃ³n"}
               </button>
             </div>
           )}
 
-          {/* ─── Backup ─── */}
+          {/* â”€â”€â”€ Backup â”€â”€â”€ */}
           {tab === "backup" && (
             <div>
               {/* Export */}
               <div style={{ marginBottom: 20 }}>
                 <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 4 }}>{lang === "es" ? "Exportar datos" : "Export data"}</div>
-                <div style={{ fontSize: 12.5, color: "var(--ink-3)", marginBottom: 10 }}>{lang === "es" ? "Descarga una copia completa de todos tus datos como archivo JSON. Guárdala en un lugar seguro." : "Download a complete copy of all your data as a JSON file. Keep it in a safe place."}</div>
+                <div style={{ fontSize: 12.5, color: "var(--ink-3)", marginBottom: 10 }}>{lang === "es" ? "Descarga una copia completa de todos tus datos como archivo JSON. GuÃ¡rdala en un lugar seguro." : "Download a complete copy of all your data as a JSON file. Keep it in a safe place."}</div>
                 <div style={{ background: "var(--bg-soft)", borderRadius: 8, padding: "10px 14px", marginBottom: 10, fontSize: 12, color: "var(--ink-3)" }}>
-                  {data.personas.length} {lang === "es" ? "personas" : "people"} · {data.entities.length} {lang === "es" ? "entidades" : "entities"} · {(data.projects || []).length} {lang === "es" ? "proyectos" : "projects"}
+                  {data.personas.length} {lang === "es" ? "personas" : "people"} Â· {data.entities.length} {lang === "es" ? "entidades" : "entities"} Â· {(data.projects || []).length} {lang === "es" ? "proyectos" : "projects"}
                 </div>
                 <button className="btn btn-primary" onClick={doExport}>
                   <Icon name="download" /> {lang === "es" ? "Descargar backup JSON" : "Download JSON backup"}
@@ -437,10 +437,10 @@ const SettingsModal = ({ t, lang, data, cryptoKey, onClose, onLogout, onRestoreD
               <div style={{ borderTop: "1px solid var(--line)", paddingTop: 20 }}>
                 <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 4 }}>{lang === "es" ? "Importar / Restaurar" : "Import / Restore"}</div>
                 <div style={{ background: "#fff5f5", border: "1px solid #fecaca", borderRadius: 8, padding: "10px 14px", marginBottom: 10, fontSize: 12, color: "#991b1b" }}>
-                  ⚠ {lang === "es" ? "Esto reemplazará TODOS los datos actuales." : "This will replace ALL current data."}
+                  âš  {lang === "es" ? "Esto reemplazarÃ¡ TODOS los datos actuales." : "This will replace ALL current data."}
                 </div>
                 <label className="btn" style={{ cursor: "pointer" }}>
-                  <Icon name="upload" /> {lang === "es" ? "Seleccionar archivo de respaldo…" : "Select backup file…"}
+                  <Icon name="upload" /> {lang === "es" ? "Seleccionar archivo de respaldoâ€¦" : "Select backup fileâ€¦"}
                   <input type="file" accept=".json" style={{ display: "none" }} onChange={e => { doImport(e.target.files[0]); e.target.value = ""; }} />
                 </label>
               </div>
@@ -457,7 +457,7 @@ const SettingsModal = ({ t, lang, data, cryptoKey, onClose, onLogout, onRestoreD
         <div className="modal-foot">
           <button className="btn" onClick={onClose}>{t.common.cancel}</button>
           <button className="btn btn-primary" onClick={saveAll}>
-            {saved ? <><Icon name="check" /> {st.saved || "Guardado"}</> : (st.save || "Guardar configuración")}
+            {saved ? <><Icon name="check" /> {st.saved || "Guardado"}</> : (st.save || "Guardar configuraciÃ³n")}
           </button>
         </div>
       </div>
@@ -465,22 +465,22 @@ const SettingsModal = ({ t, lang, data, cryptoKey, onClose, onLogout, onRestoreD
   );
 };
 
-// ─── Changelog helpers ───
+// â”€â”€â”€ Changelog helpers â”€â”€â”€
 
 const PERSON_FIELD_LABELS = {
-  first: "Nombre", last: "Apellido", email: "Email", phone: "Teléfono",
-  role: "Cargo", status: "Estado", address: "Dirección", city: "Ciudad",
-  state: "Estado/Prov.", country: "País", zip: "ZIP", website: "Sitio web",
-  birthday: "Cumpleaños", lastContact: "Último contacto", language: "Idioma",
+  first: "Nombre", last: "Apellido", email: "Email", phone: "TelÃ©fono",
+  role: "Cargo", status: "Estado", address: "DirecciÃ³n", city: "Ciudad",
+  state: "Estado/Prov.", country: "PaÃ­s", zip: "ZIP", website: "Sitio web",
+  birthday: "CumpleaÃ±os", lastContact: "Ãšltimo contacto", language: "Idioma",
   tags: "Etiquetas", entities: "Entidades",
-  stage: "Etapa", source: "Fuente", nextAction: "Próxima acción",
+  stage: "Etapa", source: "Fuente", nextAction: "PrÃ³xima acciÃ³n",
 };
 
 const ENTITY_FIELD_LABELS = {
-  name: "Nombre", type: "Tipo", denominacion: "Denominación", email: "Email", phone: "Teléfono",
-  address: "Dirección", city: "Ciudad", state: "Estado/Prov.", country: "País",
-  zip: "ZIP", website: "Sitio web", founded: "Año fundación",
-  size: "Tamaño", tags: "Etiquetas", status: "Estado",
+  name: "Nombre", type: "Tipo", denominacion: "DenominaciÃ³n", email: "Email", phone: "TelÃ©fono",
+  address: "DirecciÃ³n", city: "Ciudad", state: "Estado/Prov.", country: "PaÃ­s",
+  zip: "ZIP", website: "Sitio web", founded: "AÃ±o fundaciÃ³n",
+  size: "TamaÃ±o", tags: "Etiquetas", status: "Estado",
 };
 
 const computeChanges = (oldObj, updates, fieldLabels) => {
@@ -500,7 +500,7 @@ const computeChanges = (oldObj, updates, fieldLabels) => {
   return changes;
 };
 
-// ─── Reminders Modal ───
+// â”€â”€â”€ Reminders Modal â”€â”€â”€
 
 const RemindersModal = ({ lang, data, onClose, go }) => {
   const today = new Date().toISOString().slice(0, 10);
@@ -529,7 +529,7 @@ const RemindersModal = ({ lang, data, onClose, go }) => {
           {birthdaysToday.length > 0 && (
             <div>
               <div style={{ fontWeight: 700, fontSize: 13, color: "#f59e0b", marginBottom: 8, display: "flex", alignItems: "center", gap: 6 }}>
-                🎂 {lang === "es" ? "Cumpleaños hoy" : "Birthdays today"}
+                ðŸŽ‚ {lang === "es" ? "CumpleaÃ±os hoy" : "Birthdays today"}
               </div>
               {birthdaysToday.map(p => (
                 <div key={p.id} className="hover-row" onClick={() => { go({ name: "person", id: p.id }); onClose(); }}
@@ -541,7 +541,7 @@ const RemindersModal = ({ lang, data, onClose, go }) => {
                     <div style={{ fontWeight: 600 }}>{p.first} {p.last}</div>
                     <div style={{ fontSize: 11.5, color: "var(--ink-3)" }}>{p.role}</div>
                   </div>
-                  <span style={{ fontSize: 18 }}>🎂</span>
+                  <span style={{ fontSize: 18 }}>ðŸŽ‚</span>
                 </div>
               ))}
             </div>
@@ -549,7 +549,7 @@ const RemindersModal = ({ lang, data, onClose, go }) => {
           {overdueTasks.length > 0 && (
             <div>
               <div style={{ fontWeight: 700, fontSize: 13, color: "#ef4444", marginBottom: 8, display: "flex", alignItems: "center", gap: 6 }}>
-                ⚠ {overdueTasks.length} {lang === "es" ? "tarea" + (overdueTasks.length !== 1 ? "s vencidas" : " vencida") : "overdue task" + (overdueTasks.length !== 1 ? "s" : "")}
+                âš  {overdueTasks.length} {lang === "es" ? "tarea" + (overdueTasks.length !== 1 ? "s vencidas" : " vencida") : "overdue task" + (overdueTasks.length !== 1 ? "s" : "")}
               </div>
               {overdueTasks.slice(0, 5).map(tk => (
                 <div key={tk.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 10px", background: "#fff5f5", borderRadius: 7, marginBottom: 4, border: "1px solid #fecaca" }}>
@@ -559,7 +559,7 @@ const RemindersModal = ({ lang, data, onClose, go }) => {
                   <span style={{ fontSize: 11, fontFamily: "var(--font-mono)", color: "#ef4444", fontWeight: 700 }}>{tk.due}</span>
                 </div>
               ))}
-              {overdueTasks.length > 5 && <div style={{ fontSize: 11.5, color: "var(--ink-3)", textAlign: "center", marginTop: 4 }}>+{overdueTasks.length - 5} {lang === "es" ? "más" : "more"}</div>}
+              {overdueTasks.length > 5 && <div style={{ fontSize: 11.5, color: "var(--ink-3)", textAlign: "center", marginTop: 4 }}>+{overdueTasks.length - 5} {lang === "es" ? "mÃ¡s" : "more"}</div>}
             </div>
           )}
           <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", paddingTop: 4 }}>
@@ -576,7 +576,7 @@ const RemindersModal = ({ lang, data, onClose, go }) => {
   );
 };
 
-// ─── Error Boundary — prevents a view crash from blanking the whole page ───
+// â”€â”€â”€ Error Boundary â€” prevents a view crash from blanking the whole page â”€â”€â”€
 
 class ViewErrorBoundary extends React.Component {
   constructor(props) { super(props); this.state = { error: null }; }
@@ -586,8 +586,8 @@ class ViewErrorBoundary extends React.Component {
     if (this.state.error) {
       return (
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "60vh", gap: 16, padding: 32, textAlign: "center" }}>
-          <div style={{ fontSize: 32 }}>⚠️</div>
-          <div style={{ fontSize: 16, fontWeight: 700, color: "var(--ink)" }}>Algo salió mal en esta vista</div>
+          <div style={{ fontSize: 32 }}>âš ï¸</div>
+          <div style={{ fontSize: 16, fontWeight: 700, color: "var(--ink)" }}>Algo saliÃ³ mal en esta vista</div>
           <div style={{ fontSize: 12, color: "var(--ink-4)", maxWidth: 400 }}>{String(this.state.error)}</div>
           <button onClick={() => this.setState({ error: null })}
             style={{ padding: "10px 20px", background: "var(--accent)", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer", fontWeight: 600, fontSize: 14 }}>
@@ -600,7 +600,7 @@ class ViewErrorBoundary extends React.Component {
   }
 }
 
-// ─── App Root ───
+// â”€â”€â”€ App Root â”€â”€â”€
 
 const App = () => {
   const [lang, setLang] = useState("es");
@@ -658,11 +658,11 @@ const App = () => {
   };
 
   const processLoadedData = (parsed) => {
-    // Normalize fields only — do NOT merge PROMEZA_DATA into existing data.
+    // Normalize fields only â€” do NOT merge PROMEZA_DATA into existing data.
     // PROMEZA_DATA is only used as a fallback when localStorage has no real data.
     const hasDigit = (v) => /\d/.test(String(v || ""));
 
-    // Strip float suffix: "91706.0" → "91706", "35815.0" → "35815"
+    // Strip float suffix: "91706.0" â†’ "91706", "35815.0" â†’ "35815"
     const stripFloat = (v) => String(v || "").replace(/^(\d+)\.0+$/, "$1").trim();
 
     // Clean a phone string: strip float suffix, reject if no digits remain
@@ -757,7 +757,7 @@ const App = () => {
 
   const mergeFromAirtable = (atData, prev, prevLastLoad = "") => {
     if (!atData || !prev) return prev;
-    // prevLastLoad = BEFORE this fetch started — edits after that moment are "newer than Airtable"
+    // prevLastLoad = BEFORE this fetch started â€” edits after that moment are "newer than Airtable"
     const atPersonaMap = new Map((atData.personas || []).map(p => [p.id, p]));
     const atEntityMap = new Map((atData.entities || []).map(e => [e.id, e]));
 
@@ -769,7 +769,7 @@ const App = () => {
     // Detect roles that got corrupted by the import (a city/county landed in the
     // role field, e.g. ["San Francisco"], ["Kern"]). A role is only "valid" if
     // every entry is a known role key. Corrupted ones are restored from data.js.
-    const VALID_ROLES = new Set(["pastor", "co-pastor", "copastor", "lider", "líder", "miembro", "tesorero", "ujier", "adorador", "musico", "músico", "comunicador", "influencer", "presidente", "vicepresidente", "secretario", "diacono", "diácono", "maestro", "director-ministerio", "voluntario", "evangelista", "misionero", "otro"]);
+    const VALID_ROLES = new Set(["pastor", "co-pastor", "copastor", "lider", "lÃ­der", "miembro", "tesorero", "ujier", "adorador", "musico", "mÃºsico", "comunicador", "influencer", "presidente", "vicepresidente", "secretario", "diacono", "diÃ¡cono", "maestro", "director-ministerio", "voluntario", "evangelista", "misionero", "otro"]);
     const rolesLookValid = (arr) => Array.isArray(arr) && arr.length > 0 && arr.every(r => VALID_ROLES.has((r || "").toLowerCase().trim()));
     // A name that looks like an imported interaction note (date + text), not a real name.
     const looksLikeNote = (s) => !s || /\d{1,2}\/\d{1,2}|Spoke |Talked |services on|Cannot Go|movie project|told (him|her)/i.test(s);
@@ -801,13 +801,13 @@ const App = () => {
       const remote = atPersonaMap.get(local.id);
       if (!remote) return local;
       if (local._localSavedAt && local._localSavedAt > prevLastLoad) {
-        // Local was edited after the last Airtable load → keep local, update _atId
+        // Local was edited after the last Airtable load â†’ keep local, update _atId
         return { ...local, _atId: remote._atId || local._atId };
       }
       // Remote is source of truth, but use data.js for identity fields on p5xxx contacts
       // (Airtable was synced from corrupted data and may have wrong names/titles)
       const canonical = (local.id && local.id.match(/^p\d+$/)) ? canonicalById.get(local.id) : null;
-      // Only trust data.js identity fields when its name looks clean — never let a
+      // Only trust data.js identity fields when its name looks clean â€” never let a
       // stale/corrupted data.js (note text in the name) override a clean Airtable value.
       const canonClean = canonical && !looksLikeNote(canonical.first);
       // Helper: pick first non-empty value
@@ -823,14 +823,14 @@ const App = () => {
         roles: (canonical && canonical.roles && !rolesLookValid(remote.roles)) ? canonical.roles : remote.roles,
         roleOther: (canonical && canonical.roles && !rolesLookValid(remote.roles)) ? (canonical.roleOther || "") : remote.roleOther,
         // Airtable's contact columns are column-shifted for p#### imports (e.g. the
-        // phone field holds a name like "Claudio"). data.js is authoritative — restore
+        // phone field holds a name like "Claudio"). data.js is authoritative â€” restore
         // phone/email/website from it so search and display use the real values.
         phone: canonClean ? (canonical.phone !== undefined ? canonical.phone : remote.phone) : remote.phone,
         phone2: canonClean ? (canonical.phone2 !== undefined ? canonical.phone2 : remote.phone2) : remote.phone2,
         email: canonClean ? (canonical.email !== undefined ? canonical.email : remote.email) : remote.email,
         email2: canonClean ? (canonical.email2 !== undefined ? canonical.email2 : remote.email2) : remote.email2,
         website: canonClean ? (canonical.website || remote.website) : remote.website,
-        // Geographic fields: Airtable often has these empty — use canonical (data.js) or local as fallback
+        // Geographic fields: Airtable often has these empty â€” use canonical (data.js) or local as fallback
         state: canonical ? geo(canonical.state, remote.state, local.state) : geo(remote.state, local.state),
         city: canonical ? geo(canonical.city, remote.city, local.city) : geo(remote.city, local.city),
         county: canonical ? geo(canonical.county, remote.county, local.county) : geo(remote.county, local.county),
@@ -851,7 +851,7 @@ const App = () => {
       const remote = atEntityMap.get(local.id);
       if (!remote) return local;
       if (local._localSavedAt && local._localSavedAt > prevLastLoad) {
-        // Local was edited after last Airtable load → keep local edits, but recover
+        // Local was edited after last Airtable load â†’ keep local edits, but recover
         // complex fields (schedule/phones/emails) from remote if local lacks them
         // (happens when Mac saved entity with old code before these fields existed)
         return {
@@ -894,20 +894,20 @@ const App = () => {
       if (atData && (atData.personas.length > 0 || atData.entities.length > 0)) {
         const sig = atSignature(atData);
         if (sig === lastSyncSigRef.current) {
-          // Airtable unchanged since last sync — skip the heavy merge/re-render/
+          // Airtable unchanged since last sync â€” skip the heavy merge/re-render/
           // re-encrypt so the UI doesn't freeze while the user is working.
           return;
         }
         lastSyncSigRef.current = sig;
         setData(prev => mergeFromAirtable(atData, prev, prevLastLoad));
-        setAtSyncMsg({ type: "ok", text: "↓ Airtable: " + atData.personas.length + " personas · " + atData.entities.length + " entidades" });
+        setAtSyncMsg({ type: "ok", text: "â†“ Airtable: " + atData.personas.length + " personas Â· " + atData.entities.length + " entidades" });
       } else if (atData) {
-        setAtSyncMsg({ type: "warn", text: "⚠ Airtable vacío — haz 'Sincronizar todo' desde la MacBook primero" });
+        setAtSyncMsg({ type: "warn", text: "âš  Airtable vacÃ­o â€” haz 'Sincronizar todo' desde la MacBook primero" });
       } else {
-        setAtSyncMsg({ type: "err", text: "✗ No se pudo leer Airtable — revisa conexión" });
+        setAtSyncMsg({ type: "err", text: "âœ— No se pudo leer Airtable â€” revisa conexiÃ³n" });
       }
     }).catch(e => {
-      setAtSyncMsg({ type: "err", text: "✗ Error Airtable: " + e.message });
+      setAtSyncMsg({ type: "err", text: "âœ— Error Airtable: " + e.message });
       console.warn("syncFromAirtable error:", e);
     }).finally(() => setAtSyncing(false));
   };
@@ -928,14 +928,14 @@ const App = () => {
             ...prev.entities.filter(e => !atData.entities.some(a => a.id === e.id)),
           ],
         }));
-        setAtSyncMsg({ type: "ok", text: "✓ Recibido: " + atData.personas.length + " personas · " + atData.entities.length + " entidades" });
+        setAtSyncMsg({ type: "ok", text: "âœ“ Recibido: " + atData.personas.length + " personas Â· " + atData.entities.length + " entidades" });
       } else if (atData) {
-        setAtSyncMsg({ type: "warn", text: "⚠ Airtable no tiene datos — primero sincroniza desde la MacBook" });
+        setAtSyncMsg({ type: "warn", text: "âš  Airtable no tiene datos â€” primero sincroniza desde la MacBook" });
       } else {
-        setAtSyncMsg({ type: "err", text: "✗ No se pudo conectar a Airtable" });
+        setAtSyncMsg({ type: "err", text: "âœ— No se pudo conectar a Airtable" });
       }
     }).catch(e => {
-      setAtSyncMsg({ type: "err", text: "✗ Error: " + e.message });
+      setAtSyncMsg({ type: "err", text: "âœ— Error: " + e.message });
     }).finally(() => setAtSyncing(false));
   };
 
@@ -945,18 +945,18 @@ const App = () => {
       if (!key) { setNeedsUnlock(true); setDataReady(true); return; }
       setCryptoKey(key);
 
-      // ── One-time CLEAN SLATE (2026-06-25 rebuild) ──
+      // â”€â”€ One-time CLEAN SLATE (2026-06-25 rebuild) â”€â”€
       // The database was rebuilt clean from the source spreadsheet. Load ONLY from
       // Airtable (ignore the old local cache AND the bundled data.js seed) so every
       // device shows the clean base. Runs once per browser.
-      if (!localStorage.getItem('promeza_cleanslate_v160')) {
+      if (!localStorage.getItem('promeza_cleanslate_v161')) {
         try {
           const at = await window.AIRTABLE.loadData();
           if (at && ((at.personas || []).length > 200)) {
             const fresh = processLoadedData({ personas: at.personas, entities: at.entities, tasks: {}, interactions: {}, projects: [], campaigns: [], calendarEvents: [], comments: {}, attachments: {}, changelog: {}, goals: [], segments: [] });
             try { delete window.PROMEZA_DATA; } catch (e) {}
             try { delete window.PROMEZA_CHURCHES; } catch (e) {}
-            localStorage.setItem('promeza_cleanslate_v160', '1');
+            localStorage.setItem('promeza_cleanslate_v161', '1');
             try { const bytes = await window.CryptoUtils.encryptBytes(JSON.stringify(fresh), key); await idbSet('promeza_data_bytes', bytes); } catch (e) {}
             setData(fresh); setDataReady(true);
             console.log('PROMEZA: clean-slate loaded ' + fresh.personas.length + ' contacts from Airtable');
@@ -969,11 +969,11 @@ const App = () => {
         const json = await loadDecrypted(key);
         if (json) {
           const loaded = processLoadedData(JSON.parse(json));
-          // ── Self-heal stale pre-rebuild data ──
+          // â”€â”€ Self-heal stale pre-rebuild data â”€â”€
           // A device that never ran the clean-slate rebuild can keep the OLD contacts
           // (ids p#### / e####) ALONGSIDE the new clean ones (pc#### / ec####), which
           // inflates the count (~11k seen in Brazil). The clean database uses ONLY
-          // pc####/ec####, so any p####/e#### record is leftover stale data — drop it
+          // pc####/ec####, so any p####/e#### record is leftover stale data â€” drop it
           // once. Preserves local notes/tasks (unlike the full clean-slate reload).
           if (!localStorage.getItem('promeza_purgeold_v154')) {
             const hasStale = (loaded.personas || []).some(p => /^p\d+$/.test(p.id)) || (loaded.entities || []).some(e => /^e\d+$/.test(e.id));
@@ -987,7 +987,7 @@ const App = () => {
             localStorage.setItem('promeza_purgeold_v154', '1');
           }
           // Validate: must have real data AND correct English field names (first/last).
-          // Old Airtable data used Spanish names (nombre/apellido) — unusable for search.
+          // Old Airtable data used Spanish names (nombre/apellido) â€” unusable for search.
           const sample = (loaded.personas || [])[0];
           const hasCorrectFormat = sample && (sample.first !== undefined || sample.last !== undefined);
           if ((loaded.personas || []).length >= 200 && hasCorrectFormat) {
@@ -1010,7 +1010,7 @@ const App = () => {
               const srcMap = new Map((window.PROMEZA_DATA.personas || []).map(p => [p.id, p]));
               let synced = 0;
               loaded.personas = loaded.personas.map(p => {
-                if (!p.id || !p.id.match(/^p\d+$/)) return p; // only system IDs (p5xxx, p6xxx…)
+                if (!p.id || !p.id.match(/^p\d+$/)) return p; // only system IDs (p5xxx, p6xxxâ€¦)
                 const src = srcMap.get(p.id);
                 if (!src) return p;
                 // Safety: at least one email must match to confirm it's the same person
@@ -1061,7 +1061,7 @@ const App = () => {
               });
               let emailSynced = 0;
               loaded.personas = loaded.personas.map(p => {
-                if (!p.id || !p.id.match(/^p\d+$/)) return p; // only p5xxx — never touch pch_xxx
+                if (!p.id || !p.id.match(/^p\d+$/)) return p; // only p5xxx â€” never touch pch_xxx
                 const storedEmails = [p.email, p.email2, ...((p.emails || []).map(e => e.value || ''))]
                   .filter(e => e && e.includes('@')).map(e => e.toLowerCase().trim());
                 let src = null;
@@ -1090,7 +1090,7 @@ const App = () => {
               if (emailSynced > 0) console.log('PROMEZA: fullsync fixed ' + emailSynced + ' contacts');
               localStorage.setItem('promeza_fullsync_v98', '1');
             }
-            // v101: full ID-based re-sync from updated data.js — fixes all CA/CO/CT
+            // v101: full ID-based re-sync from updated data.js â€” fixes all CA/CO/CT
             // field mapping errors corrected in the source data.
             if (!localStorage.getItem('promeza_datasync_v101') && window.PROMEZA_DATA) {
               const srcById101 = new Map((window.PROMEZA_DATA.personas || []).map(p => [p.id, p]));
@@ -1146,9 +1146,9 @@ const App = () => {
               console.log('PROMEZA: restored 6 import notes as interactions (v116)');
             }
             // v117: fix roles corrupted by the import (a city/county landed in the
-            // role field, e.g. "San Francisco", "Kern") — restore from data.js.
+            // role field, e.g. "San Francisco", "Kern") â€” restore from data.js.
             if (!localStorage.getItem('promeza_roles_v117') && window.PROMEZA_DATA) {
-              const VALID_R = new Set(["pastor", "co-pastor", "copastor", "lider", "líder", "miembro", "tesorero", "ujier", "adorador", "musico", "músico", "comunicador", "influencer", "presidente", "vicepresidente", "secretario", "diacono", "diácono", "maestro", "director-ministerio", "voluntario", "evangelista", "misionero", "otro"]);
+              const VALID_R = new Set(["pastor", "co-pastor", "copastor", "lider", "lÃ­der", "miembro", "tesorero", "ujier", "adorador", "musico", "mÃºsico", "comunicador", "influencer", "presidente", "vicepresidente", "secretario", "diacono", "diÃ¡cono", "maestro", "director-ministerio", "voluntario", "evangelista", "misionero", "otro"]);
               const okRoles = (arr) => Array.isArray(arr) && arr.length > 0 && arr.every(r => VALID_R.has((r || "").toLowerCase().trim()));
               const srcRoles = new Map((window.PROMEZA_DATA.personas || []).map(p => [p.id, p]));
               let rFixed = 0;
@@ -1164,7 +1164,7 @@ const App = () => {
             }
             // v119: force-restore name/title/role from the corrected data.js for ALL
             // p#### contacts. Earlier name fixes (v101) ran BEFORE data.js was
-            // corrected, so their flag was set with stale data and never re-ran —
+            // corrected, so their flag was set with stale data and never re-ran â€”
             // leaving notes stuck in the name field for some contacts. A fresh flag
             // re-applies the corrected identity fields from data.js.
             if (!localStorage.getItem('promeza_idfix_v119') && window.PROMEZA_DATA) {
@@ -1215,7 +1215,7 @@ const App = () => {
                 if (nFix > 0) console.log('PROMEZA: v121 repaired ' + nFix + ' contact names from clean data.js');
                 localStorage.setItem('promeza_idfix_v121', '1');
               } else {
-                console.log('PROMEZA: v121 skipped — data.js not confirmed clean yet, will retry next load');
+                console.log('PROMEZA: v121 skipped â€” data.js not confirmed clean yet, will retry next load');
               }
             }
             // v124: remove the auto-generated "Revisar posible duplicado" tasks that
@@ -1265,7 +1265,7 @@ const App = () => {
                 if (cFix > 0) console.log('PROMEZA: v133 restored phone/email for ' + cFix + ' contacts');
                 localStorage.setItem('promeza_contactfix_v133', '1');
               } else {
-                console.log('PROMEZA: v133 skipped — data.js not confirmed clean yet, retry next load');
+                console.log('PROMEZA: v133 skipped â€” data.js not confirmed clean yet, retry next load');
               }
             }
             // v137: fix church entities whose NAME holds the phone number (import
@@ -1292,7 +1292,7 @@ const App = () => {
               if (eFix > 0) console.log('PROMEZA: v137 fixed ' + eFix + ' entity names');
               localStorage.setItem('promeza_entfix_v137', '1');
             }
-            // v138: remove junk contacts created by the bulk import — rows where the
+            // v138: remove junk contacts created by the bulk import â€” rows where the
             // Excel had a phone or a note in the name column. Only touches import ids
             // (px*) whose name doesn't start with a letter or looks like a note; never
             // touches real contacts. Mirrors the cleanup already done in Airtable.
@@ -1334,13 +1334,13 @@ const App = () => {
             setDataReady(true);
             return;
           }
-          // Wrong format or too few contacts — clear and re-seed
+          // Wrong format or too few contacts â€” clear and re-seed
           await clearStoredData();
           console.log("PROMEZA: cleared stale/wrong-format data, re-seeding");
         }
       } catch (err) { console.error("Data load error:", err); }
 
-      // No valid data in localStorage — seed from data.js (instant, no fetch)
+      // No valid data in localStorage â€” seed from data.js (instant, no fetch)
       const seed = window.PROMEZA_DATA || {};
       const seedData = {
         personas: seed.personas || [],
@@ -1405,7 +1405,7 @@ const App = () => {
 
   // Airtable sync: one pull a few seconds after open (so the UI is interactive
   // first and teammates' latest data arrives shortly), then every 2 minutes.
-  // Deliberately NOT on every tab focus — that caused repeated full-dataset
+  // Deliberately NOT on every tab focus â€” that caused repeated full-dataset
   // merges + re-encryption that froze the page.
   useEffect(() => {
     if (!dataReady || !data) return;
@@ -1471,7 +1471,7 @@ const App = () => {
     return () => { clearTimeout(timer); events.forEach(e => window.removeEventListener(e, reset)); };
   }, [userEmail]);
 
-  // NOTE: duplicate detection is O(n²) — comparing every contact against every
+  // NOTE: duplicate detection is O(nÂ²) â€” comparing every contact against every
   // other (~10 million comparisons for 4500 contacts) froze the page for 10-30s on
   // every load. It now runs ONLY on demand, when the user opens the Duplicados page
   // (see handleScanAll / the Duplicados view). Nothing heavy happens on load.
@@ -1554,6 +1554,7 @@ const App = () => {
       website: form.website, social: form.social,
       entities: form.entities.map(le => ({ id: le.id, role: le.role, roleOther: le.roleOther })),
       tags, language: form.language,
+      gender: form.gender || "",
       status: form.stage === "inactivo" ? "inactivo" : "activo",
       stage: form.stage || "nuevo",
       source: form.source || "",
@@ -1675,7 +1676,7 @@ const App = () => {
     setEditingId(null);
   };
   const handleDeletePerson = (id) => {
-    if (!confirm(lang === "es" ? "¿Eliminar esta persona? Esta acción no se puede deshacer." : "Delete this person? This cannot be undone.")) return;
+    if (!confirm(lang === "es" ? "Â¿Eliminar esta persona? Esta acciÃ³n no se puede deshacer." : "Delete this person? This cannot be undone.")) return;
     const cfg = window.AIRTABLE.getConfig();
     if (cfg.pat && cfg.baseId) window.AIRTABLE.deleteRecord(cfg.personasTable || "PERSONAS PROMEZA CRM", id).catch(console.warn);
     setData(d => ({ ...d, personas: d.personas.filter(p => p.id !== id) }));
@@ -1690,7 +1691,7 @@ const App = () => {
     setEditingId(null);
   };
   const handleDeleteEntity = (id) => {
-    if (!confirm(lang === "es" ? "¿Eliminar esta entidad? Esta acción no se puede deshacer." : "Delete this entity? This cannot be undone.")) return;
+    if (!confirm(lang === "es" ? "Â¿Eliminar esta entidad? Esta acciÃ³n no se puede deshacer." : "Delete this entity? This cannot be undone.")) return;
     const cfg = window.AIRTABLE.getConfig();
     if (cfg.pat && cfg.baseId) window.AIRTABLE.deleteRecord(cfg.entidadesTable || "ENTIDADES PROMEZA CRM", id).catch(console.warn);
     setData(d => ({ ...d, entities: d.entities.filter(e => e.id !== id) }));
@@ -1799,7 +1800,7 @@ const App = () => {
   };
 
   const handleBulkDeletePersonas = (ids) => {
-    if (!confirm(lang === "es" ? `¿Eliminar ${ids.size} personas seleccionadas? Esta acción no se puede deshacer.` : `Delete ${ids.size} selected people? This cannot be undone.`)) return;
+    if (!confirm(lang === "es" ? `Â¿Eliminar ${ids.size} personas seleccionadas? Esta acciÃ³n no se puede deshacer.` : `Delete ${ids.size} selected people? This cannot be undone.`)) return;
     setData(d => ({ ...d, personas: d.personas.filter(p => !ids.has(p.id)) }));
   };
 
@@ -1996,7 +1997,7 @@ const App = () => {
     return (
       <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", flexDirection: "column", gap: 12, color: "var(--ink-3)", fontSize: 13 }}>
         <div style={{ width: 32, height: 32, border: "3px solid var(--accent)", borderTopColor: "transparent", borderRadius: "50%", animation: "spin .7s linear infinite" }} />
-        Cargando datos seguros…
+        Cargando datos segurosâ€¦
       </div>
     );
   }
@@ -2052,7 +2053,7 @@ const App = () => {
         query={query} setQuery={setQuery}
         onSearchSubmit={() => { if (query.trim() && route.name !== "personas" && route.name !== "entities") setRoute({ name: "personas" }); }}
         onSettings={() => setModal("settings")}
-        onLogout={() => { clearSession(); sessionStorage.removeItem(window.CryptoUtils?.SESSION_CRYPTO_KEY || "promeza_sk"); if (window.AIRTABLE) window.AIRTABLE.logAccess(userEmail, "Cierre de sesión"); setUserEmail(null); }}
+        onLogout={() => { clearSession(); sessionStorage.removeItem(window.CryptoUtils?.SESSION_CRYPTO_KEY || "promeza_sk"); if (window.AIRTABLE) window.AIRTABLE.logAccess(userEmail, "Cierre de sesiÃ³n"); setUserEmail(null); }}
         userEmail={userEmail}
         data={data}
         go={go}

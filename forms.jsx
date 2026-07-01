@@ -167,6 +167,7 @@ const NewPersonForm = ({ t, lang, data, onClose, onSave, initialData, editMode, 
     entities: initialData.entities || [],
     tags: Array.isArray(initialData.tags) ? initialData.tags.join(", ") : (initialData.tags || ""),
     language: initialData.language || "es",
+    gender: initialData.gender || "",
     status: initialData.status || "activo",
     stage: initialData.stage || (initialData.status === "inactivo" ? "inactivo" : "conocido"),
     source: initialData.source || "",
@@ -183,7 +184,7 @@ const NewPersonForm = ({ t, lang, data, onClose, onSave, initialData, editMode, 
     website: "",
     social: { ig: "", fb: "", tiktok: "", x: "" },
     entities: prefillData?.entityId ? [{ id: prefillData.entityId, role: prefillData.entityRole || "miembro", roleOther: "", comment: "" }] : [],
-    tags: "", language: "es", status: "activo",
+    tags: "", language: "es", gender: "", status: "activo",
     stage: "nuevo", source: "", nextAction: "",
     birthday: "", lastContact: "",
     extraAddresses: [],
@@ -383,6 +384,8 @@ const NewPersonForm = ({ t, lang, data, onClose, onSave, initialData, editMode, 
           <div className="form-grid">
             <TextField label={t.common.tags} value={form.tags} onChange={v => set("tags", v)} placeholder="liderazgo, vip" hint={lang === "es" ? "Separadas por coma" : "Comma separated"} />
             <SelectField label={t.common.language} value={form.language} onChange={v => set("language", v)} options={langOpts} />
+            <SelectField label={lang === "es" ? "Sexo" : "Gender"} value={form.gender} onChange={v => set("gender", v)}
+              options={[{ value: "", label: lang === "es" ? "— Sin especificar —" : "— Not specified —" }, { value: "F", label: lang === "es" ? "Mujer" : "Female" }, { value: "M", label: lang === "es" ? "Hombre" : "Male" }]} />
             <TextField type="date" label={t.common.birthday} value={form.birthday} onChange={v => set("birthday", v)} />
             <TextField type="date" label={t.common.lastContact} value={form.lastContact} onChange={v => set("lastContact", v)} />
           </div>
