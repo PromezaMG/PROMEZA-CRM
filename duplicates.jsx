@@ -420,10 +420,15 @@ const DuplicatesPage = ({ pairs, data, onMerge, onMergeWithData, onDismiss, onUn
   const searchP = (q) => {
     const sq = (q || "").trim().toLowerCase();
     if (sq.length < 2) return [];
+    const sqAl = sq.replace(/[^a-z0-9]/g, "");   // digits/letters only (match codes/phones with dashes)
     return data.personas.filter(p => {
-      const s = (fullName(p) + " " + (p.email || "") + " " + (p.phone || "")).toLowerCase();
-      return s.includes(sq);
-    }).slice(0, 6);
+      const code = (window.getUID ? window.getUID(p.id) : p.id) || "";
+      const phones = [p.phone, ...(p.phones || []).map(x => x && x.value)].filter(Boolean).join(" ");
+      const emails = [p.email, ...(p.emails || []).map(x => x && x.value)].filter(Boolean).join(" ");
+      const s = (fullName(p) + " " + emails + " " + phones + " " + p.id + " " + (p.uid || "") + " " + code).toLowerCase();
+      if (s.includes(sq)) return true;
+      return sqAl.length >= 2 && s.replace(/[^a-z0-9]/g, "").includes(sqAl);
+    }).slice(0, 8);
   };
 
   const active = pairs.filter(p => !p.dismissed);
@@ -485,7 +490,7 @@ const DuplicatesPage = ({ pairs, data, onMerge, onMergeWithData, onDismiss, onUn
                   </div>
                 ) : (
                   <div style={{ position: "relative" }}>
-                    <input value={col.q} onChange={e => col.setQ(e.target.value)} placeholder={es ? "Buscar contacto…" : "Search contact…"}
+                    <input value={col.q} onChange={e => col.setQ(e.target.value)} placeholder={es ? "Nombre, código, teléfono, correo…" : "Name, code, phone, email…"}
                       style={{ width: "100%", padding: "8px 10px", border: "1px solid var(--line)", borderRadius: 8, fontFamily: "inherit", fontSize: 13 }} />
                     {col.q.trim().length >= 2 && (
                       <div style={{ marginTop: 6, border: "1px solid var(--line)", borderRadius: 8, overflow: "hidden", maxHeight: 220, overflowY: "auto" }}>
