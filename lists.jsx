@@ -311,6 +311,7 @@ const PersonasList = ({ t, lang, data, go, route, onImportPersonas, globalQ = ""
   const F = _personasFilters;
   const [role, setRole] = React.useState(F.role !== undefined ? F.role : "all");
   const [issue, setIssue] = React.useState(F.issue !== undefined ? F.issue : false);
+  const [genderF, setGenderF] = React.useState(F.genderF !== undefined ? F.genderF : "all");
   const [country, setCountry] = React.useState(F.country !== undefined ? F.country : "all");
   const [stateFilter, setStateFilter] = React.useState(F.stateFilter !== undefined ? F.stateFilter : "");
   const [status, setStatus] = React.useState(F.status !== undefined ? F.status : "all");
@@ -339,8 +340,8 @@ const PersonasList = ({ t, lang, data, go, route, onImportPersonas, globalQ = ""
 
   // Persist filters so they survive entering a profile and pressing Back.
   React.useEffect(() => {
-    Object.assign(_personasFilters, { issue, role, country, stateFilter, status, stageFilter, langFilter, city, countyFilter, zip, tagFilter, emailFilter, phoneFilter, q, page, showFilters });
-  }, [issue, role, country, stateFilter, status, stageFilter, langFilter, city, countyFilter, zip, tagFilter, emailFilter, phoneFilter, q, page, showFilters]);
+    Object.assign(_personasFilters, { issue, genderF, role, country, stateFilter, status, stageFilter, langFilter, city, countyFilter, zip, tagFilter, emailFilter, phoneFilter, q, page, showFilters });
+  }, [issue, genderF, role, country, stateFilter, status, stageFilter, langFilter, city, countyFilter, zip, tagFilter, emailFilter, phoneFilter, q, page, showFilters]);
 
   const countries = React.useMemo(() => ["all", ...new Set(data.personas.map(p => p.country).filter(Boolean))], [data.personas]);
 
@@ -353,6 +354,7 @@ const PersonasList = ({ t, lang, data, go, route, onImportPersonas, globalQ = ""
 
   const rows = React.useMemo(() => data.personas.filter(p => {
     if (issue && !(window.hasContactIssue && window.hasContactIssue(p))) return false;
+    if (genderF !== "all" && (p.gender || "") !== genderF) return false;
     if (role !== "all" && !(p.roles ? p.roles.includes(role) : p.role === role)) return false;
     if (country !== "all" && p.country !== country) return false;
     if (stateFilter && !(normState(p.state) || "").toLowerCase().includes(stateFilter.toLowerCase())) return false;
@@ -389,12 +391,12 @@ const PersonasList = ({ t, lang, data, go, route, onImportPersonas, globalQ = ""
     };
     if (!checkQ(q) || !checkQ(globalQ)) return false;
     return true;
-  }).sort((a, b) => { const fa = fullName(a), fb = fullName(b); if (!fa && !fb) return 0; if (!fa) return 1; if (!fb) return -1; return window.nameCmp(fa, fb); }), [data.personas, issue, role, country, stateFilter, status, stageFilter, langFilter, city, countyFilter, zip, tagFilter, emailFilter, phoneFilter, q, globalQ]); // eslint-disable-line react-hooks/exhaustive-deps
+  }).sort((a, b) => { const fa = fullName(a), fb = fullName(b); if (!fa && !fb) return 0; if (!fa) return 1; if (!fb) return -1; return window.nameCmp(fa, fb); }), [data.personas, issue, genderF, role, country, stateFilter, status, stageFilter, langFilter, city, countyFilter, zip, tagFilter, emailFilter, phoneFilter, q, globalQ]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const activeFilters = [issue, role !== "all", country !== "all", stateFilter, status !== "all", stageFilter !== "all", langFilter !== "all", city, countyFilter, zip, tagFilter, emailFilter, phoneFilter, q].filter(Boolean).length;
+  const activeFilters = [issue, genderF !== "all", role !== "all", country !== "all", stateFilter, status !== "all", stageFilter !== "all", langFilter !== "all", city, countyFilter, zip, tagFilter, emailFilter, phoneFilter, q].filter(Boolean).length;
 
   // Reset to page 0 whenever any filter or search changes
-  React.useEffect(() => { setPage(0); }, [issue, role, country, stateFilter, status, stageFilter, langFilter, city, countyFilter, zip, tagFilter, emailFilter, phoneFilter, q, globalQ]); // eslint-disable-line react-hooks/exhaustive-deps
+  React.useEffect(() => { setPage(0); }, [issue, genderF, role, country, stateFilter, status, stageFilter, langFilter, city, countyFilter, zip, tagFilter, emailFilter, phoneFilter, q, globalQ]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Apply a preset coming from the Home KPIs (e.g. "Por revisar"). Runs when the
   // route preset changes; resets filters then applies the requested one so the
@@ -404,7 +406,7 @@ const PersonasList = ({ t, lang, data, go, route, onImportPersonas, globalQ = ""
     if (!preset) return;
     setRole("all"); setCountry("all"); setStateFilter(""); setStatus("all"); setStageFilter("all"); setLangFilter("all");
     setCity(""); setCountyFilter(""); setZip(""); setTagFilter(""); setEmailFilter(""); setPhoneFilter(""); setQ("");
-    setIssue(false); setPage(0);
+    setIssue(false); setGenderF("all"); setPage(0);
     if (preset === "revisar") setIssue(true);
     else if (preset === "activos") setStageFilter("activo");
     else if (preset === "inhabilitados") setStageFilter("inhabilitado");
@@ -414,15 +416,15 @@ const PersonasList = ({ t, lang, data, go, route, onImportPersonas, globalQ = ""
   const pageRows = rows.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
   const clearFilters = () => {
-    setIssue(false);
+    setIssue(false); setGenderF("all");
     setRole("all"); setCountry("all"); setStateFilter(""); setStatus("all"); setStageFilter("all"); setLangFilter("all");
     setCity(""); setCountyFilter(""); setZip(""); setTagFilter(""); setEmailFilter(""); setPhoneFilter(""); setQ("");
   };
 
-  const currentFilters = { issue, role, country, stateFilter, status, stageFilter, langFilter, city, countyFilter, zip, tagFilter, emailFilter, phoneFilter, q };
+  const currentFilters = { issue, genderF, role, country, stateFilter, status, stageFilter, langFilter, city, countyFilter, zip, tagFilter, emailFilter, phoneFilter, q };
   const loadSegment = (seg) => {
     const f = seg.filters;
-    setIssue(f.issue || false);
+    setIssue(f.issue || false); setGenderF(f.genderF || "all");
     setRole(f.role || "all"); setCountry(f.country || "all"); setStateFilter(f.stateFilter || ""); setStatus(f.status || "all");
     setStageFilter(f.stageFilter || "all"); setLangFilter(f.langFilter || "all");
     setCity(f.city || ""); setCountyFilter(f.countyFilter || ""); setZip(f.zip || ""); setTagFilter(f.tagFilter || "");
@@ -588,6 +590,14 @@ const PersonasList = ({ t, lang, data, go, route, onImportPersonas, globalQ = ""
                 <option value="all">{lang === "es" ? "Todos" : "All"}</option>
                 <option value="es">Español</option>
                 <option value="en">English</option>
+              </select>
+            </FField>
+            <FField label={lang === "es" ? "Sexo" : "Gender"}>
+              <select value={genderF} onChange={e => setGenderF(e.target.value)}>
+                <option value="all">{lang === "es" ? "Todos" : "All"}</option>
+                <option value="F">{lang === "es" ? "Mujer" : "Female"}</option>
+                <option value="M">{lang === "es" ? "Hombre" : "Male"}</option>
+                <option value="">{lang === "es" ? "Sin especificar" : "Unspecified"}</option>
               </select>
             </FField>
             <FField label={t.common.tags}>
