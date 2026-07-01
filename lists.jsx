@@ -481,7 +481,9 @@ const PersonasList = ({ t, lang, data, go, route, onImportPersonas, globalQ = ""
     ];
     const stageLabel = (id) => window.stageLabel ? window.stageLabel(id, lang) : ((window.PIPELINE_STAGES || []).find(s => s.id === id)?.label || id || "");
     const sourceLabel = (id) => (window.CONTACT_SOURCES || []).find(s => s.id === id)?.label || id || "";
-    const csvRows = rows.map(p => ({
+    // Export selected rows if any are checked; otherwise all filtered rows.
+    const exportRows = selected.size > 0 ? rows.filter(p => selected.has(p.id)) : rows;
+    const csvRows = exportRows.map(p => ({
       id: p.id,
       nombre: p.first,
       apellido: p.last,
@@ -528,8 +530,8 @@ const PersonasList = ({ t, lang, data, go, route, onImportPersonas, globalQ = ""
           <button className={"btn" + (showFilters || activeFilters > 0 ? " btn-primary" : "")} onClick={() => setShowFilters(v => !v)}>
             <Icon name="filter" /> {lang === "es" ? "Filtrar" : "Filter"}{activeFilters > 0 ? ` (${activeFilters})` : ""}
           </button>
-          <button className="btn" onClick={doExportCSV} title={lang === "es" ? `Exportar ${rows.length} de ${data.personas.length} personas` : `Export ${rows.length} of ${data.personas.length} people`}>
-            <Icon name="download" /> {t.common.exportCSV}{rows.length < data.personas.length ? ` (${rows.length})` : ""}
+          <button className="btn" onClick={doExportCSV} title={selected.size > 0 ? (lang === "es" ? `Exportar ${selected.size} seleccionadas` : `Export ${selected.size} selected`) : (lang === "es" ? `Exportar ${rows.length} de ${data.personas.length} personas` : `Export ${rows.length} of ${data.personas.length} people`)}>
+            <Icon name="download" /> {t.common.exportCSV}{selected.size > 0 ? ` (${selected.size})` : (rows.length < data.personas.length ? ` (${rows.length})` : "")}
           </button>
           <button className="btn" onClick={() => setShowImport(true)}>
             <Icon name="upload" /> Importar
@@ -910,7 +912,12 @@ const EntitiesList = ({ t, lang, data, go, route, onImportEntities, globalQ = ""
   const [showFilters, setShowFilters] = React.useState(EF.showFilters !== undefined ? EF.showFilters : false);
   const [showImport, setShowImport] = React.useState(false);
   const [page, setPage] = React.useState(EF.page !== undefined ? EF.page : 0);
+  const [selected, setSelected] = React.useState(new Set());
   const E_PAGE_SIZE = 100;
+  const toggleSelect = (ev, id) => {
+    ev.stopPropagation();
+    setSelected(prev => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n; });
+  };
   React.useEffect(() => {
     Object.assign(_entitiesFilters, { type, country, status, city, stateFilter, countyFilter, zip, tagFilter, emailFilter, phoneFilter, dayFilter, q, showFilters, page });
   }, [type, country, status, city, stateFilter, countyFilter, zip, tagFilter, emailFilter, phoneFilter, dayFilter, q, showFilters, page]);
@@ -974,6 +981,8 @@ const EntitiesList = ({ t, lang, data, go, route, onImportEntities, globalQ = ""
 
   const activeFilters = [type !== "all", country !== "all", status !== "all", city, stateFilter, countyFilter, zip, tagFilter, emailFilter, phoneFilter, dayFilter !== "all", q].filter(Boolean).length;
 
+  const toggleSelectAll = () => setSelected(selected.size === rows.length ? new Set() : new Set(rows.map(e => e.id)));
+
   const clearFilters = () => {
     setType("all"); setCountry("all"); setStatus("all");
     setCity(""); setStateFilter(""); setCountyFilter(""); setZip(""); setTagFilter(""); setEmailFilter(""); setPhoneFilter(""); setDayFilter("all"); setQ("");
@@ -1002,7 +1011,8 @@ const EntitiesList = ({ t, lang, data, go, route, onImportEntities, globalQ = ""
       { key: "etiquetas", label: "Etiquetas" },
       { key: "personasVinculadas", label: "Contactos vinculados" },
     ];
-    const csvRows = rows.map(e => ({
+    const exportRows = selected.size > 0 ? rows.filter(e => selected.has(e.id)) : rows;
+    const csvRows = exportRows.map(e => ({
       id: e.id,
       nombre: e.name,
       tipo: t.types[e.type] || e.type,
@@ -1041,8 +1051,8 @@ const EntitiesList = ({ t, lang, data, go, route, onImportEntities, globalQ = ""
           <button className={"btn" + (showFilters || activeFilters > 0 ? " btn-primary" : "")} onClick={() => setShowFilters(v => !v)}>
             <Icon name="filter" /> {lang === "es" ? "Filtrar" : "Filter"}{activeFilters > 0 ? ` (${activeFilters})` : ""}
           </button>
-          <button className="btn" onClick={doExportCSV} title={lang === "es" ? `Exportar ${rows.length} de ${data.entities.length} entidades` : `Export ${rows.length} of ${data.entities.length} entities`}>
-            <Icon name="download" /> {t.common.exportCSV}{rows.length < data.entities.length ? ` (${rows.length})` : ""}
+          <button className="btn" onClick={doExportCSV} title={selected.size > 0 ? (lang === "es" ? `Exportar ${selected.size} seleccionadas` : `Export ${selected.size} selected`) : (lang === "es" ? `Exportar ${rows.length} de ${data.entities.length} entidades` : `Export ${rows.length} of ${data.entities.length} entities`)}>
+            <Icon name="download" /> {t.common.exportCSV}{selected.size > 0 ? ` (${selected.size})` : (rows.length < data.entities.length ? ` (${rows.length})` : "")}
           </button>
           <button className="btn" onClick={() => setShowImport(true)}>
             <Icon name="upload" /> Importar
@@ -1142,10 +1152,28 @@ const EntitiesList = ({ t, lang, data, go, route, onImportEntities, globalQ = ""
         />
       )}
 
+      {selected.size > 0 && (
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12, padding: "10px 16px", background: "var(--accent-50)", border: "1px solid var(--accent-100)", borderRadius: 10 }}>
+          <span style={{ fontWeight: 600, fontSize: 13 }}>{selected.size} {lang === "es" ? "seleccionadas" : "selected"}</span>
+          <button className="btn btn-sm btn-primary" onClick={doExportCSV}>
+            <Icon name="download" /> {lang === "es" ? "Exportar seleccionadas" : "Export selected"}
+          </button>
+          <button className="btn btn-sm" style={{ marginLeft: "auto" }} onClick={() => setSelected(new Set())}>
+            <Icon name="x" /> {lang === "es" ? "Limpiar selección" : "Clear selection"}
+          </button>
+        </div>
+      )}
+
       <div className="card">
         <table className="table">
           <thead>
             <tr>
+              <th style={{ width: 34 }}>
+                <input type="checkbox"
+                  checked={rows.length > 0 && selected.size === rows.length}
+                  ref={el => { if (el) el.indeterminate = selected.size > 0 && selected.size < rows.length; }}
+                  onChange={toggleSelectAll} />
+              </th>
               <th style={{ width: 320 }}>{t.common.profile}</th>
               <th>{t.common.type}</th>
               <th>{t.common.address}</th>
@@ -1158,7 +1186,11 @@ const EntitiesList = ({ t, lang, data, go, route, onImportEntities, globalQ = ""
           </thead>
           <tbody>
             {rows.slice(page * E_PAGE_SIZE, (page + 1) * E_PAGE_SIZE).map(e => (
-              <tr key={e.id} onClick={() => go({ name: "entity", id: e.id })}>
+              <tr key={e.id} onClick={() => go({ name: "entity", id: e.id })}
+                style={{ background: selected.has(e.id) ? "var(--accent-50)" : undefined }}>
+                <td style={{ paddingRight: 0 }} onClick={ev => toggleSelect(ev, e.id)}>
+                  <input type="checkbox" checked={selected.has(e.id)} onChange={ev => toggleSelect(ev, e.id)} onClick={ev => ev.stopPropagation()} />
+                </td>
                 <td>
                   <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                     <div className="ent-icon"><Icon name="building" /></div>
