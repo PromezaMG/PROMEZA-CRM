@@ -285,33 +285,38 @@ const Topbar = ({ t, lang, setLang, query, setQuery, onSearchSubmit, onSettings,
     const q = raw.toLowerCase();
     const stripped = q.replace(/^#/, "");
     const norm = s => (s || "").toLowerCase();
+    // VID / EID (the code shown on a profile, e.g. "EC552-873081", "P15-388031").
+    // Checked BEFORE the phone check because its numeric suffix can look like a
+    // phone number. Accepts any id prefix (ec###, pc###, e5, p15…), not just p/e.
+    const vidP = (p) => (p.id.toUpperCase() + "-" + Math.abs(p.id.charCodeAt(1) * 7919) % 999999);
+    const vidE = (e) => (e.id.toUpperCase() + "-" + Math.abs(e.id.charCodeAt(1) * 8819) % 999999);
+    const looksVid = /^[a-z][a-z0-9-]*-\d+$/i.test(q);
+    if (looksVid) {
+      const personas = data.personas.filter(p => vidP(p).toLowerCase() === q).slice(0, 8);
+      const entities = data.entities.filter(e => vidE(e).toLowerCase() === q).slice(0, 8);
+      if (personas.length || entities.length)
+        return { personas, entities, projects: [], personasTotal: personas.length, entitiesTotal: entities.length, total: personas.length + entities.length };
+    }
+
     // Phone search by digits only — "(562) 209-9991", "562-209-9991" and "5622099991"
     // all match regardless of how the number is stored.
     const qDigits = q.replace(/\D/g, "");
     const phoneHit = (x) => qDigits.length >= 7 &&
       ((x.phones || []).map(ph => ph.value || "").concat([x.phone || ""]).join(" ").replace(/\D/g, "")).includes(qDigits);
 
-    // A 7+ digit query is a phone number — search phones, not the UID.
-    if (qDigits.length >= 7) {
+    // A 7+ digit query is a phone number — search phones, not the UID. (Skip if it
+    // looked like a VID above.)
+    if (!looksVid && qDigits.length >= 7) {
       const personas = data.personas.filter(phoneHit).slice(0, 8);
       const entities = data.entities.filter(phoneHit).slice(0, 4);
-      return { personas, entities, projects: [], total: personas.length + entities.length };
+      return { personas, entities, projects: [], personasTotal: personas.length, entitiesTotal: entities.length, total: personas.length + entities.length };
     }
 
     // UID search: short pure digits (with or without #)
     if (/^\d+$/.test(stripped)) {
       const personas = data.personas.filter(p => (p.uid || "").startsWith(stripped)).slice(0, 8);
       const entities = data.entities.filter(e => (e.uid || "").startsWith(stripped)).slice(0, 4);
-      return { personas, entities, projects: [], total: personas.length + entities.length };
-    }
-
-    // VID search: format P15-388031 or E5-123456
-    const vidP = (p) => (p.id.toUpperCase() + "-" + Math.abs(p.id.charCodeAt(1) * 7919) % 999999);
-    const vidE = (e) => (e.id.toUpperCase() + "-" + Math.abs(e.id.charCodeAt(1) * 8819) % 999999);
-    if (/^[pe]\d+-\d+$/i.test(q)) {
-      const personas = data.personas.filter(p => vidP(p).toLowerCase() === q).slice(0, 8);
-      const entities = data.entities.filter(e => vidE(e).toLowerCase() === q).slice(0, 8);
-      return { personas, entities, projects: [], total: personas.length + entities.length };
+      return { personas, entities, projects: [], personasTotal: personas.length, entitiesTotal: entities.length, total: personas.length + entities.length };
     }
 
     // Multi-word search: ALL words must appear somewhere in the contact's fields.
@@ -320,7 +325,7 @@ const Topbar = ({ t, lang, setLang, query, setQuery, onSearchSubmit, onSettings,
     const allWords = (haystack) => words.every(w => haystack.includes(w));
 
     const searchStrP = (p) => [
-      p.first, p.last,
+      p.first, p.last, p.id, vidP(p),
       (p.emails || []).map(e => e.value || "").concat([p.email || ""]).join(" "),
       (p.phones || []).map(ph => ph.value || "").concat([p.phone || ""]).join(" "),
       p.city, p.county, p.state, p.country,
@@ -335,7 +340,7 @@ const Topbar = ({ t, lang, setLang, query, setQuery, onSearchSubmit, onSettings,
     };
 
     const searchStrE = (e) => [
-      e.name,
+      e.name, e.id, vidE(e),
       (e.emails || []).map(em => em.value || "").concat([e.email || ""]).join(" "),
       e.city, e.county, e.state, e.country,
       (e.phones || []).map(ph => ph.value || "").concat([e.phone || ""]).join(" "),
@@ -352,24 +357,28 @@ const Topbar = ({ t, lang, setLang, query, setQuery, onSearchSubmit, onSettings,
       return s.includes(q) || allWords(s);
     };
 
-    // Sort: exact name match first, then other matches
+    // Sort: exact full-name match first, then names that START with the query,
+    // then any other match. This keeps the one you typed at the top even when many
+    // records share the name (e.g. 14 "Fuente de Vida" churches).
     const exactNameFirst = (arr, nameFn) => {
-      const exact = [], other = [];
-      arr.forEach(item => (norm(nameFn(item)).includes(q) ? exact : other).push(item));
-      return [...exact, ...other];
+      const eq = [], starts = [], other = [];
+      arr.forEach(item => { const n = norm(nameFn(item)); if (n === q) eq.push(item); else if (n.startsWith(q)) starts.push(item); else other.push(item); });
+      return [...eq, ...starts, ...other];
     };
 
     const allMatchP = data.personas.filter(matchP);
     const allMatchE = data.entities.filter(matchE);
     const sorted = exactNameFirst(allMatchP, p => p.first + " " + p.last);
     const personas = sorted.slice(0, 8);
-    const entities = exactNameFirst(allMatchE, e => e.name).slice(0, 4);
+    const entities = exactNameFirst(allMatchE, e => e.name).slice(0, 6);
     const projects = (data.projects || []).filter(matchPr).slice(0, 3);
-    return { personas, entities, projects, total: allMatchP.length + allMatchE.length + projects.length };
+    return { personas, entities, projects, personasTotal: allMatchP.length, entitiesTotal: allMatchE.length, total: allMatchP.length + allMatchE.length + projects.length };
   }, [query, data]);
 
   const closeSearch = () => { setShowSearch(false); };
   const pick = (route) => { go(route); setQuery(""); closeSearch(); };
+  // Navigate to a list but KEEP the query so the list stays filtered (globalQ).
+  const viewAll = (route) => { go(route); closeSearch(); };
 
   // Close search on outside click
   React.useEffect(() => {
@@ -519,7 +528,7 @@ const Topbar = ({ t, lang, setLang, query, setQuery, onSearchSubmit, onSettings,
                 {searchResults.entities.length > 0 && (
                   <div>
                     <div style={{ padding: "8px 16px 4px", fontSize: 10, fontWeight: 700, color: "var(--ink-4)", textTransform: "uppercase", letterSpacing: ".08em" }}>
-                      Entidades · {searchResults.entities.length}
+                      Entidades · {searchResults.entitiesTotal}
                     </div>
                     {searchResults.entities.map(e => (
                       <div key={e.id}
@@ -541,6 +550,12 @@ const Topbar = ({ t, lang, setLang, query, setQuery, onSearchSubmit, onSettings,
                         <span style={{ fontSize: 10.5, color: "var(--ink-4)", flexShrink: 0 }}>{(t.types || {})[e.type] || e.type}</span>
                       </div>
                     ))}
+                    {searchResults.entitiesTotal > searchResults.entities.length && (
+                      <div style={{ padding: "9px 16px", fontSize: 12, fontWeight: 600, color: "var(--accent)", cursor: "pointer", borderBottom: "1px solid var(--line)" }}
+                        onClick={() => viewAll({ name: "entities" })}>
+                        {lang === "es" ? `Ver las ${searchResults.entitiesTotal} entidades →` : `See all ${searchResults.entitiesTotal} entities →`}
+                      </div>
+                    )}
                   </div>
                 )}
 

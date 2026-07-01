@@ -164,7 +164,7 @@ const ChangelogTab = ({ changelog, lang }) => {
   );
 };
 
-const PersonProfile = ({ id, t, lang, data, go, addComment, onUpdatePerson, onEditPerson, onDeletePerson,
+const PersonProfile = ({ id, t, lang, data, go, goBack, addComment, onUpdatePerson, onEditPerson, onDeletePerson,
   interactions, onAddInteraction, onDeleteInteraction,
   tasks, onAddTask, onToggleTask, onDeleteTask, changelog, users, currentUser,
   attachments, onAddAttachment, onDeleteAttachment }) => {
@@ -241,7 +241,7 @@ const PersonProfile = ({ id, t, lang, data, go, addComment, onUpdatePerson, onEd
   return (
     <div style={{ animation: "fadeIn .2s ease-out" }}>
       <div style={{ marginBottom: 8 }}>
-        <button className="btn btn-ghost btn-sm" onClick={() => go({ name: "personas" })}>
+        <button className="btn btn-ghost btn-sm" onClick={() => goBack ? goBack({ name: "personas" }) : go({ name: "personas" })}>
           ← {t.common.back}
         </button>
       </div>
@@ -656,7 +656,7 @@ const PersonProfile = ({ id, t, lang, data, go, addComment, onUpdatePerson, onEd
 
 // ─── ENTITY PROFILE ───
 
-const EntityProfile = ({ id, t, lang, data, go, addComment, onUpdateEntity, onUpdatePerson, onEditEntity, onDeleteEntity, changelog, attachments, onAddAttachment, onDeleteAttachment }) => {
+const EntityProfile = ({ id, t, lang, data, go, goBack, addComment, onUpdateEntity, onUpdatePerson, onEditEntity, onDeleteEntity, changelog, attachments, onAddAttachment, onDeleteAttachment }) => {
   const e = data.entities.find(x => x.id === id);
   const [tab, setTab] = React.useState("details");
   const [linking, setLinking] = React.useState(false);
@@ -705,7 +705,7 @@ const EntityProfile = ({ id, t, lang, data, go, addComment, onUpdateEntity, onUp
   return (
     <div>
       <div style={{ marginBottom: 8 }}>
-        <button className="btn btn-ghost btn-sm" onClick={() => go({ name: "entities" })}>
+        <button className="btn btn-ghost btn-sm" onClick={() => goBack ? goBack({ name: "entities" }) : go({ name: "entities" })}>
           ← {t.common.back}
         </button>
       </div>

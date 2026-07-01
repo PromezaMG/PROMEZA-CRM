@@ -1506,8 +1506,11 @@ const App = () => {
     window.scrollTo({ top: 0 });
   };
 
-  const goBack = () => {
-    if (routeHistory.length === 0) return;
+  const goBack = (fallback) => {
+    if (routeHistory.length === 0) {
+      if (fallback) { setRoute(fallback); setQuery(""); window.scrollTo({ top: 0 }); }
+      return;
+    }
     const prev = routeHistory[routeHistory.length - 1];
     setRouteHistory(h => h.slice(0, -1));
     setRoute(prev);
@@ -2004,7 +2007,7 @@ const App = () => {
     case "personas": view = <PersonasList t={t} lang={lang} data={data} go={go} route={route} onImportPersonas={handleImportPersonas} globalQ={query} onBulkDelete={handleBulkDeletePersonas} onBulkUpdateStatus={handleBulkUpdatePersonas} onBulkAddTag={handleBulkAddTagPersonas} onBulkAddTask={handleBulkAddTask} segments={data.segments || []} onAddSegment={addSegment} onDeleteSegment={deleteSegment} users={window.PROMEZA_USERS || []} currentUser={userEmail} />; break;
     case "pipeline": view = <PipelineView t={t} lang={lang} data={data} go={go} onUpdatePerson={handleUpdatePerson} />; break;
     case "entities": view = <EntitiesList t={t} lang={lang} data={data} go={go} route={route} onImportEntities={handleImportEntities} globalQ={query} />; break;
-    case "person": view = <ViewErrorBoundary key={"person-" + route.id}><PersonProfile id={route.id} t={t} lang={lang} data={data} go={go} addComment={addComment}
+    case "person": view = <ViewErrorBoundary key={"person-" + route.id}><PersonProfile id={route.id} t={t} lang={lang} data={data} go={go} goBack={goBack} addComment={addComment}
       onUpdatePerson={handleUpdatePerson} onEditPerson={handleEditPerson} onDeletePerson={handleDeletePerson}
       interactions={data.interactions[route.id] || []}
       onAddInteraction={(item) => addInteraction(route.id, item)}
@@ -2028,7 +2031,7 @@ const App = () => {
       tasks={data.tasks} onToggleTask={toggleTask} onDeleteTask={deleteTask}
       currentUser={userEmail} users={window.PROMEZA_USERS || []}
     />; break;
-    case "entity": view = <ViewErrorBoundary key={"entity-" + route.id}><EntityProfile id={route.id} t={t} lang={lang} data={data} go={go} addComment={addComment} onUpdateEntity={handleUpdateEntity} onUpdatePerson={handleUpdatePerson} onEditEntity={handleEditEntity} onDeleteEntity={handleDeleteEntity} changelog={data.changelog[route.id] || []} attachments={data.attachments[route.id] || []} onAddAttachment={(att) => addAttachment(route.id, att)} onDeleteAttachment={(attId) => deleteAttachment(route.id, attId)} /></ViewErrorBoundary>; break;
+    case "entity": view = <ViewErrorBoundary key={"entity-" + route.id}><EntityProfile id={route.id} t={t} lang={lang} data={data} go={go} goBack={goBack} addComment={addComment} onUpdateEntity={handleUpdateEntity} onUpdatePerson={handleUpdatePerson} onEditEntity={handleEditEntity} onDeleteEntity={handleDeleteEntity} changelog={data.changelog[route.id] || []} attachments={data.attachments[route.id] || []} onAddAttachment={(att) => addAttachment(route.id, att)} onDeleteAttachment={(attId) => deleteAttachment(route.id, attId)} /></ViewErrorBoundary>; break;
     case "projects": view = <ProjectsListView lang={lang} data={data} go={go} onAddProject={addProject} />; break;
     case "project": view = <ProjectDetailView id={route.id} lang={lang} data={data} go={go} onUpdateProject={updateProject} onDeleteProject={deleteProject} onAddMember={addProjectMember} onRemoveMember={removeProjectMember} comments={data.comments[route.id] || []} onAddComment={(projectId, text) => addComment(projectId, text)} attachments={data.attachments[route.id] || []} onAddAttachment={(att) => addAttachment(route.id, att)} onDeleteAttachment={(attId) => deleteAttachment(route.id, attId)} />; break;
     case "campaigns": view = <CampaignsView lang={lang} data={data} go={go} onSaveCampaign={saveCampaign} />; break;
