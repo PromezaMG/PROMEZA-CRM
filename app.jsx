@@ -63,6 +63,51 @@ const saveEncrypted = async (json, key) => {
   try { return await idbSet(DATA_BYTES_KEY, await window.CryptoUtils.encryptBytes(json, key)); }
   catch (e) { return false; }
 };
+
+// ─── Off-main-thread save (Web Worker) ───
+// The remaining main-thread freeze on save is JSON.stringify(~10MB) + text-encode.
+// A worker does the stringify + encode + AES-GCM encrypt off-thread; the main
+// thread only pays the structured-clone of the data object. Output format matches
+// CryptoUtils.encryptBytes exactly ([12-byte IV][ciphertext]). Any failure falls
+// back to the main-thread path, so this can never lose a save.
+const SAVE_WORKER_SRC = `self.onmessage = async (e) => {
+  const d = e.data;
+  try {
+    const key = await crypto.subtle.importKey("raw", d.keyRaw, { name: "AES-GCM", length: 256 }, false, ["encrypt"]);
+    const str = JSON.stringify(d.obj);
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    const enc = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, new TextEncoder().encode(str));
+    const out = new Uint8Array(12 + enc.byteLength);
+    out.set(iv, 0); out.set(new Uint8Array(enc), 12);
+    self.postMessage({ id: d.id, ok: true, bytes: out }, [out.buffer]);
+  } catch (err) { self.postMessage({ id: d.id, ok: false, err: String((err && err.message) || err) }); }
+};`;
+let _saveWorker = null, _saveMsgId = 0; const _saveWaiters = {};
+const getSaveWorker = () => {
+  if (_saveWorker) return _saveWorker;
+  try {
+    const w = new Worker(URL.createObjectURL(new Blob([SAVE_WORKER_SRC], { type: "text/javascript" })));
+    w.onmessage = (e) => { const cb = _saveWaiters[e.data.id]; if (cb) { delete _saveWaiters[e.data.id]; cb(e.data); } };
+    w.onerror = () => {}; // per-call timeout handles hangs
+    _saveWorker = w;
+  } catch (e) { _saveWorker = null; }
+  return _saveWorker;
+};
+const encryptViaWorker = (obj, keyRaw) => new Promise((resolve, reject) => {
+  const w = getSaveWorker(); if (!w) return reject(new Error("no worker"));
+  const id = ++_saveMsgId;
+  const to = setTimeout(() => { if (_saveWaiters[id]) { delete _saveWaiters[id]; reject(new Error("worker timeout")); } }, 20000);
+  _saveWaiters[id] = (msg) => { clearTimeout(to); msg.ok ? resolve(msg.bytes) : reject(new Error(msg.err)); };
+  w.postMessage({ id, obj, keyRaw });
+});
+// Save via worker; fall back to main-thread on any failure.
+const saveEncryptedObj = async (obj, key, keyRaw) => {
+  if (keyRaw) {
+    try { const bytes = await encryptViaWorker(obj, keyRaw); return await idbSet(DATA_BYTES_KEY, bytes); }
+    catch (e) { /* fall through */ }
+  }
+  return saveEncrypted(JSON.stringify(obj), key);
+};
 const clearStoredData = async () => {
   try { await idbSet(DATA_BYTES_KEY, null); } catch (e) {}
   try { await idbSet("promeza_data_enc", null); } catch (e) {}
@@ -759,6 +804,9 @@ const App = () => {
   const [atSyncMsg, setAtSyncMsg] = useState(null); // { type:"ok"|"warn"|"err", text }
   const lastSyncSigRef = useRef(""); // signature of last-applied Airtable data (skip no-op syncs)
   const dupLoadedRef = useRef(false); // duplicate-review state has been loaded (don't save before then)
+  const keyRawRef = useRef(null);     // raw AES key bytes for the off-thread save worker
+  const savingRef = useRef(false);    // a save is in flight (avoid overlapping heavy saves)
+  const lastVisSyncRef = useRef(0);   // throttle sync-on-tab-focus
 
   const mergeFromAirtable = (atData, prev, prevLastLoad = "") => {
     if (!atData || !prev) return prev;
@@ -1374,12 +1422,22 @@ const App = () => {
     if (userEmail) initData();
   }, [userEmail]);
 
+  // Export the raw AES key once so the save worker can use it.
+  useEffect(() => {
+    if (!cryptoKey) { keyRawRef.current = null; return; }
+    crypto.subtle.exportKey("raw", cryptoKey).then(buf => { keyRawRef.current = new Uint8Array(buf); }).catch(() => { keyRawRef.current = null; });
+  }, [cryptoKey]);
+
   useEffect(() => {
     if (!data || !cryptoKey) return;
-    // Save when browser is idle so JSON.stringify(5MB) doesn't freeze the UI.
-    // requestIdleCallback defers to idle time; setTimeout is the Safari fallback.
+    // Save when browser is idle. The heavy stringify+encode+encrypt runs off the
+    // main thread in a Web Worker (saveEncryptedObj), so it no longer freezes the
+    // UI; falls back to the main thread if the worker is unavailable. savingRef
+    // prevents overlapping heavy saves — if one is in flight we retry after it.
     const doSave = () => {
-      saveEncrypted(JSON.stringify(data), cryptoKey).catch(console.error);
+      if (savingRef.current) { timer = setTimeout(doSave, 1500); return; }
+      savingRef.current = true;
+      saveEncryptedObj(data, cryptoKey, keyRawRef.current).catch(console.error).finally(() => { savingRef.current = false; });
     };
     let timer;
     if (typeof requestIdleCallback !== "undefined") {
@@ -1414,9 +1472,16 @@ const App = () => {
   // merges + re-encryption that froze the page.
   useEffect(() => {
     if (!dataReady || !data) return;
-    const first = setTimeout(syncFromAirtable, 4000);
-    const interval = setInterval(syncFromAirtable, 120000);
-    return () => { clearTimeout(first); clearInterval(interval); };
+    // Only sync while the tab is visible (a background tab doesn't need to re-fetch
+    // + re-parse 10k records), and every 4 min instead of 2 — this halves the
+    // periodic hitch while working. Also sync once when the tab regains focus
+    // (throttled to at most once/2 min) so returning to the app shows fresh data.
+    const runSync = () => { if (document.visibilityState === "visible") { lastVisSyncRef.current = Date.now(); syncFromAirtable(); } };
+    const first = setTimeout(runSync, 4000);
+    const interval = setInterval(runSync, 240000);
+    const onVis = () => { if (document.visibilityState === "visible" && Date.now() - lastVisSyncRef.current > 120000) runSync(); };
+    document.addEventListener("visibilitychange", onVis);
+    return () => { clearTimeout(first); clearInterval(interval); document.removeEventListener("visibilitychange", onVis); };
   }, [dataReady]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Duplicate-review state: SHARED across devices via Airtable (+ localStorage for
