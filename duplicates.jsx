@@ -408,9 +408,23 @@ const DuplicateReviewModal = ({ pairs, data, onMerge, onDismiss, onClose, t, lan
 
 // ─── Duplicates Page ───
 
-const DuplicatesPage = ({ pairs, data, onMerge, onMergeWithData, onDismiss, onUndismiss, onScanAll, onCreateDemo, t, lang }) => {
+const DuplicatesPage = ({ pairs, data, onMerge, onMergeWithData, onDismiss, onUndismiss, onScanAll, onCreateDemo, onCreateManual, t, lang }) => {
   const [expanded, setExpanded] = React.useState(null);
   const [mergingPair, setMergingPair] = React.useState(null);
+  const [showManual, setShowManual] = React.useState(false);
+  const [manA, setManA] = React.useState(null);   // selected persona A
+  const [manB, setManB] = React.useState(null);   // selected persona B
+  const [qA, setQA] = React.useState("");
+  const [qB, setQB] = React.useState("");
+  const es = lang === "es";
+  const searchP = (q) => {
+    const sq = (q || "").trim().toLowerCase();
+    if (sq.length < 2) return [];
+    return data.personas.filter(p => {
+      const s = (fullName(p) + " " + (p.email || "") + " " + (p.phone || "")).toLowerCase();
+      return s.includes(sq);
+    }).slice(0, 6);
+  };
 
   const active = pairs.filter(p => !p.dismissed);
   const dismissed = pairs.filter(p => p.dismissed);
@@ -443,11 +457,66 @@ const DuplicatesPage = ({ pairs, data, onMerge, onMergeWithData, onDismiss, onUn
           </div>
         </div>
         <div className="page-actions">
+          <button className={"btn" + (showManual ? " btn-primary" : "")} onClick={() => setShowManual(v => !v)}>
+            <Icon name="plus" /> {es ? "Marcar duplicado manual" : "Add manual duplicate"}
+          </button>
           <button className="btn" onClick={onScanAll}>
             <Icon name="search" /> {lang === "es" ? "Escanear base completa" : "Scan full database"}
           </button>
         </div>
       </div>
+
+      {/* ── Manual duplicate picker ── */}
+      {showManual && (
+        <div className="card" style={{ padding: "16px 20px", marginBottom: 14 }}>
+          <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4 }}>{es ? "Marcar dos contactos como duplicados" : "Mark two contacts as duplicates"}</div>
+          <div style={{ fontSize: 12, color: "var(--ink-3)", marginBottom: 12 }}>{es ? "Busca y elige los dos contactos que son la misma persona. Aparecerán abajo para revisarlos y fusionarlos." : "Search and pick the two contacts that are the same person. They'll appear below to review and merge."}</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+            {[{ q: qA, setQ: setQA, pick: manA, setPick: setManA, label: "A" }, { q: qB, setQ: setQB, pick: manB, setPick: setManB, label: "B" }].map(col => (
+              <div key={col.label}>
+                {col.pick ? (
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", border: "2px solid var(--accent)", borderRadius: 8, background: "var(--accent-50)" }}>
+                    <div className="av-circle" style={{ background: col.pick.color, width: 30, height: 30, fontSize: 12 }}>{initials(fullName(col.pick))}</div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: 700, fontSize: 13 }}>{fullName(col.pick)}</div>
+                      <div style={{ fontSize: 11, color: "var(--ink-4)" }}>{col.pick.email || col.pick.phone || col.pick.id}</div>
+                    </div>
+                    <button className="icon-btn" onClick={() => { col.setPick(null); col.setQ(""); }}><Icon name="x" /></button>
+                  </div>
+                ) : (
+                  <div style={{ position: "relative" }}>
+                    <input value={col.q} onChange={e => col.setQ(e.target.value)} placeholder={es ? "Buscar contacto…" : "Search contact…"}
+                      style={{ width: "100%", padding: "8px 10px", border: "1px solid var(--line)", borderRadius: 8, fontFamily: "inherit", fontSize: 13 }} />
+                    {col.q.trim().length >= 2 && (
+                      <div style={{ marginTop: 6, border: "1px solid var(--line)", borderRadius: 8, overflow: "hidden", maxHeight: 220, overflowY: "auto" }}>
+                        {searchP(col.q).length === 0 && <div style={{ padding: 10, fontSize: 12, color: "var(--ink-4)" }}>{es ? "Sin resultados" : "No results"}</div>}
+                        {searchP(col.q).map(p => (
+                          <div key={p.id} className="hover-row" style={{ padding: "7px 10px", cursor: "pointer" }} onClick={() => { col.setPick(p); col.setQ(""); }}>
+                            <div className="av-circle" style={{ background: p.color, width: 26, height: 26, fontSize: 11 }}>{initials(fullName(p))}</div>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontWeight: 600, fontSize: 12.5, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{fullName(p)}</div>
+                              <div style={{ fontSize: 11, color: "var(--ink-4)" }}>{p.email || p.phone || "—"}</div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 14 }}>
+            <button className="btn" onClick={() => { setManA(null); setManB(null); setQA(""); setQB(""); setShowManual(false); }}>{t.common.cancel}</button>
+            <button className="btn btn-primary" disabled={!manA || !manB || manA.id === manB.id}
+              style={{ opacity: (!manA || !manB || (manA && manB && manA.id === manB.id)) ? 0.5 : 1 }}
+              onClick={() => { onCreateManual(manA.id, manB.id); setManA(null); setManB(null); setQA(""); setQB(""); }}>
+              🔗 {es ? "Marcar como duplicado" : "Mark as duplicate"}
+            </button>
+          </div>
+          {manA && manB && manA.id === manB.id && <div style={{ marginTop: 8, fontSize: 12, color: "var(--bad)" }}>{es ? "Elige dos contactos distintos." : "Pick two different contacts."}</div>}
+        </div>
+      )}
 
       {/* ── Empty state ── */}
       {active.length === 0 && (

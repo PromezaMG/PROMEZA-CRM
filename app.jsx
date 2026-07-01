@@ -1929,6 +1929,18 @@ const App = () => {
     window.scrollTo({ top: 0 });
   };
 
+  const handleCreateManualDup = (idA, idB) => {
+    if (!idA || !idB || idA === idB) return;
+    const key = [idA, idB].sort().join("|");
+    setDupPairs(prev => {
+      if (prev.some(p => [p.idA, p.idB].sort().join("|") === key)) {
+        // Pair already exists — un-dismiss it so it shows for review again
+        return prev.map(p => ([p.idA, p.idB].sort().join("|") === key ? { ...p, dismissed: false } : p));
+      }
+      return [...prev, { idA, idB, score: 5, dismissed: false, manual: true }];
+    });
+  };
+
   const handleCreateDemo = () => {
     const source = data.personas[0];
     if (!source) return;
@@ -2045,7 +2057,7 @@ const App = () => {
     case "goals": view = <GoalsView lang={lang} data={data} go={go} onAddGoal={addGoal} onUpdateGoal={updateGoal} onDeleteGoal={deleteGoal} />; break;
     case "county": view = <CountyView t={t} lang={lang} data={data} go={go} />; break;
     case "map": view = <MapPage t={t} lang={lang} data={data} go={go} />; break;
-    case "duplicates": view = <DuplicatesPage pairs={dupPairs} data={data} onMerge={handleMergePersonas} onMergeWithData={handleMergeWithData} onDismiss={handleDismissDup} onUndismiss={handleUndismissDup} onScanAll={handleScanAll} onCreateDemo={handleCreateDemo} t={t} lang={lang} />; break;
+    case "duplicates": view = <DuplicatesPage pairs={dupPairs} data={data} onMerge={handleMergePersonas} onMergeWithData={handleMergeWithData} onDismiss={handleDismissDup} onUndismiss={handleUndismissDup} onScanAll={handleScanAll} onCreateDemo={handleCreateDemo} onCreateManual={handleCreateManualDup} t={t} lang={lang} />; break;
     default: view = <Home t={t} lang={lang} data={data} go={go} />;
   }
 

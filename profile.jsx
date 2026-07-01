@@ -411,8 +411,20 @@ const PersonProfile = ({ id, t, lang, data, go, goBack, addComment, onUpdatePers
               <h3>{t.common.contact}</h3>
               <div className="section-body">
                 <dl className="kv">
-                  <dt>Email</dt><dd>{p.email || <span className="muted">—</span>}</dd>
-                  <dt>{lang === "es" ? "Teléfono" : "Phone"}</dt><dd>{p.phone || <span className="muted">—</span>}</dd>
+                  <dt>Email</dt><dd>{(() => {
+                    const list = [...new Set([...(p.emails || []).map(e => e && e.value).filter(Boolean), p.email].filter(Boolean))];
+                    return list.length ? list.map((v, i) => {
+                      const lbl = (p.emails || []).find(e => e && e.value === v);
+                      return <div key={i} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}><a href={"mailto:" + v}>{v}</a>{lbl && lbl.label ? <span style={{ fontSize: 11, color: "var(--ink-4)" }}>· {lbl.label}</span> : null}</div>;
+                    }) : <span className="muted">—</span>;
+                  })()}</dd>
+                  <dt>{lang === "es" ? "Teléfono" : "Phone"}</dt><dd>{(() => {
+                    const list = [...new Set([...(p.phones || []).map(ph => ph && ph.value).filter(Boolean), p.phone].filter(Boolean))];
+                    return list.length ? list.map((v, i) => {
+                      const lbl = (p.phones || []).find(ph => ph && ph.value === v);
+                      return <div key={i} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}><a href={"tel:" + v} className="mono">{v}</a>{lbl && lbl.label ? <span style={{ fontSize: 11, color: "var(--ink-4)" }}>· {lbl.label}</span> : null}</div>;
+                    }) : <span className="muted">—</span>;
+                  })()}</dd>
                   <dt>{t.common.web}</dt><dd>{p.website ? <a href={"https://" + p.website} target="_blank" rel="noopener">{p.website}</a> : <span className="muted">—</span>}</dd>
                   <dt>{t.common.social}</dt><dd><SocialRow social={p.social || {}} /></dd>
                 </dl>
