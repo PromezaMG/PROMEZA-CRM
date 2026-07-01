@@ -170,6 +170,7 @@ const PersonProfile = ({ id, t, lang, data, go, goBack, addComment, onUpdatePers
   attachments, onAddAttachment, onDeleteAttachment }) => {
   const p = data.personas.find(x => x.id === id);
   const [tab, setTab] = React.useState("details");
+  const [copiedId, setCopiedId] = React.useState(false);
   const [linking, setLinking] = React.useState(false);
   const [linkEntityId, setLinkEntityId] = React.useState("");
   const [linkRole, setLinkRole] = React.useState("miembro");
@@ -256,10 +257,15 @@ const PersonProfile = ({ id, t, lang, data, go, goBack, addComment, onUpdatePers
           )}
         </div>
         <div className="meta">
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
-            <h1 className="name" style={{ margin: 0 }}>{fullName(p)}</h1>
-            <span style={{ fontFamily: "var(--font-mono)", fontSize: 11.5, fontWeight: 700, color: "var(--accent)", background: "var(--accent-50)", padding: "2px 9px", borderRadius: 6, letterSpacing: ".04em", flexShrink: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4, flexWrap: "wrap" }}>
+            <h1 className="name" style={{ margin: 0, maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis" }}>{fullName(p)}</h1>
+            <span
+              title={lang === "es" ? "Clic para copiar el código" : "Click to copy code"}
+              onClick={() => { try { navigator.clipboard.writeText(p.id); setCopiedId(true); setTimeout(() => setCopiedId(false), 1200); } catch (e) {} }}
+              style={{ fontFamily: "var(--font-mono)", fontSize: 12, fontWeight: 700, color: "var(--accent)", background: "var(--accent-50)", padding: "3px 10px", borderRadius: 6, letterSpacing: ".04em", flexShrink: 0, cursor: "pointer", whiteSpace: "nowrap", display: "inline-flex", alignItems: "center", gap: 5 }}>
               #{window.getUID ? window.getUID(p.id) : p.id}
+              <Icon name="copy" size={11} />
+              {copiedId && <span style={{ fontSize: 10, color: "var(--good)", fontWeight: 700 }}>{lang === "es" ? "¡copiado!" : "copied!"}</span>}
             </span>
           </div>
           <div className="sub">
