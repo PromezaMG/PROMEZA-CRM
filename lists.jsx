@@ -590,6 +590,7 @@ const PersonasList = ({ t, lang, data, go, route, onImportPersonas, globalQ = ""
                 <option value="all">{lang === "es" ? "Todos" : "All"}</option>
                 <option value="es">Español</option>
                 <option value="en">English</option>
+                <option value="pt">Português</option>
               </select>
             </FField>
             <FField label={lang === "es" ? "Sexo" : "Gender"}>
@@ -1125,6 +1126,7 @@ const EntitiesList = ({ t, lang, data, go, route, onImportEntities, globalQ = ""
                 <option value="all">{lang === "es" ? "Todos" : "All"}</option>
                 <option value="es">Español</option>
                 <option value="en">English</option>
+                <option value="pt">Português</option>
               </select>
             </FField>
           </div>

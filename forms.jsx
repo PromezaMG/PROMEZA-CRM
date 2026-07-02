@@ -425,6 +425,7 @@ const NewEntityForm = ({ t, lang, data, onClose, onSave, initialData, editMode }
     tags: Array.isArray(initialData.tags) ? initialData.tags.join(", ") : (initialData.tags || ""),
     schedule: initialData.schedule || [],
     idioma: initialData.idioma || "",
+    language: initialData.language || "es",
   } : {
     name: "", type: "iglesia", typeOther: "", denominacion: "",
     emails: [], phones: [],
@@ -432,7 +433,7 @@ const NewEntityForm = ({ t, lang, data, onClose, onSave, initialData, editMode }
     website: "",
     social: { ig: "", fb: "", tiktok: "", x: "" },
     size: "", founded: "", parent: "",
-    tags: "", schedule: [], idioma: "",
+    tags: "", schedule: [], idioma: "", language: "es",
   });
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
   const setSoc = (k, v) => setForm(f => ({ ...f, social: { ...f.social, [k]: v } }));
@@ -520,20 +521,16 @@ const NewEntityForm = ({ t, lang, data, onClose, onSave, initialData, editMode }
           <div className="form-grid">
             <TextField label={t.common.size + " (" + t.common.members + ")"} type="number" value={form.size} onChange={v => set("size", v)} />
             <TextField label={t.common.founded} value={form.founded} onChange={v => set("founded", v)} placeholder="2014" />
-            {(form.type === "iglesia" || form.type === "sinagoga") && (
-              <SelectField
-                label={lang === "es" ? "Idioma de la congregación" : "Congregation language"}
-                value={form.idioma}
-                onChange={v => set("idioma", v)}
-                options={[
-                  { value: "", label: lang === "es" ? "— No especificado —" : "— Not specified —" },
-                  { value: "hispana", label: lang === "es" ? "Hispana / Español" : "Hispanic / Spanish" },
-                  { value: "ingles", label: lang === "es" ? "Inglés" : "English" },
-                  { value: "bilingue", label: lang === "es" ? "Bilingüe" : "Bilingual" },
-                  { value: "otro", label: lang === "es" ? "Otro" : "Other" },
-                ]}
-              />
-            )}
+            <SelectField
+              label={lang === "es" ? "Idioma" : "Language"}
+              value={form.language}
+              onChange={v => set("language", v)}
+              options={[
+                { value: "es", label: "Español" },
+                { value: "en", label: "English" },
+                { value: "pt", label: "Português" },
+              ]}
+            />
             <TextField full label={t.common.tags} value={form.tags} onChange={v => set("tags", v)} placeholder="matriz, hispana" hint={lang === "es" ? "Separadas por coma" : "Comma separated"} />
           </div>
 

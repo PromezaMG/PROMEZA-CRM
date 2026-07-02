@@ -5484,7 +5484,9 @@ const PersonasList = ({
     value: "es"
   }, "Espa\xF1ol"), /*#__PURE__*/React.createElement("option", {
     value: "en"
-  }, "English"))), /*#__PURE__*/React.createElement(FField, {
+  }, "English"), /*#__PURE__*/React.createElement("option", {
+    value: "pt"
+  }, "Portugu\xEAs"))), /*#__PURE__*/React.createElement(FField, {
     label: lang === "es" ? "Sexo" : "Gender"
   }, /*#__PURE__*/React.createElement("select", {
     value: genderF,
@@ -6570,7 +6572,9 @@ const EntitiesList = ({
     value: "es"
   }, "Espa\xF1ol"), /*#__PURE__*/React.createElement("option", {
     value: "en"
-  }, "English")))), /*#__PURE__*/React.createElement("div", {
+  }, "English"), /*#__PURE__*/React.createElement("option", {
+    value: "pt"
+  }, "Portugu\xEAs")))), /*#__PURE__*/React.createElement("div", {
     style: {
       borderTop: "1px solid var(--line)",
       paddingTop: 10,
@@ -9929,7 +9933,8 @@ const NewEntityForm = ({
     parent: initialData.parent || "",
     tags: Array.isArray(initialData.tags) ? initialData.tags.join(", ") : initialData.tags || "",
     schedule: initialData.schedule || [],
-    idioma: initialData.idioma || ""
+    idioma: initialData.idioma || "",
+    language: initialData.language || "es"
   } : {
     name: "",
     type: "iglesia",
@@ -9955,7 +9960,8 @@ const NewEntityForm = ({
     parent: "",
     tags: "",
     schedule: [],
-    idioma: ""
+    idioma: "",
+    language: "es"
   });
   const set = (k, v) => setForm(f => ({
     ...f,
@@ -10186,25 +10192,19 @@ const NewEntityForm = ({
     value: form.founded,
     onChange: v => set("founded", v),
     placeholder: "2014"
-  }), (form.type === "iglesia" || form.type === "sinagoga") && /*#__PURE__*/React.createElement(SelectField, {
-    label: lang === "es" ? "Idioma de la congregación" : "Congregation language",
-    value: form.idioma,
-    onChange: v => set("idioma", v),
+  }), /*#__PURE__*/React.createElement(SelectField, {
+    label: lang === "es" ? "Idioma" : "Language",
+    value: form.language,
+    onChange: v => set("language", v),
     options: [{
-      value: "",
-      label: lang === "es" ? "— No especificado —" : "— Not specified —"
+      value: "es",
+      label: "Español"
     }, {
-      value: "hispana",
-      label: lang === "es" ? "Hispana / Español" : "Hispanic / Spanish"
+      value: "en",
+      label: "English"
     }, {
-      value: "ingles",
-      label: lang === "es" ? "Inglés" : "English"
-    }, {
-      value: "bilingue",
-      label: lang === "es" ? "Bilingüe" : "Bilingual"
-    }, {
-      value: "otro",
-      label: lang === "es" ? "Otro" : "Other"
+      value: "pt",
+      label: "Português"
     }]
   }), /*#__PURE__*/React.createElement(TextField, {
     full: true,
@@ -21135,6 +21135,7 @@ const App = () => {
       founded: form.founded,
       parent: form.parent || null,
       schedule: form.schedule || [],
+      language: form.language || "es",
       tags,
       status: "activo",
       uid: computeUID(id),

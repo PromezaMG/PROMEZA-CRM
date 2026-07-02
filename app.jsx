@@ -1663,6 +1663,7 @@ const App = () => {
       size: form.size ? parseInt(form.size) : null,
       founded: form.founded, parent: form.parent || null,
       schedule: form.schedule || [],
+      language: form.language || "es",
       tags, status: "activo", uid: computeUID(id),
       _localSavedAt: new Date().toISOString(),
     };
