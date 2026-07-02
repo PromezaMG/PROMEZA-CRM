@@ -633,20 +633,22 @@ button { font-family: inherit; }
   text-transform: uppercase; letter-spacing: .07em;
 }
 .field input, .field select, .field textarea {
-  width: 100%; border: 1.5px solid #cbd2e0;
-  border-radius: var(--r-sm); padding: 9px 11px;
+  width: 100%; border: 1.5px solid #b4bed6;
+  border-radius: var(--r-sm); padding: 10px 12px;
   font: inherit; font-size: 13px;
-  background: #f4f6fb; color: var(--ink);
+  background: #eceff7; color: var(--ink);
   transition: border-color .15s, box-shadow .15s, background .15s;
 }
 .field input:hover, .field select:hover, .field textarea:hover {
-  border-color: #9aa4bd;
+  border-color: #8b97b6; background: #e6eaf5;
 }
 .field input:focus, .field select:focus, .field textarea:focus {
   outline: none; border-color: var(--accent); background: #fff;
   box-shadow: 0 0 0 3px var(--accent-100);
 }
-.field input::placeholder, .field textarea::placeholder { color: #9aa1b3; }
+.field input::placeholder, .field textarea::placeholder { color: #8890a6; }
+/* Multi-value add rows (phones/emails) — make them clearly visible too */
+.multi-add, .add-row, .field .add-btn { background: #eceff7 !important; border: 1.5px dashed #b4bed6 !important; }
 .field textarea { resize: vertical; min-height: 72px; }
 
 .entity-block {
