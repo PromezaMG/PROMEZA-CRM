@@ -150,8 +150,10 @@ const MergeEditor = ({ pA, pB, data, onConfirm, onCancel, t, lang }) => {
   });
   const [keepSide, setKeepSide] = React.useState("A");
 
+  // Only sets the per-field DATA source; does NOT change the base profile (the
+  // record/ID that's kept). This lets you keep B as the winner but pull all its
+  // data from A, or any mix.
   const setAll = (side) => {
-    setKeepSide(side);
     const n = {}; FIELDS.forEach(f => n[f.key] = side); setSels(n);
   };
   const pickVal = (key) => {
@@ -188,7 +190,9 @@ const MergeEditor = ({ pA, pB, data, onConfirm, onCancel, t, lang }) => {
               {lang === "es" ? "Elegir datos del perfil fusionado" : "Choose data for merged profile"}
             </div>
             <div style={{ fontSize: 12, color: "var(--ink-3)", marginTop: 2 }}>
-              {lang === "es" ? "Haz clic en el valor que quieres conservar en cada campo" : "Click the value to keep for each field"}
+              {lang === "es"
+                ? "1) Elige el perfil que se queda (ID).  2) Elige el dato de cada campo. Son independientes: el perfil 2 puede quedarse y aun así tomar datos del perfil 1."
+                : "1) Pick which profile stays (ID).  2) Pick each field's value. They're independent: profile 2 can be kept while still taking data from profile 1."}
             </div>
           </div>
           <button className="icon-btn" onClick={onCancel}><Icon name="x" /></button>
@@ -199,7 +203,8 @@ const MergeEditor = ({ pA, pB, data, onConfirm, onCancel, t, lang }) => {
           <div style={{ display: "grid", gridTemplateColumns: "90px 1fr 1fr", gap: 10, marginBottom: 14, paddingBottom: 14, borderBottom: "2px solid var(--line)" }}>
             <div style={{ display: "flex", alignItems: "center" }}>
               <span style={{ fontSize: 10.5, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".05em", color: "var(--ink-4)" }}>
-                {lang === "es" ? "Perfil base" : "Base profile"}
+                {lang === "es" ? "Se queda" : "Keeps"}
+                <span style={{ display: "block", fontSize: 9, fontWeight: 500, textTransform: "none", letterSpacing: 0, color: "var(--ink-4)", marginTop: 2 }}>{lang === "es" ? "el otro se borra" : "other is deleted"}</span>
               </span>
             </div>
             {[{ side: "A", p: pA }, { side: "B", p: pB }].map(({ side, p }) => (
@@ -225,11 +230,11 @@ const MergeEditor = ({ pA, pB, data, onConfirm, onCancel, t, lang }) => {
           <div style={{ display: "grid", gridTemplateColumns: "90px 1fr 1fr", gap: 10, marginBottom: 14 }}>
             <div style={{ display: "flex", alignItems: "center" }}>
               <span style={{ fontSize: 10.5, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".05em", color: "var(--ink-4)" }}>
-                {lang === "es" ? "Selección rápida" : "Quick select"}
+                {lang === "es" ? "Datos: todos de…" : "Data: all from…"}
               </span>
             </div>
-            <button className="btn btn-sm" onClick={() => setAll("A")} style={{ width: "100%" }}>← {lang === "es" ? "Todos de A" : "All from A"}</button>
-            <button className="btn btn-sm" onClick={() => setAll("B")} style={{ width: "100%" }}>{lang === "es" ? "Todos de B" : "All from B"} →</button>
+            <button className="btn btn-sm" onClick={() => setAll("A")} style={{ width: "100%" }}>← {lang === "es" ? "Datos de A" : "Data from A"}</button>
+            <button className="btn btn-sm" onClick={() => setAll("B")} style={{ width: "100%" }}>{lang === "es" ? "Datos de B" : "Data from B"} →</button>
           </div>
 
           {/* ── Field rows by group ── */}

@@ -10503,8 +10503,11 @@ const MergeEditor = ({
     return s;
   });
   const [keepSide, setKeepSide] = React.useState("A");
+
+  // Only sets the per-field DATA source; does NOT change the base profile (the
+  // record/ID that's kept). This lets you keep B as the winner but pull all its
+  // data from A, or any mix.
   const setAll = side => {
-    setKeepSide(side);
     const n = {};
     FIELDS.forEach(f => n[f.key] = side);
     setSels(n);
@@ -10572,7 +10575,7 @@ const MergeEditor = ({
       color: "var(--ink-3)",
       marginTop: 2
     }
-  }, lang === "es" ? "Haz clic en el valor que quieres conservar en cada campo" : "Click the value to keep for each field")), /*#__PURE__*/React.createElement("button", {
+  }, lang === "es" ? "1) Elige el perfil que se queda (ID).  2) Elige el dato de cada campo. Son independientes: el perfil 2 puede quedarse y aun así tomar datos del perfil 1." : "1) Pick which profile stays (ID).  2) Pick each field's value. They're independent: profile 2 can be kept while still taking data from profile 1.")), /*#__PURE__*/React.createElement("button", {
     className: "icon-btn",
     onClick: onCancel
   }, /*#__PURE__*/React.createElement(Icon, {
@@ -10601,7 +10604,17 @@ const MergeEditor = ({
       letterSpacing: ".05em",
       color: "var(--ink-4)"
     }
-  }, lang === "es" ? "Perfil base" : "Base profile")), [{
+  }, lang === "es" ? "Se queda" : "Keeps", /*#__PURE__*/React.createElement("span", {
+    style: {
+      display: "block",
+      fontSize: 9,
+      fontWeight: 500,
+      textTransform: "none",
+      letterSpacing: 0,
+      color: "var(--ink-4)",
+      marginTop: 2
+    }
+  }, lang === "es" ? "el otro se borra" : "other is deleted"))), [{
     side: "A",
     p: pA
   }, {
@@ -10668,19 +10681,19 @@ const MergeEditor = ({
       letterSpacing: ".05em",
       color: "var(--ink-4)"
     }
-  }, lang === "es" ? "Selección rápida" : "Quick select")), /*#__PURE__*/React.createElement("button", {
+  }, lang === "es" ? "Datos: todos de…" : "Data: all from…")), /*#__PURE__*/React.createElement("button", {
     className: "btn btn-sm",
     onClick: () => setAll("A"),
     style: {
       width: "100%"
     }
-  }, "\u2190 ", lang === "es" ? "Todos de A" : "All from A"), /*#__PURE__*/React.createElement("button", {
+  }, "\u2190 ", lang === "es" ? "Datos de A" : "Data from A"), /*#__PURE__*/React.createElement("button", {
     className: "btn btn-sm",
     onClick: () => setAll("B"),
     style: {
       width: "100%"
     }
-  }, lang === "es" ? "Todos de B" : "All from B", " \u2192")), GROUPS.map(group => {
+  }, lang === "es" ? "Datos de B" : "Data from B", " \u2192")), GROUPS.map(group => {
     const gFields = FIELDS.filter(f => f.group === group.id).filter(f => getVal(pA, f.key) || getVal(pB, f.key));
     if (!gFields.length) return null;
     return /*#__PURE__*/React.createElement("div", {
