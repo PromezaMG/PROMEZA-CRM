@@ -628,39 +628,37 @@ button { font-family: inherit; }
 }
 .form-grid .full { grid-column: 1 / -1; }
 .field { display: flex; flex-direction: column; gap: 5px; }
-/* Field labels — dark-blue filled chips so each field reads clearly (form looked
-   too white). */
+/* Field labels — clean dark-blue text (no heavy chip). */
 .field label {
-  align-self: flex-start;
-  font-size: 10.5px; font-weight: 800; color: #fff;
-  background: #1e3a8a; padding: 3px 9px; border-radius: 6px;
-  text-transform: uppercase; letter-spacing: .05em;
+  font-size: 10.5px; font-weight: 700; color: #3a539b;
+  text-transform: uppercase; letter-spacing: .06em;
 }
-/* Section headers (INFORMACIÓN BÁSICA, CONTACTO, DIRECCIÓN, …) — solid dark-blue
-   bar so sections stand out (overrides the inline gray color). */
+/* Section headers (INFORMACIÓN BÁSICA, CONTACTO, DIRECCIÓN, …) — soft blue band
+   with a left accent so sections stand out without looking heavy. Overrides the
+   inline gray color. */
 .modal-body h4 {
-  display: inline-block; color: #fff !important;
-  background: #1e3a8a; padding: 6px 14px; border-radius: 8px;
-  font-size: 12px !important; font-weight: 800;
-  box-shadow: 0 2px 6px rgba(30,58,138,.25);
+  display: block; color: #1e3a8a !important;
+  background: #eaf1fd; border-left: 3px solid var(--accent);
+  padding: 7px 12px; border-radius: 6px;
+  font-size: 11px !important; font-weight: 800; letter-spacing: .07em;
 }
 .field input, .field select, .field textarea {
-  width: 100%; border: 1.5px solid #9fb6e6;
+  width: 100%; border: 1.5px solid #c6d3ee;
   border-radius: var(--r-sm); padding: 10px 12px;
   font: inherit; font-size: 13px;
-  background: #dce7fb; color: var(--ink);
+  background: #f2f6fd; color: var(--ink);
   transition: border-color .15s, box-shadow .15s, background .15s;
 }
 .field input:hover, .field select:hover, .field textarea:hover {
-  border-color: #6d8fd6; background: #cddcfa;
+  border-color: #8ba6de; background: #eaf1fd;
 }
 .field input:focus, .field select:focus, .field textarea:focus {
   outline: none; border-color: var(--accent); background: #fff;
   box-shadow: 0 0 0 3px var(--accent-100);
 }
-.field input::placeholder, .field textarea::placeholder { color: #6b7aa0; }
-/* Multi-value add rows (phones/emails) — make them clearly visible too */
-.multi-add, .add-row, .field .add-btn { background: #dce7fb !important; border: 1.5px dashed #9fb6e6 !important; }
+.field input::placeholder, .field textarea::placeholder { color: #8890a6; }
+/* Multi-value add rows (phones/emails) — match the field style. */
+.multi-add, .add-row, .field .add-btn { background: #f2f6fd !important; border: 1.5px dashed #c6d3ee !important; }
 .field textarea { resize: vertical; min-height: 72px; }
 
 .entity-block {
