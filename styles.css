@@ -629,26 +629,29 @@ button { font-family: inherit; }
 .form-grid .full { grid-column: 1 / -1; }
 .field { display: flex; flex-direction: column; gap: 5px; }
 .field label {
-  font-size: 11px; font-weight: 700; color: var(--ink-2);
+  font-size: 11px; font-weight: 800; color: #1e3a8a;
   text-transform: uppercase; letter-spacing: .07em;
 }
+/* Section headers inside form modals (CONTACTO, DIRECCIÓN, …) — dark blue so the
+   key sections stand out (overrides the inline gray color). */
+.modal-body h4 { color: #1e3a8a !important; }
 .field input, .field select, .field textarea {
-  width: 100%; border: 1.5px solid #b4bed6;
+  width: 100%; border: 1.5px solid #9fb6e6;
   border-radius: var(--r-sm); padding: 10px 12px;
   font: inherit; font-size: 13px;
-  background: #eceff7; color: var(--ink);
+  background: #dce7fb; color: var(--ink);
   transition: border-color .15s, box-shadow .15s, background .15s;
 }
 .field input:hover, .field select:hover, .field textarea:hover {
-  border-color: #8b97b6; background: #e6eaf5;
+  border-color: #6d8fd6; background: #cddcfa;
 }
 .field input:focus, .field select:focus, .field textarea:focus {
   outline: none; border-color: var(--accent); background: #fff;
   box-shadow: 0 0 0 3px var(--accent-100);
 }
-.field input::placeholder, .field textarea::placeholder { color: #8890a6; }
+.field input::placeholder, .field textarea::placeholder { color: #6b7aa0; }
 /* Multi-value add rows (phones/emails) — make them clearly visible too */
-.multi-add, .add-row, .field .add-btn { background: #eceff7 !important; border: 1.5px dashed #b4bed6 !important; }
+.multi-add, .add-row, .field .add-btn { background: #dce7fb !important; border: 1.5px dashed #9fb6e6 !important; }
 .field textarea { resize: vertical; min-height: 72px; }
 
 .entity-block {
