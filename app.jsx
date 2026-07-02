@@ -822,7 +822,7 @@ const App = () => {
     // Detect roles that got corrupted by the import (a city/county landed in the
     // role field, e.g. ["San Francisco"], ["Kern"]). A role is only "valid" if
     // every entry is a known role key. Corrupted ones are restored from data.js.
-    const VALID_ROLES = new Set(["pastor", "co-pastor", "copastor", "lider", "lÃ­der", "miembro", "tesorero", "ujier", "adorador", "musico", "mÃºsico", "comunicador", "influencer", "presidente", "vicepresidente", "secretario", "diacono", "diÃ¡cono", "maestro", "director-ministerio", "voluntario", "evangelista", "misionero", "otro"]);
+    const VALID_ROLES = new Set(["pastor", "co-pastor", "copastor", "lider", "lÃ­der", "miembro", "tesorero", "ujier", "adorador", "musico", "mÃºsico", "comunicador", "influencer", "presidente", "vicepresidente", "fundador", "secretario", "diacono", "diÃ¡cono", "maestro", "director-ministerio", "voluntario", "evangelista", "misionero", "otro"]);
     const rolesLookValid = (arr) => Array.isArray(arr) && arr.length > 0 && arr.every(r => VALID_ROLES.has((r || "").toLowerCase().trim()));
     // A name that looks like an imported interaction note (date + text), not a real name.
     const looksLikeNote = (s) => !s || /\d{1,2}\/\d{1,2}|Spoke |Talked |services on|Cannot Go|movie project|told (him|her)/i.test(s);
@@ -1002,14 +1002,14 @@ const App = () => {
       // The database was rebuilt clean from the source spreadsheet. Load ONLY from
       // Airtable (ignore the old local cache AND the bundled data.js seed) so every
       // device shows the clean base. Runs once per browser.
-      if (!localStorage.getItem('promeza_cleanslate_v161')) {
+      if (!localStorage.getItem('promeza_cleanslate_v170')) {
         try {
           const at = await window.AIRTABLE.loadData();
           if (at && ((at.personas || []).length > 200)) {
             const fresh = processLoadedData({ personas: at.personas, entities: at.entities, tasks: {}, interactions: {}, projects: [], campaigns: [], calendarEvents: [], comments: {}, attachments: {}, changelog: {}, goals: [], segments: [] });
             try { delete window.PROMEZA_DATA; } catch (e) {}
             try { delete window.PROMEZA_CHURCHES; } catch (e) {}
-            localStorage.setItem('promeza_cleanslate_v161', '1');
+            localStorage.setItem('promeza_cleanslate_v170', '1');
             try { const bytes = await window.CryptoUtils.encryptBytes(JSON.stringify(fresh), key); await idbSet('promeza_data_bytes', bytes); } catch (e) {}
             setData(fresh); setDataReady(true);
             console.log('PROMEZA: clean-slate loaded ' + fresh.personas.length + ' contacts from Airtable');
@@ -1201,7 +1201,7 @@ const App = () => {
             // v117: fix roles corrupted by the import (a city/county landed in the
             // role field, e.g. "San Francisco", "Kern") â€” restore from data.js.
             if (!localStorage.getItem('promeza_roles_v117') && window.PROMEZA_DATA) {
-              const VALID_R = new Set(["pastor", "co-pastor", "copastor", "lider", "lÃ­der", "miembro", "tesorero", "ujier", "adorador", "musico", "mÃºsico", "comunicador", "influencer", "presidente", "vicepresidente", "secretario", "diacono", "diÃ¡cono", "maestro", "director-ministerio", "voluntario", "evangelista", "misionero", "otro"]);
+              const VALID_R = new Set(["pastor", "co-pastor", "copastor", "lider", "lÃ­der", "miembro", "tesorero", "ujier", "adorador", "musico", "mÃºsico", "comunicador", "influencer", "presidente", "vicepresidente", "fundador", "secretario", "diacono", "diÃ¡cono", "maestro", "director-ministerio", "voluntario", "evangelista", "misionero", "otro"]);
               const okRoles = (arr) => Array.isArray(arr) && arr.length > 0 && arr.every(r => VALID_R.has((r || "").toLowerCase().trim()));
               const srcRoles = new Map((window.PROMEZA_DATA.personas || []).map(p => [p.id, p]));
               let rFixed = 0;

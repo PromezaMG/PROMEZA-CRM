@@ -309,7 +309,7 @@ const _personasFilters = {};
 
 const PersonasList = ({ t, lang, data, go, route, onImportPersonas, globalQ = "", onBulkDelete, onBulkUpdateStatus, onBulkAddTag, onBulkAddTask, segments, onAddSegment, onDeleteSegment, users, currentUser }) => {
   const F = _personasFilters;
-  const [role, setRole] = React.useState(F.role !== undefined ? F.role : "all");
+  const [role, setRole] = React.useState(Array.isArray(F.role) ? F.role : []); // multi-select role keys; [] = all
   const [issue, setIssue] = React.useState(F.issue !== undefined ? F.issue : false);
   const [genderF, setGenderF] = React.useState(F.genderF !== undefined ? F.genderF : "all");
   const [country, setCountry] = React.useState(F.country !== undefined ? F.country : "all");
@@ -355,7 +355,7 @@ const PersonasList = ({ t, lang, data, go, route, onImportPersonas, globalQ = ""
   const rows = React.useMemo(() => data.personas.filter(p => {
     if (issue && !(window.hasContactIssue && window.hasContactIssue(p))) return false;
     if (genderF !== "all" && (p.gender || "") !== genderF) return false;
-    if (role !== "all" && !(p.roles ? p.roles.includes(role) : p.role === role)) return false;
+    if (role.length) { const pr = (p.roles && p.roles.length) ? p.roles : (p.role ? [p.role] : []); if (!role.some(r => pr.includes(r))) return false; }
     if (country !== "all" && p.country !== country) return false;
     if (stateFilter && !(normState(p.state) || "").toLowerCase().includes(stateFilter.toLowerCase())) return false;
     if (status !== "all" && p.status !== status) return false;
@@ -393,7 +393,7 @@ const PersonasList = ({ t, lang, data, go, route, onImportPersonas, globalQ = ""
     return true;
   }).sort((a, b) => { const fa = fullName(a), fb = fullName(b); if (!fa && !fb) return 0; if (!fa) return 1; if (!fb) return -1; return window.nameCmp(fa, fb); }), [data.personas, issue, genderF, role, country, stateFilter, status, stageFilter, langFilter, city, countyFilter, zip, tagFilter, emailFilter, phoneFilter, q, globalQ]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const activeFilters = [issue, genderF !== "all", role !== "all", country !== "all", stateFilter, status !== "all", stageFilter !== "all", langFilter !== "all", city, countyFilter, zip, tagFilter, emailFilter, phoneFilter, q].filter(Boolean).length;
+  const activeFilters = [issue, genderF !== "all", role.length > 0, country !== "all", stateFilter, status !== "all", stageFilter !== "all", langFilter !== "all", city, countyFilter, zip, tagFilter, emailFilter, phoneFilter, q].filter(Boolean).length;
 
   // Reset to page 0 whenever any filter or search changes
   React.useEffect(() => { setPage(0); }, [issue, genderF, role, country, stateFilter, status, stageFilter, langFilter, city, countyFilter, zip, tagFilter, emailFilter, phoneFilter, q, globalQ]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -404,7 +404,7 @@ const PersonasList = ({ t, lang, data, go, route, onImportPersonas, globalQ = ""
   React.useEffect(() => {
     const preset = route && route.preset;
     if (!preset) return;
-    setRole("all"); setCountry("all"); setStateFilter(""); setStatus("all"); setStageFilter("all"); setLangFilter("all");
+    setRole([]); setCountry("all"); setStateFilter(""); setStatus("all"); setStageFilter("all"); setLangFilter("all");
     setCity(""); setCountyFilter(""); setZip(""); setTagFilter(""); setEmailFilter(""); setPhoneFilter(""); setQ("");
     setIssue(false); setGenderF("all"); setPage(0);
     if (preset === "revisar") setIssue(true);
@@ -417,7 +417,7 @@ const PersonasList = ({ t, lang, data, go, route, onImportPersonas, globalQ = ""
 
   const clearFilters = () => {
     setIssue(false); setGenderF("all");
-    setRole("all"); setCountry("all"); setStateFilter(""); setStatus("all"); setStageFilter("all"); setLangFilter("all");
+    setRole([]); setCountry("all"); setStateFilter(""); setStatus("all"); setStageFilter("all"); setLangFilter("all");
     setCity(""); setCountyFilter(""); setZip(""); setTagFilter(""); setEmailFilter(""); setPhoneFilter(""); setQ("");
   };
 
@@ -425,7 +425,7 @@ const PersonasList = ({ t, lang, data, go, route, onImportPersonas, globalQ = ""
   const loadSegment = (seg) => {
     const f = seg.filters;
     setIssue(f.issue || false); setGenderF(f.genderF || "all");
-    setRole(f.role || "all"); setCountry(f.country || "all"); setStateFilter(f.stateFilter || ""); setStatus(f.status || "all");
+    setRole(Array.isArray(f.role) ? f.role : []); setCountry(f.country || "all"); setStateFilter(f.stateFilter || ""); setStatus(f.status || "all");
     setStageFilter(f.stageFilter || "all"); setLangFilter(f.langFilter || "all");
     setCity(f.city || ""); setCountyFilter(f.countyFilter || ""); setZip(f.zip || ""); setTagFilter(f.tagFilter || "");
     setEmailFilter(f.emailFilter || ""); setPhoneFilter(f.phoneFilter || ""); setQ(f.q || "");
@@ -489,7 +489,7 @@ const PersonasList = ({ t, lang, data, go, route, onImportPersonas, globalQ = ""
       id: p.id,
       nombre: p.first,
       apellido: p.last,
-      cargo: p.roles
+      cargo: (p.roles && p.roles.length)
         ? p.roles.map(r => t.roles[r] || r).join(", ")
         : (p.role === "otro" ? (p.roleOther || "Otro") : (t.roles[p.role] || p.role)),
       email: p.email,
@@ -609,7 +609,8 @@ const PersonasList = ({ t, lang, data, go, route, onImportPersonas, globalQ = ""
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
               <span style={{ fontSize: 11, fontWeight: 600, color: "var(--ink-3)", textTransform: "uppercase", letterSpacing: ".05em", minWidth: 52 }}>{t.common.role}:</span>
               {roles.map(r => (
-                <button key={r} className={"chip " + (role === r ? "on" : "")} onClick={() => setRole(r)}>
+                <button key={r} className={"chip " + ((r === "all" ? role.length === 0 : role.includes(r)) ? "on" : "")}
+                  onClick={() => { if (r === "all") setRole([]); else setRole(prev => prev.includes(r) ? prev.filter(x => x !== r) : [...prev, r]); }}>
                   {r === "all" ? t.common.all : t.roles[r]}
                 </button>
               ))}
@@ -856,7 +857,7 @@ const PersonasList = ({ t, lang, data, go, route, onImportPersonas, globalQ = ""
                 </td>
                 <td>
                   <span className="role-pill">
-                    {p.roles
+                    {(p.roles && p.roles.length)
                       ? p.roles.map(r => t.roles[r] || r).join(" · ")
                       : (p.role === "otro" ? (p.roleOther || t.roles.otro) : (t.roles[p.role] || p.role))}
                   </span>
@@ -907,7 +908,8 @@ const _entitiesFilters = {};
 
 const EntitiesList = ({ t, lang, data, go, route, onImportEntities, globalQ = "" }) => {
   const EF = _entitiesFilters;
-  const [type, setType] = React.useState(EF.type !== undefined ? EF.type : "all");
+  const [type, setType] = React.useState(Array.isArray(EF.type) ? EF.type : []); // multi-select entity types; [] = all
+  const [langFilter, setLangFilter] = React.useState(EF.langFilter !== undefined ? EF.langFilter : "all");
   const [country, setCountry] = React.useState(EF.country !== undefined ? EF.country : "all");
   const [status, setStatus] = React.useState(EF.status !== undefined ? EF.status : "all");
   const [city, setCity] = React.useState(EF.city !== undefined ? EF.city : "");
@@ -929,16 +931,16 @@ const EntitiesList = ({ t, lang, data, go, route, onImportEntities, globalQ = ""
     setSelected(prev => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n; });
   };
   React.useEffect(() => {
-    Object.assign(_entitiesFilters, { type, country, status, city, stateFilter, countyFilter, zip, tagFilter, emailFilter, phoneFilter, dayFilter, q, showFilters, page });
-  }, [type, country, status, city, stateFilter, countyFilter, zip, tagFilter, emailFilter, phoneFilter, dayFilter, q, showFilters, page]);
-  React.useEffect(() => { setPage(0); }, [type, country, status, city, stateFilter, countyFilter, zip, tagFilter, emailFilter, phoneFilter, dayFilter, q]); // eslint-disable-line react-hooks/exhaustive-deps
+    Object.assign(_entitiesFilters, { type, langFilter, country, status, city, stateFilter, countyFilter, zip, tagFilter, emailFilter, phoneFilter, dayFilter, q, showFilters, page });
+  }, [type, langFilter, country, status, city, stateFilter, countyFilter, zip, tagFilter, emailFilter, phoneFilter, dayFilter, q, showFilters, page]);
+  React.useEffect(() => { setPage(0); }, [type, langFilter, country, status, city, stateFilter, countyFilter, zip, tagFilter, emailFilter, phoneFilter, dayFilter, q]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Apply a preset from the Home dashboard (e.g. "inactivas" → entities that no
   // longer broadcast). Resets filters then applies the requested status.
   React.useEffect(() => {
     const preset = route && route.preset;
     if (!preset) return;
-    setType("all"); setCountry("all"); setStatus("all"); setCity(""); setStateFilter(""); setCountyFilter("");
+    setType([]); setLangFilter("all"); setCountry("all"); setStatus("all"); setCity(""); setStateFilter(""); setCountyFilter("");
     setZip(""); setTagFilter(""); setEmailFilter(""); setPhoneFilter(""); setDayFilter("all"); setQ(""); setPage(0);
     if (preset === "inactivas") setStatus("inactivo");
     else if (preset === "activas") setStatus("activo");
@@ -956,7 +958,8 @@ const EntitiesList = ({ t, lang, data, go, route, onImportEntities, globalQ = ""
   }));
 
   const rows = data.entities.filter(e => {
-    if (type !== "all" && e.type !== type) return false;
+    if (type.length && !type.includes(e.type)) return false;
+    if (langFilter !== "all" && (e.language || "es") !== langFilter) return false;
     if (country !== "all" && e.country !== country) return false;
     if (status !== "all" && (e.status || "activo") !== status) return false;
     if (city && !(e.city || "").toLowerCase().includes(city.toLowerCase())) return false;
@@ -989,12 +992,12 @@ const EntitiesList = ({ t, lang, data, go, route, onImportEntities, globalQ = ""
     return true;
   }).sort((a, b) => window.nameCmp(a.name, b.name));
 
-  const activeFilters = [type !== "all", country !== "all", status !== "all", city, stateFilter, countyFilter, zip, tagFilter, emailFilter, phoneFilter, dayFilter !== "all", q].filter(Boolean).length;
+  const activeFilters = [type.length > 0, langFilter !== "all", country !== "all", status !== "all", city, stateFilter, countyFilter, zip, tagFilter, emailFilter, phoneFilter, dayFilter !== "all", q].filter(Boolean).length;
 
   const toggleSelectAll = () => setSelected(selected.size === rows.length ? new Set() : new Set(rows.map(e => e.id)));
 
   const clearFilters = () => {
-    setType("all"); setCountry("all"); setStatus("all");
+    setType([]); setLangFilter("all"); setCountry("all"); setStatus("all");
     setCity(""); setStateFilter(""); setCountyFilter(""); setZip(""); setTagFilter(""); setEmailFilter(""); setPhoneFilter(""); setDayFilter("all"); setQ("");
   };
 
@@ -1117,13 +1120,21 @@ const EntitiesList = ({ t, lang, data, go, route, onImportEntities, globalQ = ""
             <FField label={t.common.tags}>
               <input value={tagFilter} onChange={e => setTagFilter(e.target.value)} placeholder={lang === "es" ? "hispana, matriz…" : "hispanic, main…"} />
             </FField>
+            <FField label={t.common.language}>
+              <select value={langFilter} onChange={e => setLangFilter(e.target.value)}>
+                <option value="all">{lang === "es" ? "Todos" : "All"}</option>
+                <option value="es">Español</option>
+                <option value="en">English</option>
+              </select>
+            </FField>
           </div>
 
           <div style={{ borderTop: "1px solid var(--line)", paddingTop: 10, display: "flex", flexDirection: "column", gap: 8 }}>
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
               <span style={{ fontSize: 11, fontWeight: 600, color: "var(--ink-3)", textTransform: "uppercase", letterSpacing: ".05em", minWidth: 52 }}>{t.common.type}:</span>
               {types.map(tp => (
-                <button key={tp} className={"chip " + (type === tp ? "on" : "")} onClick={() => setType(tp)}>
+                <button key={tp} className={"chip " + ((tp === "all" ? type.length === 0 : type.includes(tp)) ? "on" : "")}
+                  onClick={() => { if (tp === "all") setType([]); else setType(prev => prev.includes(tp) ? prev.filter(x => x !== tp) : [...prev, tp]); }}>
                   {tp === "all" ? t.common.all : t.types[tp]}
                 </button>
               ))}

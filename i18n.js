@@ -37,7 +37,7 @@ window.PROMEZA_I18N = {
       influencer: "Influencer", cantante: "Cantante",
       musico: "Músico", predicador: "Predicador", periodista: "Periodista",
       presentador: "Presentador", productor: "Productor",
-      comunicador: "Comunicador", otro: "Otro",
+      comunicador: "Comunicador", presidente: "Presidente", fundador: "Fundador", otro: "Otro",
     },
     types: {
       iglesia: "Iglesia", sinagoga: "Sinagoga", universidad: "Universidad",
@@ -179,7 +179,7 @@ window.PROMEZA_I18N = {
       influencer: "Influencer", cantante: "Singer",
       musico: "Musician", predicador: "Preacher", periodista: "Journalist",
       presentador: "Host / Presenter", productor: "Producer",
-      comunicador: "Communicator", otro: "Other",
+      comunicador: "Communicator", presidente: "President", fundador: "Founder", otro: "Other",
     },
     types: {
       iglesia: "Church", sinagoga: "Synagogue", universidad: "University",
