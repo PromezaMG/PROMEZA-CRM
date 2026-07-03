@@ -303,6 +303,18 @@ const FField = ({ label, children }) => (
   </div>
 );
 
+// Row click: Ctrl/⌘+click or middle-click opens the profile in a NEW TAB (via the
+// hash URL); a plain click navigates in place.
+const openRoute = (e, go, r) => {
+  if (e && (e.ctrlKey || e.metaKey || e.button === 1)) {
+    if (e.preventDefault) e.preventDefault();
+    const hash = window.PROMEZA_HASH ? window.PROMEZA_HASH(r) : "";
+    try { window.open(location.pathname + location.search + hash, "_blank"); } catch (_) { go(r); }
+  } else if (!e || e.button === 0 || e.button === undefined) {
+    go(r);
+  }
+};
+
 // Remember Contactos filters across navigation: entering a profile and pressing
 // Back restores the same filter / search / page instead of resetting to the full list.
 const _personasFilters = {};
@@ -837,7 +849,9 @@ const PersonasList = ({ t, lang, data, go, route, onImportPersonas, globalQ = ""
           </thead>
           <tbody>
             {pageRows.map(p => (
-              <tr key={p.id} onClick={() => go({ name: "person", id: p.id })}
+              <tr key={p.id} onClick={(e) => openRoute(e, go, { name: "person", id: p.id })}
+                onAuxClick={(e) => openRoute(e, go, { name: "person", id: p.id })}
+                title={lang === "es" ? "Ctrl/⌘+clic para abrir en pestaña nueva" : "Ctrl/⌘+click to open in a new tab"}
                 style={{ background: selected.has(p.id) ? "var(--accent-50)" : undefined }}>
                 <td style={{ paddingRight: 0 }} onClick={e => toggleSelect(e, p.id)}>
                   <input
@@ -1209,7 +1223,9 @@ const EntitiesList = ({ t, lang, data, go, route, onImportEntities, globalQ = ""
           </thead>
           <tbody>
             {rows.slice(page * E_PAGE_SIZE, (page + 1) * E_PAGE_SIZE).map(e => (
-              <tr key={e.id} onClick={() => go({ name: "entity", id: e.id })}
+              <tr key={e.id} onClick={(ev) => openRoute(ev, go, { name: "entity", id: e.id })}
+                onAuxClick={(ev) => openRoute(ev, go, { name: "entity", id: e.id })}
+                title={lang === "es" ? "Ctrl/⌘+clic para abrir en pestaña nueva" : "Ctrl/⌘+click to open in a new tab"}
                 style={{ background: selected.has(e.id) ? "var(--accent-50)" : undefined }}>
                 <td style={{ paddingRight: 0 }} onClick={ev => toggleSelect(ev, e.id)}>
                   <input type="checkbox" checked={selected.has(e.id)} onChange={ev => toggleSelect(ev, e.id)} onClick={ev => ev.stopPropagation()} />

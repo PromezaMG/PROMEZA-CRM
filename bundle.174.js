@@ -4943,6 +4943,22 @@ const FField = ({
   }
 }, label), children);
 
+// Row click: Ctrl/⌘+click or middle-click opens the profile in a NEW TAB (via the
+// hash URL); a plain click navigates in place.
+const openRoute = (e, go, r) => {
+  if (e && (e.ctrlKey || e.metaKey || e.button === 1)) {
+    if (e.preventDefault) e.preventDefault();
+    const hash = window.PROMEZA_HASH ? window.PROMEZA_HASH(r) : "";
+    try {
+      window.open(location.pathname + location.search + hash, "_blank");
+    } catch (_) {
+      go(r);
+    }
+  } else if (!e || e.button === 0 || e.button === undefined) {
+    go(r);
+  }
+};
+
 // Remember Contactos filters across navigation: entering a profile and pressing
 // Back restores the same filter / search / page instead of resetting to the full list.
 const _personasFilters = {};
@@ -6017,10 +6033,15 @@ const PersonasList = ({
     }
   }, t.common.profile), /*#__PURE__*/React.createElement("th", null, t.common.role), /*#__PURE__*/React.createElement("th", null, t.common.relatedEntities), /*#__PURE__*/React.createElement("th", null, t.common.contact), /*#__PURE__*/React.createElement("th", null, t.common.address), /*#__PURE__*/React.createElement("th", null, t.common.tags))), /*#__PURE__*/React.createElement("tbody", null, pageRows.map(p => /*#__PURE__*/React.createElement("tr", {
     key: p.id,
-    onClick: () => go({
+    onClick: e => openRoute(e, go, {
       name: "person",
       id: p.id
     }),
+    onAuxClick: e => openRoute(e, go, {
+      name: "person",
+      id: p.id
+    }),
+    title: lang === "es" ? "Ctrl/⌘+clic para abrir en pestaña nueva" : "Ctrl/⌘+click to open in a new tab",
     style: {
       background: selected.has(p.id) ? "var(--accent-50)" : undefined
     }
@@ -6712,10 +6733,15 @@ const EntitiesList = ({
     }
   }, t.common.profile), /*#__PURE__*/React.createElement("th", null, t.common.type), /*#__PURE__*/React.createElement("th", null, t.common.address), /*#__PURE__*/React.createElement("th", null, t.common.contact), /*#__PURE__*/React.createElement("th", null, t.common.relatedPersonas), /*#__PURE__*/React.createElement("th", null, t.common.size), /*#__PURE__*/React.createElement("th", null, "Horario"), /*#__PURE__*/React.createElement("th", null, t.common.tags))), /*#__PURE__*/React.createElement("tbody", null, rows.slice(page * E_PAGE_SIZE, (page + 1) * E_PAGE_SIZE).map(e => /*#__PURE__*/React.createElement("tr", {
     key: e.id,
-    onClick: () => go({
+    onClick: ev => openRoute(ev, go, {
       name: "entity",
       id: e.id
     }),
+    onAuxClick: ev => openRoute(ev, go, {
+      name: "entity",
+      id: e.id
+    }),
+    title: lang === "es" ? "Ctrl/⌘+clic para abrir en pestaña nueva" : "Ctrl/⌘+click to open in a new tab",
     style: {
       background: selected.has(e.id) ? "var(--accent-50)" : undefined
     }
@@ -18694,6 +18720,32 @@ const saveEncryptedObj = async (obj, key, keyRaw) => {
   }
   return saveEncrypted(JSON.stringify(obj), key);
 };
+// ── Route <-> URL hash helpers (deep-linking / open-in-new-tab) ──
+const _ROUTE_WITH_ID = {
+  person: 1,
+  entity: 1,
+  project: 1
+};
+const routeToHash = r => {
+  if (!r || !r.name) return "";
+  return "#" + r.name + (_ROUTE_WITH_ID[r.name] && r.id ? "/" + encodeURIComponent(r.id) : "");
+};
+const hashToRoute = h => {
+  const s = (h || "").replace(/^#\/?/, "").trim();
+  if (!s) return null;
+  const i = s.indexOf("/");
+  const name = i === -1 ? s : s.slice(0, i);
+  const id = i === -1 ? null : decodeURIComponent(s.slice(i + 1));
+  if (!name) return null;
+  return id ? {
+    name,
+    id
+  } : {
+    name
+  };
+};
+const sameRoute = (a, b) => !!a && !!b && a.name === b.name && (a.id || "") === (b.id || "");
+if (typeof window !== "undefined") window.PROMEZA_HASH = routeToHash;
 const clearStoredData = async () => {
   try {
     await idbSet(DATA_BYTES_KEY, null);
@@ -20965,6 +21017,19 @@ const App = () => {
     setRemindersShown(true);
   }, [dataReady, data, userEmail, remindersShown]);
   const [routeHistory, setRouteHistory] = useState([]);
+  const suppressHashRef = useRef(false); // we set location.hash ourselves — ignore the resulting hashchange
+  const appliedHashRef = useRef(false); // initial deep-link applied once after login
+  const routeRef = useRef(route);
+  routeRef.current = route;
+  const setHash = r => {
+    try {
+      const h = routeToHash(r);
+      if (h && "#" + location.hash.replace(/^#/, "") !== h) {
+        suppressHashRef.current = true;
+        location.hash = h;
+      }
+    } catch (e) {}
+  };
   const go = r => {
     if (r.name === "new-person") {
       setModalPrefill(r.prefill || null);
@@ -20978,10 +21043,39 @@ const App = () => {
     }
     setRouteHistory(h => [...h.slice(-19), route]);
     setRoute(r);
+    setHash(r);
     window.scrollTo({
       top: 0
     });
   };
+
+  // ── URL / deep-linking ──
+  // Each view/profile gets a hash URL (#person/ID, #entity/ID, #personas, …) so it
+  // can be opened in a new tab (Ctrl/⌘+click) or shared. hashchange (new tab, back
+  // button) navigates here; our own go()/goBack() set the hash and suppress the echo.
+  useEffect(() => {
+    const onHash = () => {
+      if (suppressHashRef.current) {
+        suppressHashRef.current = false;
+        return;
+      }
+      const r = hashToRoute(location.hash);
+      if (r && !sameRoute(r, routeRef.current)) {
+        setRoute(r);
+        window.scrollTo({
+          top: 0
+        });
+      }
+    };
+    window.addEventListener("hashchange", onHash);
+    return () => window.removeEventListener("hashchange", onHash);
+  }, []);
+  useEffect(() => {
+    if (appliedHashRef.current || !dataReady || !data || !userEmail) return;
+    appliedHashRef.current = true;
+    const r = hashToRoute(location.hash);
+    if (r && !sameRoute(r, routeRef.current)) setRoute(r);
+  }, [dataReady, data, userEmail]);
   const goBack = fallback => {
     if (routeHistory.length === 0) {
       if (fallback) {
@@ -20996,6 +21090,7 @@ const App = () => {
     const prev = routeHistory[routeHistory.length - 1];
     setRouteHistory(h => h.slice(0, -1));
     setRoute(prev);
+    setHash(prev);
     setQuery("");
     window.scrollTo({
       top: 0

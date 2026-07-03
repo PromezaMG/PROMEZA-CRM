@@ -108,6 +108,24 @@ const saveEncryptedObj = async (obj, key, keyRaw) => {
   }
   return saveEncrypted(JSON.stringify(obj), key);
 };
+// ── Route <-> URL hash helpers (deep-linking / open-in-new-tab) ──
+const _ROUTE_WITH_ID = { person: 1, entity: 1, project: 1 };
+const routeToHash = (r) => {
+  if (!r || !r.name) return "";
+  return "#" + r.name + (_ROUTE_WITH_ID[r.name] && r.id ? "/" + encodeURIComponent(r.id) : "");
+};
+const hashToRoute = (h) => {
+  const s = (h || "").replace(/^#\/?/, "").trim();
+  if (!s) return null;
+  const i = s.indexOf("/");
+  const name = i === -1 ? s : s.slice(0, i);
+  const id = i === -1 ? null : decodeURIComponent(s.slice(i + 1));
+  if (!name) return null;
+  return id ? { name, id } : { name };
+};
+const sameRoute = (a, b) => !!a && !!b && a.name === b.name && (a.id || "") === (b.id || "");
+if (typeof window !== "undefined") window.PROMEZA_HASH = routeToHash;
+
 const clearStoredData = async () => {
   try { await idbSet(DATA_BYTES_KEY, null); } catch (e) {}
   try { await idbSet("promeza_data_enc", null); } catch (e) {}
@@ -1567,14 +1585,42 @@ const App = () => {
   }, [dataReady, data, userEmail, remindersShown]);
 
   const [routeHistory, setRouteHistory] = useState([]);
+  const suppressHashRef = useRef(false);   // we set location.hash ourselves — ignore the resulting hashchange
+  const appliedHashRef = useRef(false);    // initial deep-link applied once after login
+  const routeRef = useRef(route); routeRef.current = route;
+
+  const setHash = (r) => {
+    try { const h = routeToHash(r); if (h && ("#" + location.hash.replace(/^#/, "")) !== h) { suppressHashRef.current = true; location.hash = h; } } catch (e) {}
+  };
 
   const go = (r) => {
     if (r.name === "new-person") { setModalPrefill(r.prefill || null); setModal("new-person"); return; }
     if (r.name === "new-entity") { setModalPrefill(r.prefill || null); setModal("new-entity"); return; }
     setRouteHistory(h => [...h.slice(-19), route]);
     setRoute(r);
+    setHash(r);
     window.scrollTo({ top: 0 });
   };
+
+  // ── URL / deep-linking ──
+  // Each view/profile gets a hash URL (#person/ID, #entity/ID, #personas, …) so it
+  // can be opened in a new tab (Ctrl/⌘+click) or shared. hashchange (new tab, back
+  // button) navigates here; our own go()/goBack() set the hash and suppress the echo.
+  useEffect(() => {
+    const onHash = () => {
+      if (suppressHashRef.current) { suppressHashRef.current = false; return; }
+      const r = hashToRoute(location.hash);
+      if (r && !sameRoute(r, routeRef.current)) { setRoute(r); window.scrollTo({ top: 0 }); }
+    };
+    window.addEventListener("hashchange", onHash);
+    return () => window.removeEventListener("hashchange", onHash);
+  }, []);
+  useEffect(() => {
+    if (appliedHashRef.current || !dataReady || !data || !userEmail) return;
+    appliedHashRef.current = true;
+    const r = hashToRoute(location.hash);
+    if (r && !sameRoute(r, routeRef.current)) setRoute(r);
+  }, [dataReady, data, userEmail]);
 
   const goBack = (fallback) => {
     if (routeHistory.length === 0) {
@@ -1584,6 +1630,7 @@ const App = () => {
     const prev = routeHistory[routeHistory.length - 1];
     setRouteHistory(h => h.slice(0, -1));
     setRoute(prev);
+    setHash(prev);
     setQuery("");
     window.scrollTo({ top: 0 });
   };
