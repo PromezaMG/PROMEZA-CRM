@@ -865,7 +865,12 @@ const PersonasList = ({ t, lang, data, go, route, onImportPersonas, globalQ = ""
                   <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                     <div className="av-circle" style={{ background: p.color }}>{initials(fullName(p))}</div>
                     <div style={{ minWidth: 0 }}>
-                      <div style={{ fontWeight: 600 }}>{fullName(p) || p.email || "(sin nombre)"}</div>
+                      <a href={window.PROMEZA_HASH ? window.PROMEZA_HASH({ name: "person", id: p.id }) : "#"}
+                        onClick={(e) => { e.stopPropagation(); if (e.ctrlKey || e.metaKey) return; e.preventDefault(); go({ name: "person", id: p.id }); }}
+                        onAuxClick={(e) => e.stopPropagation()}
+                        style={{ fontWeight: 600, color: "inherit", textDecoration: "none" }}>
+                        {fullName(p) || p.email || "(sin nombre)"}
+                      </a>
                       <div className="num">#{window.getUID ? window.getUID(p.id) : p.id} · <span className={"status-dot " + (p.status === "inactivo" ? "off" : "")} />{t.common[p.status === "inactivo" ? "inactivos" : "activos"]}</div>
                     </div>
                   </div>
@@ -1234,7 +1239,12 @@ const EntitiesList = ({ t, lang, data, go, route, onImportEntities, globalQ = ""
                   <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                     <div className="ent-icon"><Icon name="building" /></div>
                     <div>
-                      <div style={{ fontWeight: 600 }}>{e.name}</div>
+                      <a href={window.PROMEZA_HASH ? window.PROMEZA_HASH({ name: "entity", id: e.id }) : "#"}
+                        onClick={(ev) => { ev.stopPropagation(); if (ev.ctrlKey || ev.metaKey) return; ev.preventDefault(); go({ name: "entity", id: e.id }); }}
+                        onAuxClick={(ev) => ev.stopPropagation()}
+                        style={{ fontWeight: 600, color: "inherit", textDecoration: "none" }}>
+                        {e.name}
+                      </a>
                       <div className="num">#{window.getUID ? window.getUID(e.id) : e.id} · <span className={"status-dot " + ((e.status || "activo") === "inactivo" ? "off" : "")} />{t.common[(e.status || "activo") === "inactivo" ? "inactivos" : "activos"]}</div>
                     </div>
                   </div>

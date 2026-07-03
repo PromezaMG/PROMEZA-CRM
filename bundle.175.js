@@ -6072,9 +6072,25 @@ const PersonasList = ({
     style: {
       minWidth: 0
     }
-  }, /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("a", {
+    href: window.PROMEZA_HASH ? window.PROMEZA_HASH({
+      name: "person",
+      id: p.id
+    }) : "#",
+    onClick: e => {
+      e.stopPropagation();
+      if (e.ctrlKey || e.metaKey) return;
+      e.preventDefault();
+      go({
+        name: "person",
+        id: p.id
+      });
+    },
+    onAuxClick: e => e.stopPropagation(),
     style: {
-      fontWeight: 600
+      fontWeight: 600,
+      color: "inherit",
+      textDecoration: "none"
     }
   }, fullName(p) || p.email || "(sin nombre)"), /*#__PURE__*/React.createElement("div", {
     className: "num"
@@ -6765,9 +6781,25 @@ const EntitiesList = ({
     className: "ent-icon"
   }, /*#__PURE__*/React.createElement(Icon, {
     name: "building"
-  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("a", {
+    href: window.PROMEZA_HASH ? window.PROMEZA_HASH({
+      name: "entity",
+      id: e.id
+    }) : "#",
+    onClick: ev => {
+      ev.stopPropagation();
+      if (ev.ctrlKey || ev.metaKey) return;
+      ev.preventDefault();
+      go({
+        name: "entity",
+        id: e.id
+      });
+    },
+    onAuxClick: ev => ev.stopPropagation(),
     style: {
-      fontWeight: 600
+      fontWeight: 600,
+      color: "inherit",
+      textDecoration: "none"
     }
   }, e.name), /*#__PURE__*/React.createElement("div", {
     className: "num"
