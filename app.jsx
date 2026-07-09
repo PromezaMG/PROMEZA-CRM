@@ -822,6 +822,7 @@ const App = () => {
   const [atSyncMsg, setAtSyncMsg] = useState(null); // { type:"ok"|"warn"|"err", text }
   const lastSyncSigRef = useRef(""); // signature of last-applied Airtable data (skip no-op syncs)
   const dupLoadedRef = useRef(false); // duplicate-review state has been loaded (don't save before then)
+  const projLoadedRef = useRef(false); // shared projects have been loaded from Airtable
   const keyRawRef = useRef(null);     // raw AES key bytes for the off-thread save worker
   const savingRef = useRef(false);    // a save is in flight (avoid overlapping heavy saves)
   const lastVisSyncRef = useRef(0);   // throttle sync-on-tab-focus
@@ -1536,6 +1537,35 @@ const App = () => {
     const id = setTimeout(() => { window.AIRTABLE.saveAppState("dupReview", state).catch(() => {}); }, 1500);
     return () => clearTimeout(id);
   }, [dupPairs, entityDupPairs]);
+
+  // Projects: SHARED across devices via Airtable (unlike the rest, which stay in
+  // the local blob). Load the shared list once when data is ready and merge it in
+  // (keeping any local-only projects), so every device sees the same projects.
+  useEffect(() => {
+    if (!dataReady || !data) return;
+    let cancelled = false;
+    (async () => {
+      let remote = null;
+      try { remote = await window.AIRTABLE.loadAppState("projects"); } catch {}
+      if (Array.isArray(remote) && !cancelled) {
+        setData(d => {
+          const ids = new Set(remote.map(p => p.id));
+          const localOnly = (d.projects || []).filter(p => !ids.has(p.id));
+          return { ...d, projects: [...remote, ...localOnly] };
+        });
+      }
+      projLoadedRef.current = true;
+    })();
+    return () => { cancelled = true; };
+  }, [dataReady]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Persist projects to the shared store whenever they change (after initial load).
+  useEffect(() => {
+    if (!projLoadedRef.current || !data) return;
+    const proj = data.projects || [];
+    const id = setTimeout(() => { window.AIRTABLE.saveAppState("projects", proj).catch(() => {}); }, 1500);
+    return () => clearTimeout(id);
+  }, [data && data.projects]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Auto-logout on inactivity (1 hour)
   const INACTIVITY_MS = 60 * 60 * 1000;
