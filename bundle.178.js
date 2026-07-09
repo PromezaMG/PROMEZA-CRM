@@ -20364,7 +20364,7 @@ const App = () => {
       // The database was rebuilt clean from the source spreadsheet. Load ONLY from
       // Airtable (ignore the old local cache AND the bundled data.js seed) so every
       // device shows the clean base. Runs once per browser.
-      if (!localStorage.getItem('promeza_cleanslate_v175')) {
+      if (!localStorage.getItem('promeza_cleanslate_v185')) {
         try {
           const at = await window.AIRTABLE.loadData();
           if (at && (at.personas || []).length > 200) {
@@ -20388,7 +20388,7 @@ const App = () => {
             try {
               delete window.PROMEZA_CHURCHES;
             } catch (e) {}
-            localStorage.setItem('promeza_cleanslate_v175', '1');
+            localStorage.setItem('promeza_cleanslate_v185', '1');
             try {
               const bytes = await window.CryptoUtils.encryptBytes(JSON.stringify(fresh), key);
               await idbSet('promeza_data_bytes', bytes);
