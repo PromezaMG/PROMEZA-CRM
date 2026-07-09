@@ -14238,6 +14238,7 @@ const NewProjectForm = ({
     location: initialData?.location || "",
     attendanceCount: initialData?.attendanceCount || "",
     description: initialData?.description || "",
+    driveUrl: initialData?.driveUrl || "",
     tags: (initialData?.tags || []).join(", ")
   });
   const set = (k, v) => setForm(f => ({
@@ -14370,6 +14371,21 @@ const NewProjectForm = ({
       fontSize: 13,
       resize: "vertical"
     }
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "field",
+    style: {
+      margin: 0
+    }
+  }, /*#__PURE__*/React.createElement("label", null, "Enlace / Drive ", /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 10.5,
+      color: "var(--ink-4)",
+      fontWeight: 400
+    }
+  }, "(carpeta, documento\u2026)")), /*#__PURE__*/React.createElement("input", {
+    value: form.driveUrl,
+    onChange: e => set("driveUrl", e.target.value),
+    placeholder: "https://drive.google.com/\u2026"
   })), /*#__PURE__*/React.createElement("div", {
     className: "field",
     style: {
@@ -14936,7 +14952,22 @@ const ProjectDetailView = ({
       flexWrap: "wrap",
       flexShrink: 0
     }
-  }, /*#__PURE__*/React.createElement("button", {
+  }, pr.driveUrl && /*#__PURE__*/React.createElement("a", {
+    className: "btn btn-sm btn-primary",
+    href: pr.driveUrl,
+    target: "_blank",
+    rel: "noopener noreferrer",
+    title: lang === "es" ? "Abrir carpeta / Drive" : "Open folder / Drive",
+    style: {
+      textDecoration: "none",
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 5
+    }
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: "folder",
+    size: 13
+  }), " ", lang === "es" ? "Abrir Drive" : "Open Drive"), /*#__PURE__*/React.createElement("button", {
     className: "btn btn-sm",
     title: "Exportar participantes a CSV",
     onClick: () => {

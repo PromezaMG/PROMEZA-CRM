@@ -46,6 +46,7 @@ const NewProjectForm = ({ lang, data, onClose, onSave, initialData }) => {
     location: initialData?.location || "",
     attendanceCount: initialData?.attendanceCount || "",
     description: initialData?.description || "",
+    driveUrl: initialData?.driveUrl || "",
     tags: (initialData?.tags || []).join(", "),
   });
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
@@ -98,6 +99,10 @@ const NewProjectForm = ({ lang, data, onClose, onSave, initialData }) => {
           <div className="field" style={{ margin: 0 }}>
             <label>Descripción / Notas</label>
             <textarea value={form.description} onChange={e => set("description", e.target.value)} rows={3} placeholder="Detalles, objetivos, contexto…" style={{ fontFamily: "inherit", fontSize: 13, resize: "vertical" }} />
+          </div>
+          <div className="field" style={{ margin: 0 }}>
+            <label>Enlace / Drive <span style={{ fontSize: 10.5, color: "var(--ink-4)", fontWeight: 400 }}>(carpeta, documento…)</span></label>
+            <input value={form.driveUrl} onChange={e => set("driveUrl", e.target.value)} placeholder="https://drive.google.com/…" />
           </div>
           <div className="field" style={{ margin: 0 }}>
             <label>Etiquetas <span style={{ fontSize: 10.5, color: "var(--ink-4)", fontWeight: 400 }}>(separadas por coma)</span></label>
@@ -336,6 +341,13 @@ const ProjectDetailView = ({ id, lang, data, go, onUpdateProject, onDeleteProjec
             </div>
           </div>
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap", flexShrink: 0 }}>
+            {pr.driveUrl && (
+              <a className="btn btn-sm btn-primary" href={pr.driveUrl} target="_blank" rel="noopener noreferrer"
+                title={lang === "es" ? "Abrir carpeta / Drive" : "Open folder / Drive"}
+                style={{ textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 5 }}>
+                <Icon name="folder" size={13} /> {lang === "es" ? "Abrir Drive" : "Open Drive"}
+              </a>
+            )}
             <button className="btn btn-sm" title="Exportar participantes a CSV"
               onClick={() => {
                 const rows = (pr.members || []).map(m => {
