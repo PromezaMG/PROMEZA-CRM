@@ -617,12 +617,26 @@ const deriveSharedKey = async (clientId, tenantId, extraKey = "") => {
     length: 256
   }, true, ["encrypt", "decrypt"]);
 };
+
+// The session key is stored in localStorage (not sessionStorage) so that opening
+// a profile in a NEW TAB (or a new window) inherits the logged-in session and
+// does NOT prompt to sign in again. The AES key here is derived deterministically
+// from the app's public clientId/tenantId (deriveSharedKey), which already ship in
+// the bundle — so persisting the derived key in localStorage does not weaken the
+// (obfuscation-grade) at-rest model, while enabling cross-tab open-in-new-tab.
+// It is still cleared on explicit logout and on the 1-hour inactivity timeout.
 const storeSessionKey = async key => {
   const raw = await crypto.subtle.exportKey("raw", key);
-  sessionStorage.setItem(SESSION_CRYPTO_KEY, btoa(String.fromCharCode(...new Uint8Array(raw))));
+  const b64 = btoa(String.fromCharCode(...new Uint8Array(raw)));
+  localStorage.setItem(SESSION_CRYPTO_KEY, b64);
+  try {
+    sessionStorage.removeItem(SESSION_CRYPTO_KEY);
+  } catch (e) {}
 };
 const loadSessionKey = async () => {
-  const b64 = sessionStorage.getItem(SESSION_CRYPTO_KEY);
+  // Prefer localStorage (shared across tabs); fall back to sessionStorage for a
+  // tab that was already open under the previous per-tab scheme.
+  const b64 = localStorage.getItem(SESSION_CRYPTO_KEY) || sessionStorage.getItem(SESSION_CRYPTO_KEY);
   if (!b64) return null;
   try {
     const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
@@ -633,6 +647,16 @@ const loadSessionKey = async () => {
   } catch {
     return null;
   }
+};
+
+// Clear the session key from BOTH storages (logout / inactivity timeout).
+const clearSessionKey = () => {
+  try {
+    localStorage.removeItem(SESSION_CRYPTO_KEY);
+  } catch (e) {}
+  try {
+    sessionStorage.removeItem(SESSION_CRYPTO_KEY);
+  } catch (e) {}
 };
 const getMSALConfig = () => {
   try {
@@ -676,6 +700,7 @@ window.CryptoUtils = {
   deriveSharedKey,
   storeSessionKey,
   loadSessionKey,
+  clearSessionKey,
   getMSALConfig,
   buildMSALInstance,
   SESSION_CRYPTO_KEY,
@@ -14588,13 +14613,24 @@ const ProjectsListView = ({
     const pt = getProjType(pr.type);
     const ps = getProjStatus(pr.status);
     const memberCount = (pr.members || []).length;
-    return /*#__PURE__*/React.createElement("div", {
+    return /*#__PURE__*/React.createElement("a", {
       key: pr.id,
-      onClick: () => go({
+      href: window.PROMEZA_HASH ? window.PROMEZA_HASH({
         name: "project",
         id: pr.id
-      }),
+      }) : "#",
+      onClick: e => {
+        if (e.ctrlKey || e.metaKey || e.button === 1) return;
+        e.preventDefault();
+        go({
+          name: "project",
+          id: pr.id
+        });
+      },
       style: {
+        display: "block",
+        textDecoration: "none",
+        color: "inherit",
         background: "var(--bg)",
         borderRadius: 12,
         border: "1px solid var(--line)",
@@ -15425,12 +15461,20 @@ const PersonProjectsTab = ({
     const pt = getProjType(pr.type);
     const ps = getProjStatus(pr.status);
     const member = (pr.members || []).find(m => m.personaId === personId);
-    return /*#__PURE__*/React.createElement("div", {
+    return /*#__PURE__*/React.createElement("a", {
       key: pr.id,
-      onClick: () => go({
+      href: window.PROMEZA_HASH ? window.PROMEZA_HASH({
         name: "project",
         id: pr.id
-      }),
+      }) : "#",
+      onClick: e => {
+        if (e.ctrlKey || e.metaKey || e.button === 1) return;
+        e.preventDefault();
+        go({
+          name: "project",
+          id: pr.id
+        });
+      },
       style: {
         display: "flex",
         alignItems: "center",
@@ -15440,6 +15484,8 @@ const PersonProjectsTab = ({
         border: "1px solid var(--line)",
         background: "var(--bg)",
         cursor: "pointer",
+        textDecoration: "none",
+        color: "inherit",
         borderLeft: "3px solid " + pt.color,
         transition: "box-shadow .12s"
       },
@@ -19490,7 +19536,7 @@ const SettingsModal = ({
     onClick: () => {
       if (window.confirm("Â¿Cerrar esta sesiÃ³n?")) {
         clearSession();
-        sessionStorage.removeItem(window.CryptoUtils?.SESSION_CRYPTO_KEY || "promeza_sk");
+        window.CryptoUtils?.clearSessionKey ? window.CryptoUtils.clearSessionKey() : (localStorage.removeItem("promeza_sk"), sessionStorage.removeItem("promeza_sk"));
         onLogout();
       }
     }
@@ -21072,14 +21118,14 @@ const App = () => {
     if (!userEmail) return;
     let timer = setTimeout(() => {
       clearSession();
-      sessionStorage.removeItem(window.CryptoUtils.SESSION_CRYPTO_KEY || "promeza_sk");
+      window.CryptoUtils?.clearSessionKey ? window.CryptoUtils.clearSessionKey() : (localStorage.removeItem("promeza_sk"), sessionStorage.removeItem("promeza_sk"));
       setUserEmail(null);
     }, INACTIVITY_MS);
     const reset = () => {
       clearTimeout(timer);
       timer = setTimeout(() => {
         clearSession();
-        sessionStorage.removeItem(window.CryptoUtils.SESSION_CRYPTO_KEY || "promeza_sk");
+        window.CryptoUtils?.clearSessionKey ? window.CryptoUtils.clearSessionKey() : (localStorage.removeItem("promeza_sk"), sessionStorage.removeItem("promeza_sk"));
         setUserEmail(null);
       }, INACTIVITY_MS);
     };
@@ -21990,7 +22036,7 @@ const App = () => {
       },
       onLogout: () => {
         clearSession();
-        sessionStorage.removeItem(window.CryptoUtils.SESSION_CRYPTO_KEY || "promeza_sk");
+        window.CryptoUtils?.clearSessionKey ? window.CryptoUtils.clearSessionKey() : (localStorage.removeItem("promeza_sk"), sessionStorage.removeItem("promeza_sk"));
         setUserEmail(null);
       }
     });
@@ -22268,7 +22314,7 @@ const App = () => {
     onSettings: () => setModal("settings"),
     onLogout: () => {
       clearSession();
-      sessionStorage.removeItem(window.CryptoUtils?.SESSION_CRYPTO_KEY || "promeza_sk");
+      window.CryptoUtils?.clearSessionKey ? window.CryptoUtils.clearSessionKey() : (localStorage.removeItem("promeza_sk"), sessionStorage.removeItem("promeza_sk"));
       if (window.AIRTABLE) window.AIRTABLE.logAccess(userEmail, "Cierre de sesiÃ³n");
       setUserEmail(null);
     },
@@ -22326,7 +22372,7 @@ const App = () => {
     onClose: () => setModal(null),
     onLogout: () => {
       clearSession();
-      sessionStorage.removeItem(window.CryptoUtils.SESSION_CRYPTO_KEY || "promeza_sk");
+      window.CryptoUtils?.clearSessionKey ? window.CryptoUtils.clearSessionKey() : (localStorage.removeItem("promeza_sk"), sessionStorage.removeItem("promeza_sk"));
       setUserEmail(null);
     },
     onRestoreData: setData,

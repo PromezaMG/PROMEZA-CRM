@@ -30,18 +30,35 @@ const deriveSharedKey = async (clientId, tenantId, extraKey = "") => {
   );
 };
 
+// The session key is stored in localStorage (not sessionStorage) so that opening
+// a profile in a NEW TAB (or a new window) inherits the logged-in session and
+// does NOT prompt to sign in again. The AES key here is derived deterministically
+// from the app's public clientId/tenantId (deriveSharedKey), which already ship in
+// the bundle — so persisting the derived key in localStorage does not weaken the
+// (obfuscation-grade) at-rest model, while enabling cross-tab open-in-new-tab.
+// It is still cleared on explicit logout and on the 1-hour inactivity timeout.
 const storeSessionKey = async (key) => {
   const raw = await crypto.subtle.exportKey("raw", key);
-  sessionStorage.setItem(SESSION_CRYPTO_KEY, btoa(String.fromCharCode(...new Uint8Array(raw))));
+  const b64 = btoa(String.fromCharCode(...new Uint8Array(raw)));
+  localStorage.setItem(SESSION_CRYPTO_KEY, b64);
+  try { sessionStorage.removeItem(SESSION_CRYPTO_KEY); } catch (e) {}
 };
 
 const loadSessionKey = async () => {
-  const b64 = sessionStorage.getItem(SESSION_CRYPTO_KEY);
+  // Prefer localStorage (shared across tabs); fall back to sessionStorage for a
+  // tab that was already open under the previous per-tab scheme.
+  const b64 = localStorage.getItem(SESSION_CRYPTO_KEY) || sessionStorage.getItem(SESSION_CRYPTO_KEY);
   if (!b64) return null;
   try {
     const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
     return crypto.subtle.importKey("raw", bytes, { name: "AES-GCM", length: 256 }, true, ["encrypt", "decrypt"]);
   } catch { return null; }
+};
+
+// Clear the session key from BOTH storages (logout / inactivity timeout).
+const clearSessionKey = () => {
+  try { localStorage.removeItem(SESSION_CRYPTO_KEY); } catch (e) {}
+  try { sessionStorage.removeItem(SESSION_CRYPTO_KEY); } catch (e) {}
 };
 
 const getMSALConfig = () => {
@@ -68,7 +85,7 @@ const buildMSALInstance = (cfg) => {
 };
 
 window.CryptoUtils = {
-  sha256, deriveSharedKey, storeSessionKey, loadSessionKey,
+  sha256, deriveSharedKey, storeSessionKey, loadSessionKey, clearSessionKey,
   getMSALConfig, buildMSALInstance,
   SESSION_CRYPTO_KEY, MSAL_CONFIG_KEY, PASS_HASH_KEY, PASS_HASH_SALT,
 

@@ -457,7 +457,7 @@ const SettingsModal = ({ t, lang, data, cryptoKey, onClose, onLogout, onRestoreD
 
               <div style={{ marginTop: 18, borderTop: "1px solid var(--line)", paddingTop: 14 }}>
                 <button className="btn" style={{ color: "var(--bad)", borderColor: "var(--bad)" }}
-                  onClick={() => { if (window.confirm("Â¿Cerrar esta sesiÃ³n?")) { clearSession(); sessionStorage.removeItem(window.CryptoUtils?.SESSION_CRYPTO_KEY || "promeza_sk"); onLogout(); } }}>
+                  onClick={() => { if (window.confirm("Â¿Cerrar esta sesiÃ³n?")) { clearSession(); (window.CryptoUtils?.clearSessionKey ? window.CryptoUtils.clearSessionKey() : (localStorage.removeItem("promeza_sk"), sessionStorage.removeItem("promeza_sk"))); onLogout(); } }}>
                   <Icon name="log-out" /> Cerrar esta sesiÃ³n
                 </button>
               </div>
@@ -1573,14 +1573,14 @@ const App = () => {
     if (!userEmail) return;
     let timer = setTimeout(() => {
       clearSession();
-      sessionStorage.removeItem(window.CryptoUtils.SESSION_CRYPTO_KEY || "promeza_sk");
+      (window.CryptoUtils?.clearSessionKey ? window.CryptoUtils.clearSessionKey() : (localStorage.removeItem("promeza_sk"), sessionStorage.removeItem("promeza_sk")));
       setUserEmail(null);
     }, INACTIVITY_MS);
     const reset = () => {
       clearTimeout(timer);
       timer = setTimeout(() => {
         clearSession();
-        sessionStorage.removeItem(window.CryptoUtils.SESSION_CRYPTO_KEY || "promeza_sk");
+        (window.CryptoUtils?.clearSessionKey ? window.CryptoUtils.clearSessionKey() : (localStorage.removeItem("promeza_sk"), sessionStorage.removeItem("promeza_sk")));
         setUserEmail(null);
       }, INACTIVITY_MS);
     };
@@ -2148,7 +2148,7 @@ const App = () => {
         }
         setDataReady(true);
       }}
-      onLogout={() => { clearSession(); sessionStorage.removeItem(window.CryptoUtils.SESSION_CRYPTO_KEY || "promeza_sk"); setUserEmail(null); }}
+      onLogout={() => { clearSession(); (window.CryptoUtils?.clearSessionKey ? window.CryptoUtils.clearSessionKey() : (localStorage.removeItem("promeza_sk"), sessionStorage.removeItem("promeza_sk"))); setUserEmail(null); }}
     />;
   }
 
@@ -2213,7 +2213,7 @@ const App = () => {
         query={query} setQuery={setQuery}
         onSearchSubmit={() => { if (query.trim() && route.name !== "personas" && route.name !== "entities") setRoute({ name: "personas" }); }}
         onSettings={() => setModal("settings")}
-        onLogout={() => { clearSession(); sessionStorage.removeItem(window.CryptoUtils?.SESSION_CRYPTO_KEY || "promeza_sk"); if (window.AIRTABLE) window.AIRTABLE.logAccess(userEmail, "Cierre de sesiÃ³n"); setUserEmail(null); }}
+        onLogout={() => { clearSession(); (window.CryptoUtils?.clearSessionKey ? window.CryptoUtils.clearSessionKey() : (localStorage.removeItem("promeza_sk"), sessionStorage.removeItem("promeza_sk"))); if (window.AIRTABLE) window.AIRTABLE.logAccess(userEmail, "Cierre de sesiÃ³n"); setUserEmail(null); }}
         userEmail={userEmail}
         data={data}
         go={go}
@@ -2246,7 +2246,7 @@ const App = () => {
         <SettingsModal
           t={t} lang={lang} data={data} cryptoKey={cryptoKey}
           onClose={() => setModal(null)}
-          onLogout={() => { clearSession(); sessionStorage.removeItem(window.CryptoUtils.SESSION_CRYPTO_KEY || "promeza_sk"); setUserEmail(null); }}
+          onLogout={() => { clearSession(); (window.CryptoUtils?.clearSessionKey ? window.CryptoUtils.clearSessionKey() : (localStorage.removeItem("promeza_sk"), sessionStorage.removeItem("promeza_sk"))); setUserEmail(null); }}
           onRestoreData={setData}
           onForcePull={forcePullFromAirtable}
         />

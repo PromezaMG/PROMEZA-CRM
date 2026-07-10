@@ -196,8 +196,10 @@ const ProjectsListView = ({ lang, data, go, onAddProject }) => {
             const ps = getProjStatus(pr.status);
             const memberCount = (pr.members || []).length;
             return (
-              <div key={pr.id} onClick={() => go({ name: "project", id: pr.id })}
-                style={{ background: "var(--bg)", borderRadius: 12, border: "1px solid var(--line)", borderLeft: "4px solid " + pt.color, padding: "16px", cursor: "pointer", boxShadow: "var(--shadow-sm)", transition: "box-shadow .15s, transform .15s" }}
+              <a key={pr.id}
+                href={window.PROMEZA_HASH ? window.PROMEZA_HASH({ name: "project", id: pr.id }) : "#"}
+                onClick={e => { if (e.ctrlKey || e.metaKey || e.button === 1) return; e.preventDefault(); go({ name: "project", id: pr.id }); }}
+                style={{ display: "block", textDecoration: "none", color: "inherit", background: "var(--bg)", borderRadius: 12, border: "1px solid var(--line)", borderLeft: "4px solid " + pt.color, padding: "16px", cursor: "pointer", boxShadow: "var(--shadow-sm)", transition: "box-shadow .15s, transform .15s" }}
                 onMouseEnter={e => { e.currentTarget.style.boxShadow = "var(--shadow-md)"; e.currentTarget.style.transform = "translateY(-2px)"; }}
                 onMouseLeave={e => { e.currentTarget.style.boxShadow = "var(--shadow-sm)"; e.currentTarget.style.transform = ""; }}>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
@@ -238,7 +240,7 @@ const ProjectsListView = ({ lang, data, go, onAddProject }) => {
                     <span><Icon name="users" size={11} /> {memberCount} registrados</span>
                   </div>
                 </div>
-              </div>
+              </a>
             );
           })}
         </div>
@@ -536,8 +538,10 @@ const PersonProjectsTab = ({ personId, lang, data, go }) => {
         const ps = getProjStatus(pr.status);
         const member = (pr.members || []).find(m => m.personaId === personId);
         return (
-          <div key={pr.id} onClick={() => go({ name: "project", id: pr.id })}
-            style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", borderRadius: 10, border: "1px solid var(--line)", background: "var(--bg)", cursor: "pointer", borderLeft: "3px solid " + pt.color, transition: "box-shadow .12s" }}
+          <a key={pr.id}
+            href={window.PROMEZA_HASH ? window.PROMEZA_HASH({ name: "project", id: pr.id }) : "#"}
+            onClick={e => { if (e.ctrlKey || e.metaKey || e.button === 1) return; e.preventDefault(); go({ name: "project", id: pr.id }); }}
+            style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", borderRadius: 10, border: "1px solid var(--line)", background: "var(--bg)", cursor: "pointer", textDecoration: "none", color: "inherit", borderLeft: "3px solid " + pt.color, transition: "box-shadow .12s" }}
             onMouseEnter={e => e.currentTarget.style.boxShadow = "var(--shadow-sm)"}
             onMouseLeave={e => e.currentTarget.style.boxShadow = ""}>
             <span style={{ fontSize: 24 }}>{pt.emoji}</span>
@@ -552,7 +556,7 @@ const PersonProjectsTab = ({ personId, lang, data, go }) => {
               <span style={{ padding: "2px 9px", borderRadius: 6, background: pt.color + "14", color: pt.color, fontSize: 12, fontWeight: 600, whiteSpace: "nowrap" }}>{member.role}</span>
             )}
             <span style={{ padding: "2px 8px", borderRadius: 6, fontSize: 11.5, fontWeight: 600, background: ps.bg, color: ps.color }}>{ps.label}</span>
-          </div>
+          </a>
         );
       })}
     </div>
