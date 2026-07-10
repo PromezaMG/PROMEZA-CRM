@@ -1013,7 +1013,23 @@ const App = () => {
 
   useEffect(() => {
     const initData = async () => {
-      const key = await window.CryptoUtils.loadSessionKey();
+      let key = await window.CryptoUtils.loadSessionKey();
+      // No stored key (e.g. a NEW TAB, or a session created before the key moved to
+      // localStorage)? The AES key is derived deterministically from the app's
+      // clientId/tenantId — it is NOT tied to the Microsoft response — so as long as
+      // this browser has a valid (non-expired) login session, derive it directly and
+      // persist it. This avoids the redundant "Elegir cuenta Microsoft" unlock popup
+      // when opening a profile in a new tab.
+      if (!key) {
+        try {
+          const sess = getSession();
+          if (sess && sess.email) {
+            const cfg = window.CryptoUtils.getMSALConfig();
+            key = await window.CryptoUtils.deriveSharedKey(cfg.clientId, cfg.tenantId, cfg.extraKey || "");
+            await window.CryptoUtils.storeSessionKey(key);
+          }
+        } catch (e) { key = null; }
+      }
       if (!key) { setNeedsUnlock(true); setDataReady(true); return; }
       setCryptoKey(key);
 
