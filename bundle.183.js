@@ -18877,42 +18877,24 @@ const atSignature = d => {
     s = s == null ? "" : "" + s;
     for (let i = 0; i < s.length; i++) h = Math.imul(31, h) + s.charCodeAt(i) | 0;
   };
-  // Include the ARRAY contact fields (phones[]/emails[]) and other commonly-edited
-  // fields — otherwise adding a phone (which lands in phones[], not the legacy single
-  // p.phone) leaves the signature unchanged, so the 2-min sync thinks nothing changed
-  // and never propagates the edit to other devices.
-  const arr = (a, k) => (a || []).map(x => x && x[k]).join(",");
-  (d.personas || []).forEach(p => {
-    acc(p.id);
-    acc(p.first);
-    acc(p.last);
-    acc(p.phone);
-    acc(arr(p.phones, "value"));
-    acc(p.email);
-    acc(arr(p.emails, "value"));
-    acc(p.titulo);
-    acc((p.roles || []).join(","));
-    acc(p.address);
-    acc(p.city);
-    acc(p.country);
-    acc(p.gender);
-    acc((p.tags || []).join(","));
-    acc((p.entities || []).map(e => e && e.id).join(","));
-    acc(p.birthday);
-    acc(p.status);
-  });
-  (d.entities || []).forEach(e => {
-    acc(e.id);
-    acc(e.name);
-    acc(e.phone);
-    acc(arr(e.phones, "value"));
-    acc(e.email);
-    acc(e.address);
-    acc(e.city);
-    acc(e.country);
-    acc((e.tags || []).join(","));
-    acc(e.status);
-  });
+  // Hash the FULL record (every field), not a hand-picked subset. The old version
+  // listed specific fields and even referenced fields that don't exist in the model
+  // (titulo/roles/gender instead of role), so editing an uncovered field (role, notes,
+  // website, state, zip, language, entity type, denominación…) left the signature
+  // unchanged → the 2-min sync thought "nothing changed" and never propagated the edit
+  // to other devices. We strip local-only annotations (leading "_", uid) so the
+  // signature reflects Airtable content identically on every device; being extra
+  // sensitive only risks an occasional redundant (but harmless) merge.
+  const clean = o => {
+    if (!o || typeof o !== "object") return o;
+    const c = {};
+    for (const k in o) {
+      if (k.charCodeAt(0) !== 95 && k !== "uid") c[k] = o[k];
+    }
+    return c;
+  };
+  (d.personas || []).forEach(p => acc(JSON.stringify(clean(p))));
+  (d.entities || []).forEach(e => acc(JSON.stringify(clean(e))));
   return (d.personas ? d.personas.length : 0) + ":" + (d.entities ? d.entities.length : 0) + ":" + h;
 };
 
