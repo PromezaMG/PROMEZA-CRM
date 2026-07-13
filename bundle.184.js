@@ -21013,10 +21013,14 @@ const App = () => {
         syncFromAirtable();
       }
     };
-    const first = setTimeout(runSync, 4000);
+    const first = setTimeout(runSync, 3000);
     const interval = setInterval(runSync, 240000);
+    // Sync whenever the tab regains focus (throttled to once/20s). This is what makes
+    // switching between devices feel automatic: come back to the app → it pulls the
+    // other device's latest within seconds, no button. Safe to do often now that
+    // atSignature reliably detects "nothing changed" and skips the heavy merge/re-encrypt.
     const onVis = () => {
-      if (document.visibilityState === "visible" && Date.now() - lastVisSyncRef.current > 120000) runSync();
+      if (document.visibilityState === "visible" && Date.now() - lastVisSyncRef.current > 20000) runSync();
     };
     document.addEventListener("visibilitychange", onVis);
     return () => {
