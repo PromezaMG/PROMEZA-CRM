@@ -618,25 +618,97 @@ const deriveSharedKey = async (clientId, tenantId, extraKey = "") => {
   }, true, ["encrypt", "decrypt"]);
 };
 
-// The session key is stored in localStorage (not sessionStorage) so that opening
-// a profile in a NEW TAB (or a new window) inherits the logged-in session and
-// does NOT prompt to sign in again. The AES key here is derived deterministically
-// from the app's public clientId/tenantId (deriveSharedKey), which already ship in
-// the bundle — so persisting the derived key in localStorage does not weaken the
-// (obfuscation-grade) at-rest model, while enabling cross-tab open-in-new-tab.
-// It is still cleared on explicit logout and on the 1-hour inactivity timeout.
+// SECURITY MODEL: the session key lives in sessionStorage (PER TAB). sessionStorage
+// is wiped when the browser/window is closed, so a COLD START (fresh open, browser
+// reopened) has no key → the app requires Microsoft sign-in again. This is what
+// stops "anyone can open the app on this computer without logging in".
+//
+// To still support "open a profile in a NEW TAB without re-login", tabs share the
+// key with each other over a BroadcastChannel: a new tab with no key asks its
+// sibling tabs; a live tab answers with the key. If NO sibling is open (i.e. a real
+// cold start), no answer comes → sign-in is required. The key is NEVER persisted to
+// localStorage, so it cannot survive a browser restart.
+const _KEY_CHAN = "promeza_key_share";
+let _keyBC = null;
+const _getKeyBC = () => {
+  if (_keyBC) return _keyBC;
+  try {
+    _keyBC = new BroadcastChannel(_KEY_CHAN);
+    // Answer sibling tabs' key requests with our own key (if we have one).
+    _keyBC.onmessage = e => {
+      if (e && e.data === "req") {
+        try {
+          const v = sessionStorage.getItem(SESSION_CRYPTO_KEY);
+          if (v) _keyBC.postMessage({
+            type: "key",
+            v
+          });
+        } catch (_) {}
+      }
+    };
+  } catch (_) {
+    _keyBC = null;
+  }
+  return _keyBC;
+};
+// Ask any already-open tab for the session key (resolves to base64 or null after 600ms).
+const _requestKeyFromSiblings = () => new Promise(resolve => {
+  const bc = _getKeyBC();
+  if (!bc) {
+    resolve(null);
+    return;
+  }
+  let done = false;
+  const onMsg = e => {
+    if (!done && e && e.data && e.data.type === "key" && e.data.v) {
+      done = true;
+      try {
+        bc.removeEventListener("message", onMsg);
+      } catch (_) {}
+      resolve(e.data.v);
+    }
+  };
+  try {
+    bc.addEventListener("message", onMsg);
+    bc.postMessage("req");
+  } catch (_) {
+    resolve(null);
+    return;
+  }
+  setTimeout(() => {
+    if (!done) {
+      done = true;
+      try {
+        bc.removeEventListener("message", onMsg);
+      } catch (_) {}
+      resolve(null);
+    }
+  }, 600);
+});
 const storeSessionKey = async key => {
   const raw = await crypto.subtle.exportKey("raw", key);
   const b64 = btoa(String.fromCharCode(...new Uint8Array(raw)));
-  localStorage.setItem(SESSION_CRYPTO_KEY, b64);
+  sessionStorage.setItem(SESSION_CRYPTO_KEY, b64);
+  _getKeyBC(); // make sure this tab can answer siblings from now on
+  // Purge any key left in localStorage by the previous (less secure) scheme.
   try {
-    sessionStorage.removeItem(SESSION_CRYPTO_KEY);
+    localStorage.removeItem(SESSION_CRYPTO_KEY);
   } catch (e) {}
 };
 const loadSessionKey = async () => {
-  // Prefer localStorage (shared across tabs); fall back to sessionStorage for a
-  // tab that was already open under the previous per-tab scheme.
-  const b64 = localStorage.getItem(SESSION_CRYPTO_KEY) || sessionStorage.getItem(SESSION_CRYPTO_KEY);
+  let b64 = sessionStorage.getItem(SESSION_CRYPTO_KEY);
+  if (!b64) {
+    // No key in THIS tab — maybe we're a new tab opened from an already-signed-in
+    // window. Ask siblings; if one answers we inherit the session (no re-login). If
+    // none answer (cold start / browser reopened) we return null → sign-in required.
+    b64 = await _requestKeyFromSiblings();
+    if (b64) {
+      try {
+        sessionStorage.setItem(SESSION_CRYPTO_KEY, b64);
+      } catch (e) {}
+    }
+  }
+  _getKeyBC(); // register responder so THIS tab can later serve new tabs
   if (!b64) return null;
   try {
     const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
@@ -649,13 +721,13 @@ const loadSessionKey = async () => {
   }
 };
 
-// Clear the session key from BOTH storages (logout / inactivity timeout).
+// Clear the session key from both stores (logout / inactivity timeout).
 const clearSessionKey = () => {
   try {
-    localStorage.removeItem(SESSION_CRYPTO_KEY);
+    sessionStorage.removeItem(SESSION_CRYPTO_KEY);
   } catch (e) {}
   try {
-    sessionStorage.removeItem(SESSION_CRYPTO_KEY);
+    localStorage.removeItem(SESSION_CRYPTO_KEY);
   } catch (e) {}
 };
 const getMSALConfig = () => {
@@ -20389,25 +20461,12 @@ const App = () => {
   };
   useEffect(() => {
     const initData = async () => {
-      let key = await window.CryptoUtils.loadSessionKey();
-      // No stored key (e.g. a NEW TAB, or a session created before the key moved to
-      // localStorage)? The AES key is derived deterministically from the app's
-      // clientId/tenantId — it is NOT tied to the Microsoft response — so as long as
-      // this browser has a valid (non-expired) login session, derive it directly and
-      // persist it. This avoids the redundant "Elegir cuenta Microsoft" unlock popup
-      // when opening a profile in a new tab.
-      if (!key) {
-        try {
-          const sess = getSession();
-          if (sess && sess.email) {
-            const cfg = window.CryptoUtils.getMSALConfig();
-            key = await window.CryptoUtils.deriveSharedKey(cfg.clientId, cfg.tenantId, cfg.extraKey || "");
-            await window.CryptoUtils.storeSessionKey(key);
-          }
-        } catch (e) {
-          key = null;
-        }
-      }
+      // loadSessionKey reads THIS tab's key (sessionStorage) or, for a new tab opened
+      // from an already-signed-in window, inherits it from a sibling tab over
+      // BroadcastChannel. On a real cold start (browser reopened, no sibling) there is
+      // no key → require Microsoft sign-in. We deliberately do NOT derive the key from
+      // the stored 30-day session, so closing the browser really does lock the app.
+      const key = await window.CryptoUtils.loadSessionKey();
       if (!key) {
         setNeedsUnlock(true);
         setDataReady(true);

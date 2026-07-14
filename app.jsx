@@ -1023,23 +1023,12 @@ const App = () => {
 
   useEffect(() => {
     const initData = async () => {
-      let key = await window.CryptoUtils.loadSessionKey();
-      // No stored key (e.g. a NEW TAB, or a session created before the key moved to
-      // localStorage)? The AES key is derived deterministically from the app's
-      // clientId/tenantId — it is NOT tied to the Microsoft response — so as long as
-      // this browser has a valid (non-expired) login session, derive it directly and
-      // persist it. This avoids the redundant "Elegir cuenta Microsoft" unlock popup
-      // when opening a profile in a new tab.
-      if (!key) {
-        try {
-          const sess = getSession();
-          if (sess && sess.email) {
-            const cfg = window.CryptoUtils.getMSALConfig();
-            key = await window.CryptoUtils.deriveSharedKey(cfg.clientId, cfg.tenantId, cfg.extraKey || "");
-            await window.CryptoUtils.storeSessionKey(key);
-          }
-        } catch (e) { key = null; }
-      }
+      // loadSessionKey reads THIS tab's key (sessionStorage) or, for a new tab opened
+      // from an already-signed-in window, inherits it from a sibling tab over
+      // BroadcastChannel. On a real cold start (browser reopened, no sibling) there is
+      // no key → require Microsoft sign-in. We deliberately do NOT derive the key from
+      // the stored 30-day session, so closing the browser really does lock the app.
+      const key = await window.CryptoUtils.loadSessionKey();
       if (!key) { setNeedsUnlock(true); setDataReady(true); return; }
       setCryptoKey(key);
 
