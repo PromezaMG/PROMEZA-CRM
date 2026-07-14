@@ -20147,6 +20147,7 @@ const App = () => {
   const keyRawRef = useRef(null); // raw AES key bytes for the off-thread save worker
   const savingRef = useRef(false); // a save is in flight (avoid overlapping heavy saves)
   const lastVisSyncRef = useRef(0); // throttle sync-on-tab-focus
+  const syncInFlightRef = useRef(false); // a full Airtable pull is running (never overlap — each pull is ~160 paged HTTP calls at 16k records)
 
   const mergeFromAirtable = (atData, prev, prevLastLoad = "") => {
     if (!atData || !prev) return prev;
@@ -20306,6 +20307,11 @@ const App = () => {
     };
   };
   const syncFromAirtable = () => {
+    // Never run two full pulls at once. Each loadData() is ~160 sequential paged HTTP
+    // calls at 16k records and can take many seconds; without this guard, focus/timer
+    // triggers pile up overlapping pulls and grind the whole app to a halt.
+    if (syncInFlightRef.current) return;
+    syncInFlightRef.current = true;
     setAtSyncing(true);
     const prevLastLoad = window.AIRTABLE.getLastLoad() || "";
     window.AIRTABLE.loadData().then(atData => {
@@ -20339,7 +20345,10 @@ const App = () => {
         text: "âœ— Error Airtable: " + e.message
       });
       console.warn("syncFromAirtable error:", e);
-    }).finally(() => setAtSyncing(false));
+    }).finally(() => {
+      setAtSyncing(false);
+      syncInFlightRef.current = false;
+    });
   };
   const forcePullFromAirtable = () => {
     setAtSyncing(true);
@@ -21015,12 +21024,12 @@ const App = () => {
     };
     const first = setTimeout(runSync, 3000);
     const interval = setInterval(runSync, 240000);
-    // Sync whenever the tab regains focus (throttled to once/20s). This is what makes
-    // switching between devices feel automatic: come back to the app → it pulls the
-    // other device's latest within seconds, no button. Safe to do often now that
-    // atSignature reliably detects "nothing changed" and skips the heavy merge/re-encrypt.
+    // Sync when the tab regains focus, throttled to once/2min. (A full pull is ~160
+    // paged HTTP calls at 16k records — doing it on every focus, as an earlier 20s
+    // throttle did, made the whole app crawl.) On-open + this + the 4-min timer keep
+    // it automatic without hammering; the syncInFlightRef guard prevents overlap.
     const onVis = () => {
-      if (document.visibilityState === "visible" && Date.now() - lastVisSyncRef.current > 20000) runSync();
+      if (document.visibilityState === "visible" && Date.now() - lastVisSyncRef.current > 120000) runSync();
     };
     document.addEventListener("visibilitychange", onVis);
     return () => {
