@@ -417,6 +417,7 @@ const DuplicatesPage = ({ pairs, entityPairs = [], data, onMerge, onMergeWithDat
   const [expanded, setExpanded] = React.useState(null);
   const [mergingPair, setMergingPair] = React.useState(null);
   const [showManual, setShowManual] = React.useState(false);
+  const [dupTab, setDupTab] = React.useState("personas"); // "personas" | "entidades"
   const [manA, setManA] = React.useState(null);   // selected persona A
   const [manB, setManB] = React.useState(null);   // selected persona B
   const [qA, setQA] = React.useState("");
@@ -476,6 +477,19 @@ const DuplicatesPage = ({ pairs, entityPairs = [], data, onMerge, onMergeWithDat
         </div>
       </div>
 
+      {/* ── Tabs: Contactos | Entidades ── */}
+      <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+        <button className={"btn btn-sm" + (dupTab === "personas" ? " btn-primary" : "")} onClick={() => setDupTab("personas")}>
+          {es ? "Contactos" : "Contacts"} ({active.length})
+        </button>
+        <button className={"btn btn-sm" + (dupTab === "entidades" ? " btn-primary" : "")} onClick={() => setDupTab("entidades")}>
+          {es ? "Entidades / Medios" : "Entities / Media"} ({entityPairs.filter(p => !p.dismissed).length})
+        </button>
+      </div>
+
+      {/* ═══ CONTACTOS ═══ */}
+      {dupTab === "personas" && (<React.Fragment>
+
       {/* ── Manual duplicate picker ── */}
       {showManual && (
         <div className="card" style={{ padding: "16px 20px", marginBottom: 14 }}>
@@ -529,7 +543,7 @@ const DuplicatesPage = ({ pairs, entityPairs = [], data, onMerge, onMergeWithDat
       )}
 
       {/* ── Empty state ── */}
-      {active.length === 0 && entityPairs.filter(p => !p.dismissed).length === 0 && (
+      {active.length === 0 && (
         <div className="card" style={{ padding: "48px 24px", textAlign: "center" }}>
           <div style={{ fontSize: 44, marginBottom: 12 }}>✓</div>
           <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 6 }}>
@@ -683,9 +697,16 @@ const DuplicatesPage = ({ pairs, entityPairs = [], data, onMerge, onMergeWithDat
         </div>
       )}
 
-      {/* ── Entity (medios) duplicates ── */}
-      {entityPairs.length > 0 && (
-        <div style={{ marginTop: 32 }}>
+      </React.Fragment>)}
+
+      {/* ═══ ENTIDADES / MEDIOS ═══ */}
+      {dupTab === "entidades" && entityPairs.length === 0 && (
+        <div className="card" style={{ padding: "40px 24px", textAlign: "center", color: "var(--ink-3)", fontSize: 13 }}>
+          {es ? "No hay medios / entidades duplicados detectados." : "No duplicate media / entities detected."}
+        </div>
+      )}
+      {dupTab === "entidades" && entityPairs.length > 0 && (
+        <div style={{ marginTop: 8 }}>
           <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 4 }}>
             {es ? "Medios / entidades duplicados" : "Duplicate media / entities"}
           </div>

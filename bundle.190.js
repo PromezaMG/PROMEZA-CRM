@@ -11175,6 +11175,7 @@ const DuplicatesPage = ({
   const [expanded, setExpanded] = React.useState(null);
   const [mergingPair, setMergingPair] = React.useState(null);
   const [showManual, setShowManual] = React.useState(false);
+  const [dupTab, setDupTab] = React.useState("personas"); // "personas" | "entidades"
   const [manA, setManA] = React.useState(null); // selected persona A
   const [manB, setManB] = React.useState(null); // selected persona B
   const [qA, setQA] = React.useState("");
@@ -11230,7 +11231,19 @@ const DuplicatesPage = ({
     onClick: onScanAll
   }, /*#__PURE__*/React.createElement(Icon, {
     name: "search"
-  }), " ", lang === "es" ? "Escanear base completa" : "Scan full database"))), showManual && /*#__PURE__*/React.createElement("div", {
+  }), " ", lang === "es" ? "Escanear base completa" : "Scan full database"))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 8,
+      marginBottom: 16
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-sm" + (dupTab === "personas" ? " btn-primary" : ""),
+    onClick: () => setDupTab("personas")
+  }, es ? "Contactos" : "Contacts", " (", active.length, ")"), /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-sm" + (dupTab === "entidades" ? " btn-primary" : ""),
+    onClick: () => setDupTab("entidades")
+  }, es ? "Entidades / Medios" : "Entities / Media", " (", entityPairs.filter(p => !p.dismissed).length, ")")), dupTab === "personas" && /*#__PURE__*/React.createElement(React.Fragment, null, showManual && /*#__PURE__*/React.createElement("div", {
     className: "card",
     style: {
       padding: "16px 20px",
@@ -11412,7 +11425,7 @@ const DuplicatesPage = ({
       fontSize: 12,
       color: "var(--bad)"
     }
-  }, es ? "Elige dos contactos distintos." : "Pick two different contacts.")), active.length === 0 && entityPairs.filter(p => !p.dismissed).length === 0 && /*#__PURE__*/React.createElement("div", {
+  }, es ? "Elige dos contactos distintos." : "Pick two different contacts.")), active.length === 0 && /*#__PURE__*/React.createElement("div", {
     className: "card",
     style: {
       padding: "48px 24px",
@@ -11725,9 +11738,17 @@ const DuplicatesPage = ({
       className: "btn btn-sm btn-ghost",
       onClick: () => onUndismiss(pair)
     }, lang === "es" ? "Deshacer" : "Undo"));
-  })), entityPairs.length > 0 && /*#__PURE__*/React.createElement("div", {
+  }))), dupTab === "entidades" && entityPairs.length === 0 && /*#__PURE__*/React.createElement("div", {
+    className: "card",
     style: {
-      marginTop: 32
+      padding: "40px 24px",
+      textAlign: "center",
+      color: "var(--ink-3)",
+      fontSize: 13
+    }
+  }, es ? "No hay medios / entidades duplicados detectados." : "No duplicate media / entities detected."), dupTab === "entidades" && entityPairs.length > 0 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 8
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
