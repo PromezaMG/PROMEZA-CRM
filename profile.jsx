@@ -287,17 +287,6 @@ const PersonProfile = ({ id, t, lang, data, go, goBack, addComment, onUpdatePers
               </span>
             )}
           </div>
-          {p.tags && p.tags.length > 0 && (
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginTop: 8, alignItems: "center" }}>
-              {(showAllTags ? p.tags : p.tags.slice(0, 8)).map(tg => <span key={tg} className="tag-chip">{tg}</span>)}
-              {p.tags.length > 8 && (
-                <button onClick={() => setShowAllTags(v => !v)}
-                  style={{ border: "none", background: "var(--accent-50)", color: "var(--accent)", fontFamily: "inherit", fontSize: 11, fontWeight: 700, padding: "2px 9px", borderRadius: 4, cursor: "pointer" }}>
-                  {showAllTags ? (lang === "es" ? "− menos" : "− less") : "+" + (p.tags.length - 8) + (lang === "es" ? " más" : " more")}
-                </button>
-              )}
-            </div>
-          )}
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6 }}>
             <div className="vid">VID {p.id.toUpperCase()}-{Math.abs(p.id.charCodeAt(1) * 7919) % 999999}</div>
             {completeness < 100 && (
@@ -403,6 +392,23 @@ const PersonProfile = ({ id, t, lang, data, go, goBack, addComment, onUpdatePers
           </button>
         </div>
       </div>
+
+      {/* Tags — full width band so many list-tags flow left-to-right instead of
+          stacking in the narrow name column (and no wasted white space). */}
+      {p.tags && p.tags.length > 0 && (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center", margin: "10px 2px 14px" }}>
+          <span style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".05em", color: "var(--ink-4)", marginRight: 2 }}>
+            {lang === "es" ? "Etiquetas" : "Tags"}
+          </span>
+          {(showAllTags ? p.tags : p.tags.slice(0, 12)).map(tg => <span key={tg} className="tag-chip">{tg}</span>)}
+          {p.tags.length > 12 && (
+            <button onClick={() => setShowAllTags(v => !v)}
+              style={{ border: "none", background: "var(--accent-50)", color: "var(--accent)", fontFamily: "inherit", fontSize: 11, fontWeight: 700, padding: "2px 9px", borderRadius: 4, cursor: "pointer" }}>
+              {showAllTags ? (lang === "es" ? "− menos" : "− less") : "+" + (p.tags.length - 12) + (lang === "es" ? " más" : " more")}
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Smart alerts strip */}
       {personAlerts.length > 0 && (
@@ -752,17 +758,6 @@ const EntityProfile = ({ id, t, lang, data, go, goBack, addComment, onUpdateEnti
             <span><Icon name="users" /> {linkedPeople.length} {t.common.relatedPersonas.toLowerCase()}</span>
             {e.size && <span>{e.size.toLocaleString()} {t.common.members}</span>}
           </div>
-          {e.tags && e.tags.length > 0 && (
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginTop: 8, alignItems: "center" }}>
-              {(showAllTags ? e.tags : e.tags.slice(0, 8)).map(tg => <span key={tg} className="tag-chip">{tg}</span>)}
-              {e.tags.length > 8 && (
-                <button onClick={() => setShowAllTags(v => !v)}
-                  style={{ border: "none", background: "var(--accent-50)", color: "var(--accent)", fontFamily: "inherit", fontSize: 11, fontWeight: 700, padding: "2px 9px", borderRadius: 4, cursor: "pointer" }}>
-                  {showAllTags ? (lang === "es" ? "− menos" : "− less") : "+" + (e.tags.length - 8) + (lang === "es" ? " más" : " more")}
-                </button>
-              )}
-            </div>
-          )}
           <div className="vid" style={{ marginTop: 6 }}>EID {e.id.toUpperCase()}-{Math.abs(e.id.charCodeAt(1) * 8819) % 999999}</div>
         </div>
         <div className="actions">
@@ -786,6 +781,22 @@ const EntityProfile = ({ id, t, lang, data, go, goBack, addComment, onUpdateEnti
           </button>
         </div>
       </div>
+
+      {/* Tags — full-width band (flow left-to-right, use the space). */}
+      {e.tags && e.tags.length > 0 && (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center", margin: "10px 2px 14px" }}>
+          <span style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".05em", color: "var(--ink-4)", marginRight: 2 }}>
+            {lang === "es" ? "Etiquetas" : "Tags"}
+          </span>
+          {(showAllTags ? e.tags : e.tags.slice(0, 12)).map(tg => <span key={tg} className="tag-chip">{tg}</span>)}
+          {e.tags.length > 12 && (
+            <button onClick={() => setShowAllTags(v => !v)}
+              style={{ border: "none", background: "var(--accent-50)", color: "var(--accent)", fontFamily: "inherit", fontSize: 11, fontWeight: 700, padding: "2px 9px", borderRadius: 4, cursor: "pointer" }}>
+              {showAllTags ? (lang === "es" ? "− menos" : "− less") : "+" + (e.tags.length - 12) + (lang === "es" ? " más" : " more")}
+            </button>
+          )}
+        </div>
+      )}
 
       <Tabs tabs={tabs} active={tab} onChange={setTab} />
 
