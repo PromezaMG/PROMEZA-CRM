@@ -177,6 +177,7 @@ const PersonProfile = ({ id, t, lang, data, go, goBack, addComment, onUpdatePers
   const [entitySearch, setEntitySearch] = React.useState("");
   const [showEntityDrop, setShowEntityDrop] = React.useState(false);
   const [showCallMenu, setShowCallMenu] = React.useState(false);
+  const [showAllTags, setShowAllTags] = React.useState(false);
   const callMenuRef = React.useRef(null);
   React.useEffect(() => {
     if (!showCallMenu) return;
@@ -285,8 +286,18 @@ const PersonProfile = ({ id, t, lang, data, go, goBack, addComment, onUpdatePers
                 <Icon name="calendar" size={12} /> {daysSinceContact === 0 ? (lang === "es" ? "contactado hoy" : "contacted today") : lang === "es" ? `${daysSinceContact}d sin contacto` : `${daysSinceContact}d no contact`}
               </span>
             )}
-            {p.tags && p.tags.map(tg => <span key={tg} className="tag-chip">{tg}</span>)}
           </div>
+          {p.tags && p.tags.length > 0 && (
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginTop: 8, alignItems: "center" }}>
+              {(showAllTags ? p.tags : p.tags.slice(0, 8)).map(tg => <span key={tg} className="tag-chip">{tg}</span>)}
+              {p.tags.length > 8 && (
+                <button onClick={() => setShowAllTags(v => !v)}
+                  style={{ border: "none", background: "var(--accent-50)", color: "var(--accent)", fontFamily: "inherit", fontSize: 11, fontWeight: 700, padding: "2px 9px", borderRadius: 4, cursor: "pointer" }}>
+                  {showAllTags ? (lang === "es" ? "− menos" : "− less") : "+" + (p.tags.length - 8) + (lang === "es" ? " más" : " more")}
+                </button>
+              )}
+            </div>
+          )}
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6 }}>
             <div className="vid">VID {p.id.toUpperCase()}-{Math.abs(p.id.charCodeAt(1) * 7919) % 999999}</div>
             {completeness < 100 && (
@@ -681,6 +692,7 @@ const EntityProfile = ({ id, t, lang, data, go, goBack, addComment, onUpdateEnti
   const [linking, setLinking] = React.useState(false);
   const [linkPersonId, setLinkPersonId] = React.useState("");
   const [linkRole, setLinkRole] = React.useState("miembro");
+  const [showAllTags, setShowAllTags] = React.useState(false);
   if (!e) return <div className="empty">Not found</div>;
 
   const linkedPeople = data.personas
@@ -739,8 +751,18 @@ const EntityProfile = ({ id, t, lang, data, go, goBack, addComment, onUpdateEnti
             <span><Icon name="pin" /> {e.city}, {e.country}</span>
             <span><Icon name="users" /> {linkedPeople.length} {t.common.relatedPersonas.toLowerCase()}</span>
             {e.size && <span>{e.size.toLocaleString()} {t.common.members}</span>}
-            {(e.tags || []).map(tg => <span key={tg} className="tag-chip">{tg}</span>)}
           </div>
+          {e.tags && e.tags.length > 0 && (
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginTop: 8, alignItems: "center" }}>
+              {(showAllTags ? e.tags : e.tags.slice(0, 8)).map(tg => <span key={tg} className="tag-chip">{tg}</span>)}
+              {e.tags.length > 8 && (
+                <button onClick={() => setShowAllTags(v => !v)}
+                  style={{ border: "none", background: "var(--accent-50)", color: "var(--accent)", fontFamily: "inherit", fontSize: 11, fontWeight: 700, padding: "2px 9px", borderRadius: 4, cursor: "pointer" }}>
+                  {showAllTags ? (lang === "es" ? "− menos" : "− less") : "+" + (e.tags.length - 8) + (lang === "es" ? " más" : " more")}
+                </button>
+              )}
+            </div>
+          )}
           <div className="vid" style={{ marginTop: 6 }}>EID {e.id.toUpperCase()}-{Math.abs(e.id.charCodeAt(1) * 8819) % 999999}</div>
         </div>
         <div className="actions">

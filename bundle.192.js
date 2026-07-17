@@ -7369,6 +7369,7 @@ const PersonProfile = ({
   const [entitySearch, setEntitySearch] = React.useState("");
   const [showEntityDrop, setShowEntityDrop] = React.useState(false);
   const [showCallMenu, setShowCallMenu] = React.useState(false);
+  const [showAllTags, setShowAllTags] = React.useState(false);
   const callMenuRef = React.useRef(null);
   React.useEffect(() => {
     if (!showCallMenu) return;
@@ -7607,10 +7608,31 @@ const PersonProfile = ({
   }, /*#__PURE__*/React.createElement(Icon, {
     name: "calendar",
     size: 12
-  }), " ", daysSinceContact === 0 ? lang === "es" ? "contactado hoy" : "contacted today" : lang === "es" ? `${daysSinceContact}d sin contacto` : `${daysSinceContact}d no contact`), p.tags && p.tags.map(tg => /*#__PURE__*/React.createElement("span", {
+  }), " ", daysSinceContact === 0 ? lang === "es" ? "contactado hoy" : "contacted today" : lang === "es" ? `${daysSinceContact}d sin contacto` : `${daysSinceContact}d no contact`)), p.tags && p.tags.length > 0 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      flexWrap: "wrap",
+      gap: 5,
+      marginTop: 8,
+      alignItems: "center"
+    }
+  }, (showAllTags ? p.tags : p.tags.slice(0, 8)).map(tg => /*#__PURE__*/React.createElement("span", {
     key: tg,
     className: "tag-chip"
-  }, tg))), /*#__PURE__*/React.createElement("div", {
+  }, tg)), p.tags.length > 8 && /*#__PURE__*/React.createElement("button", {
+    onClick: () => setShowAllTags(v => !v),
+    style: {
+      border: "none",
+      background: "var(--accent-50)",
+      color: "var(--accent)",
+      fontFamily: "inherit",
+      fontSize: 11,
+      fontWeight: 700,
+      padding: "2px 9px",
+      borderRadius: 4,
+      cursor: "pointer"
+    }
+  }, showAllTags ? lang === "es" ? "− menos" : "− less" : "+" + (p.tags.length - 8) + (lang === "es" ? " más" : " more"))), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       alignItems: "center",
@@ -8449,6 +8471,7 @@ const EntityProfile = ({
   const [linking, setLinking] = React.useState(false);
   const [linkPersonId, setLinkPersonId] = React.useState("");
   const [linkRole, setLinkRole] = React.useState("miembro");
+  const [showAllTags, setShowAllTags] = React.useState(false);
   if (!e) return /*#__PURE__*/React.createElement("div", {
     className: "empty"
   }, "Not found");
@@ -8533,10 +8556,31 @@ const EntityProfile = ({
     name: "pin"
   }), " ", e.city, ", ", e.country), /*#__PURE__*/React.createElement("span", null, /*#__PURE__*/React.createElement(Icon, {
     name: "users"
-  }), " ", linkedPeople.length, " ", t.common.relatedPersonas.toLowerCase()), e.size && /*#__PURE__*/React.createElement("span", null, e.size.toLocaleString(), " ", t.common.members), (e.tags || []).map(tg => /*#__PURE__*/React.createElement("span", {
+  }), " ", linkedPeople.length, " ", t.common.relatedPersonas.toLowerCase()), e.size && /*#__PURE__*/React.createElement("span", null, e.size.toLocaleString(), " ", t.common.members)), e.tags && e.tags.length > 0 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      flexWrap: "wrap",
+      gap: 5,
+      marginTop: 8,
+      alignItems: "center"
+    }
+  }, (showAllTags ? e.tags : e.tags.slice(0, 8)).map(tg => /*#__PURE__*/React.createElement("span", {
     key: tg,
     className: "tag-chip"
-  }, tg))), /*#__PURE__*/React.createElement("div", {
+  }, tg)), e.tags.length > 8 && /*#__PURE__*/React.createElement("button", {
+    onClick: () => setShowAllTags(v => !v),
+    style: {
+      border: "none",
+      background: "var(--accent-50)",
+      color: "var(--accent)",
+      fontFamily: "inherit",
+      fontSize: 11,
+      fontWeight: 700,
+      padding: "2px 9px",
+      borderRadius: 4,
+      cursor: "pointer"
+    }
+  }, showAllTags ? lang === "es" ? "− menos" : "− less" : "+" + (e.tags.length - 8) + (lang === "es" ? " más" : " more"))), /*#__PURE__*/React.createElement("div", {
     className: "vid",
     style: {
       marginTop: 6
