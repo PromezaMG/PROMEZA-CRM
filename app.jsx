@@ -831,6 +831,7 @@ const App = () => {
   const savingRef = useRef(false);    // a save is in flight (avoid overlapping heavy saves)
   const lastVisSyncRef = useRef(0);   // throttle sync-on-tab-focus
   const syncInFlightRef = useRef(false); // a full Airtable pull is running (never overlap — each pull is ~160 paged HTTP calls at 16k records)
+  const lastSyncTimeRef = useRef(localStorage.getItem("promeza_delta_since") || ""); // ISO of last successful sync — delta syncs pull only records changed after this
 
   const mergeFromAirtable = (atData, prev, prevLastLoad = "") => {
     if (!atData || !prev) return prev;
@@ -972,8 +973,13 @@ const App = () => {
     syncInFlightRef.current = true;
     setAtSyncing(true);
     const prevLastLoad = window.AIRTABLE.getLastLoad() || "";
+    const nowIso = new Date().toISOString();
     window.AIRTABLE.loadData().then(atData => {
       if (atData && (atData.personas.length > 0 || atData.entities.length > 0)) {
+        // A full pull succeeded — advance the delta baseline so later background syncs
+        // only fetch what changes from here on.
+        lastSyncTimeRef.current = nowIso;
+        try { localStorage.setItem("promeza_delta_since", nowIso); } catch (e) {}
         const sig = atSignature(atData);
         if (sig === lastSyncSigRef.current) {
           // Airtable unchanged since last sync â€” skip the heavy merge/re-render/
@@ -992,6 +998,33 @@ const App = () => {
       setAtSyncMsg({ type: "err", text: "âœ— Error Airtable: " + e.message });
       console.warn("syncFromAirtable error:", e);
     }).finally(() => { setAtSyncing(false); syncInFlightRef.current = false; });
+  };
+
+  // DELTA sync: pull ONLY records changed since the last sync (via the "Ultima
+  // modificacion" field). Cheap — this is what runs in the background so working in the
+  // app doesn't hitch. Never removes records (deletions still propagate via the full
+  // clean reload); merge keeps local edits newer than the remote change.
+  const deltaSyncFromAirtable = () => {
+    const since = lastSyncTimeRef.current;
+    if (!since) { syncFromAirtable(); return; }   // no baseline yet → do a full pull
+    if (syncInFlightRef.current) return;
+    syncInFlightRef.current = true;
+    setAtSyncing(true);
+    const prevLastLoad = window.AIRTABLE.getLastLoad() || "";
+    const nowIso = new Date().toISOString();
+    // Re-fetch a small overlap (30s) so an edit that landed right at the boundary isn't missed.
+    const sinceOverlap = new Date(Date.parse(since) - 30000).toISOString();
+    window.AIRTABLE.loadDataSince(sinceOverlap).then(changed => {
+      if (changed) {
+        lastSyncTimeRef.current = nowIso;
+        try { localStorage.setItem("promeza_delta_since", nowIso); } catch (e) {}
+        if (changed.personas.length > 0 || changed.entities.length > 0) {
+          setData(prev => mergeFromAirtable(changed, prev, prevLastLoad));
+          setAtSyncMsg({ type: "ok", text: "â†“ " + (changed.personas.length + changed.entities.length) + " cambios de Airtable" });
+        }
+      }
+    }).catch(e => { console.warn("deltaSync error:", e); })
+      .finally(() => { setAtSyncing(false); syncInFlightRef.current = false; });
   };
 
   const forcePullFromAirtable = () => {
@@ -1510,14 +1543,17 @@ const App = () => {
     // + re-parse 10k records), and every 4 min instead of 2 — this halves the
     // periodic hitch while working. Also sync once when the tab regains focus
     // (throttled to at most once/2 min) so returning to the app shows fresh data.
-    const runSync = () => { if (document.visibilityState === "visible") { lastVisSyncRef.current = Date.now(); syncFromAirtable(); } };
-    const first = setTimeout(runSync, 3000);
-    const interval = setInterval(runSync, 240000);
+    // On open: ONE full pull (baseline + catches anything). Afterwards, background
+    // syncs are DELTA (only changed records) so they're cheap and don't hitch the UI.
+    const runFull = () => { if (document.visibilityState === "visible") { lastVisSyncRef.current = Date.now(); syncFromAirtable(); } };
+    const runDelta = () => { if (document.visibilityState === "visible") { lastVisSyncRef.current = Date.now(); deltaSyncFromAirtable(); } };
+    const first = setTimeout(runFull, 3000);
+    const interval = setInterval(runDelta, 240000);
     // Sync when the tab regains focus, throttled to once/2min. (A full pull is ~160
     // paged HTTP calls at 16k records — doing it on every focus, as an earlier 20s
     // throttle did, made the whole app crawl.) On-open + this + the 4-min timer keep
     // it automatic without hammering; the syncInFlightRef guard prevents overlap.
-    const onVis = () => { if (document.visibilityState === "visible" && Date.now() - lastVisSyncRef.current > 120000) runSync(); };
+    const onVis = () => { if (document.visibilityState === "visible" && Date.now() - lastVisSyncRef.current > 120000) runDelta(); };
     document.addEventListener("visibilitychange", onVis);
     return () => { clearTimeout(first); clearInterval(interval); document.removeEventListener("visibilitychange", onVis); };
   }, [dataReady]); // eslint-disable-line react-hooks/exhaustive-deps

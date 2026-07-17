@@ -476,6 +476,44 @@ window.AIRTABLE = (function () {
     }
   };
 
+  // Like fetchAll but only records matching a filterByFormula (server-side).
+  const fetchFiltered = async (baseId, table, pat, formula) => {
+    const records = [];
+    let offset = "";
+    const fParam = "filterByFormula=" + encodeURIComponent(formula);
+    do {
+      const url = "https://api.airtable.com/v0/" + baseId + "/" + encodeURIComponent(table) + "?" + fParam + (offset ? "&offset=" + offset : "");
+      const data = await req("GET", url, null, pat);
+      records.push(...(data.records || []));
+      offset = data.offset || "";
+    } while (offset);
+    return records;
+  };
+
+  // DELTA load: only records changed since `sinceISO` (based on the app-maintained
+  // "Ultima modificacion" field). Returns the same {personas, entities} shape as
+  // loadData but tiny — this is what makes background syncs cheap at 22k records.
+  // Falls back to a full loadData if no `sinceISO` is given.
+  const loadDataSince = async (sinceISO) => {
+    const cfg = getConfig();
+    if (!cfg.pat || !cfg.baseId) return null;
+    if (!sinceISO) return loadData();
+    const personasTable = cfg.personasTable || DEFAULT_PERSONAS_TABLE;
+    const entidadesTable = cfg.entidadesTable || DEFAULT_ENTIDADES_TABLE;
+    const formula = "IS_AFTER({Ultima modificacion}, DATETIME_PARSE('" + sinceISO + "'))";
+    try {
+      const [pRecords, eRecords] = await Promise.all([
+        fetchFiltered(cfg.baseId, personasTable, cfg.pat, formula),
+        fetchFiltered(cfg.baseId, entidadesTable, cfg.pat, formula),
+      ]);
+      const personas = pRecords.filter(r => r.fields["CRM_ID"] || r.fields["_data"]).map(parsePersonaRecord);
+      const entities = eRecords.filter(r => r.fields["CRM_ID"] || r.fields["_data"]).map(parseEntityRecord);
+      const pMap = new Map(); personas.forEach(p => pMap.set(p.id, p));
+      const eMap = new Map(); entities.forEach(e => eMap.set(e.id, e));
+      return { personas: [...pMap.values()], entities: [...eMap.values()] };
+    } catch (err) { console.warn("Airtable loadDataSince error:", err); return null; }
+  };
+
   // Upsert a single persona to Airtable (fire-and-forget friendly)
   const savePersona = async (persona, entities) => {
     const cfg = getConfig();
@@ -506,6 +544,7 @@ window.AIRTABLE = (function () {
       "Estado": persona.status,
       "Cumpleaños": persona.birthday,
       "Último contacto": persona.lastContact,
+      "Ultima modificacion": new Date().toISOString(),
     });
     const p = Object.assign({}, persona);
     delete p._atId;
@@ -569,6 +608,7 @@ window.AIRTABLE = (function () {
       "Denominación": entity.denominacion || null,
       "Horarios": (entity.schedule && entity.schedule.length > 0) ? JSON.stringify(entity.schedule) : null,
       "Etiquetas": (entity.tags || []).join(", "),
+      "Ultima modificacion": new Date().toISOString(),
     });
     const e = Object.assign({}, entity);
     delete e._atId;
@@ -659,5 +699,5 @@ window.AIRTABLE = (function () {
     } catch (e) { console.warn("saveAppState " + key + ":", e.message); return false; }
   };
 
-  return { getConfig, saveConfig, getLastSync, getLastLoad, syncAll, loadData, savePersona, saveEntity, deleteRecord, logAccess, getAccessLog, loadAppState, saveAppState, DEFAULT_PERSONAS_TABLE, DEFAULT_ENTIDADES_TABLE };
+  return { getConfig, saveConfig, getLastSync, getLastLoad, syncAll, loadData, loadDataSince, savePersona, saveEntity, deleteRecord, logAccess, getAccessLog, loadAppState, saveAppState, DEFAULT_PERSONAS_TABLE, DEFAULT_ENTIDADES_TABLE };
 })();
