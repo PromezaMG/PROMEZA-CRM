@@ -2094,6 +2094,68 @@ const App = () => {
     ));
   };
 
+  // ── Entity (medios) duplicate merge ──
+  const handleMergeEntities = (idA, idB) => {
+    const keep0 = data.entities.find(e => e.id === idA);
+    const drop = data.entities.find(e => e.id === idB);
+    if (!keep0 || !drop) return;
+    const merged = {
+      ...keep0,
+      email: keep0.email || drop.email || "",
+      phone: keep0.phone || drop.phone || "",
+      address: keep0.address || drop.address || "",
+      zip: keep0.zip || drop.zip || "",
+      city: keep0.city || drop.city || "",
+      state: keep0.state || drop.state || "",
+      country: keep0.country || drop.country || "",
+      website: keep0.website || drop.website || "",
+      denominacion: keep0.denominacion || drop.denominacion || "",
+      type: (keep0.type && keep0.type !== "otro") ? keep0.type : (drop.type || keep0.type || "otro"),
+      tags: [...new Set([...(keep0.tags || []), ...(drop.tags || [])])],
+      social: {
+        ig: keep0.social?.ig || drop.social?.ig || "",
+        fb: keep0.social?.fb || drop.social?.fb || "",
+        tiktok: keep0.social?.tiktok || drop.social?.tiktok || "",
+        x: keep0.social?.x || drop.social?.x || "",
+      },
+      _localSavedAt: new Date().toISOString(),
+    };
+    // Repoint any persona linked to the dropped entity → the kept entity, and remember
+    // which personas changed so we can persist them.
+    const repointed = [];
+    (data.personas || []).forEach(p => {
+      if (!(p.entities || []).some(le => le && le.id === idB)) return;
+      const ents = [];
+      (p.entities || []).forEach(le => {
+        const nid = le.id === idB ? idA : le.id;
+        if (!ents.some(x => x.id === nid)) ents.push({ ...le, id: nid });
+      });
+      repointed.push({ ...p, entities: ents, _localSavedAt: new Date().toISOString() });
+    });
+    const repointMap = Object.fromEntries(repointed.map(p => [p.id, p]));
+    setData(d => ({
+      ...d,
+      entities: d.entities.map(e => e.id === idA ? merged : e).filter(e => e.id !== idB),
+      personas: d.personas.map(p => repointMap[p.id] || p),
+    }));
+    setEntityDupPairs(ps => ps
+      .map(p => (p.idA === idA && p.idB === idB) || (p.idA === idB && p.idB === idA) ? { ...p, dismissed: true } : p)
+      .filter(p => p.idA !== idB && p.idB !== idB)
+    );
+    if (route.name === "entity" && route.id === idB) setRoute({ name: "entity", id: idA });
+    // Persist: save merged keeper + repointed personas, DELETE the dropped entity.
+    window.AIRTABLE.saveEntity(merged, data.entities).catch(console.warn);
+    repointed.forEach(p => window.AIRTABLE.savePersona(p, data.entities).catch(console.warn));
+    const cfg = window.AIRTABLE.getConfig();
+    if (cfg.pat && cfg.baseId) window.AIRTABLE.deleteRecord(cfg.entidadesTable || "ENTIDADES PROMEZA CRM", idB).catch(console.warn);
+  };
+  const handleDismissEntityDup = (pair) => {
+    setEntityDupPairs(ps => ps.map(p => p.idA === pair.idA && p.idB === pair.idB ? { ...p, dismissed: true } : p));
+  };
+  const handleUndismissEntityDup = (pair) => {
+    setEntityDupPairs(ps => ps.map(p => p.idA === pair.idA && p.idB === pair.idB ? { ...p, dismissed: false } : p));
+  };
+
   const handleScanAll = () => {
     const pairs = findDuplicatePairs(data.personas, dupPairs);
     if (pairs.length > 0) {
@@ -2234,7 +2296,7 @@ const App = () => {
     case "goals": view = <GoalsView lang={lang} data={data} go={go} onAddGoal={addGoal} onUpdateGoal={updateGoal} onDeleteGoal={deleteGoal} />; break;
     case "county": view = <CountyView t={t} lang={lang} data={data} go={go} />; break;
     case "map": view = <MapPage t={t} lang={lang} data={data} go={go} />; break;
-    case "duplicates": view = <DuplicatesPage pairs={dupPairs} data={data} onMerge={handleMergePersonas} onMergeWithData={handleMergeWithData} onDismiss={handleDismissDup} onUndismiss={handleUndismissDup} onScanAll={handleScanAll} onCreateDemo={handleCreateDemo} onCreateManual={handleCreateManualDup} t={t} lang={lang} />; break;
+    case "duplicates": view = <DuplicatesPage pairs={dupPairs} entityPairs={entityDupPairs} data={data} onMerge={handleMergePersonas} onMergeWithData={handleMergeWithData} onMergeEntity={handleMergeEntities} onDismiss={handleDismissDup} onUndismiss={handleUndismissDup} onDismissEntity={handleDismissEntityDup} onUndismissEntity={handleUndismissEntityDup} onScanAll={handleScanAll} onCreateDemo={handleCreateDemo} onCreateManual={handleCreateManualDup} t={t} lang={lang} />; break;
     default: view = <Home t={t} lang={lang} data={data} go={go} />;
   }
 

@@ -11157,11 +11157,15 @@ const DuplicateReviewModal = ({
 
 const DuplicatesPage = ({
   pairs,
+  entityPairs = [],
   data,
   onMerge,
   onMergeWithData,
+  onMergeEntity,
   onDismiss,
   onUndismiss,
+  onDismissEntity,
+  onUndismissEntity,
   onScanAll,
   onCreateDemo,
   onCreateManual,
@@ -11408,7 +11412,7 @@ const DuplicatesPage = ({
       fontSize: 12,
       color: "var(--bad)"
     }
-  }, es ? "Elige dos contactos distintos." : "Pick two different contacts.")), active.length === 0 && /*#__PURE__*/React.createElement("div", {
+  }, es ? "Elige dos contactos distintos." : "Pick two different contacts.")), active.length === 0 && entityPairs.filter(p => !p.dismissed).length === 0 && /*#__PURE__*/React.createElement("div", {
     className: "card",
     style: {
       padding: "48px 24px",
@@ -11721,7 +11725,122 @@ const DuplicatesPage = ({
       className: "btn btn-sm btn-ghost",
       onClick: () => onUndismiss(pair)
     }, lang === "es" ? "Deshacer" : "Undo"));
-  })), mergingPair && (() => {
+  })), entityPairs.length > 0 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 32
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13,
+      fontWeight: 800,
+      marginBottom: 4
+    }
+  }, es ? "Medios / entidades duplicados" : "Duplicate media / entities"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: "var(--ink-3)",
+      marginBottom: 12
+    }
+  }, entityPairs.filter(p => !p.dismissed).length, " ", es ? "pares pendientes de revisión" : "pairs pending review"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 10
+    }
+  }, entityPairs.filter(p => !p.dismissed).map(pair => {
+    const eA = data.entities.find(e => e.id === pair.idA);
+    const eB = data.entities.find(e => e.id === pair.idB);
+    if (!eA || !eB) return null;
+    return /*#__PURE__*/React.createElement("div", {
+      key: pair.idA + pair.idB,
+      className: "card",
+      style: {
+        padding: "12px 16px"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 12,
+        flexWrap: "wrap"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        flex: 1,
+        minWidth: 200
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontWeight: 700,
+        fontSize: 13
+      }
+    }, eA.name, " ", /*#__PURE__*/React.createElement("span", {
+      style: {
+        color: "var(--ink-4)",
+        fontWeight: 400
+      }
+    }, "vs"), " ", eB.name), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 11.5,
+        color: "var(--ink-3)",
+        marginTop: 3
+      }
+    }, [eA.city, eA.email, eA.phone].filter(Boolean).join(" · ") || "—", "  ·  ", [eB.city, eB.email, eB.phone].filter(Boolean).join(" · ") || "—")), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        gap: 8,
+        flexShrink: 0
+      }
+    }, /*#__PURE__*/React.createElement("button", {
+      className: "btn btn-sm",
+      onClick: () => onDismissEntity && onDismissEntity(pair)
+    }, es ? "Son distintos" : "Different"), /*#__PURE__*/React.createElement("button", {
+      className: "btn btn-sm btn-primary",
+      onClick: () => onMergeEntity && onMergeEntity(pair.idA, pair.idB)
+    }, "\uD83D\uDD00 ", es ? "Fusionar" : "Merge"))));
+  })), entityPairs.filter(p => p.dismissed).length > 0 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 16
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      fontWeight: 700,
+      textTransform: "uppercase",
+      letterSpacing: ".06em",
+      color: "var(--ink-4)",
+      marginBottom: 8
+    }
+  }, es ? "Revisados — medios distintos" : "Reviewed — different", " (", entityPairs.filter(p => p.dismissed).length, ")"), entityPairs.filter(p => p.dismissed).map(pair => {
+    const eA = data.entities.find(e => e.id === pair.idA);
+    const eB = data.entities.find(e => e.id === pair.idB);
+    if (!eA || !eB) return null;
+    return /*#__PURE__*/React.createElement("div", {
+      key: pair.idA + pair.idB,
+      style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 10,
+        padding: "8px 14px",
+        background: "var(--bg-soft)",
+        borderRadius: 8,
+        marginBottom: 6,
+        fontSize: 13
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        color: "var(--good)"
+      }
+    }, "\u2713"), /*#__PURE__*/React.createElement("span", {
+      style: {
+        flex: 1,
+        color: "var(--ink-3)"
+      }
+    }, eA.name, " \xB7 ", eB.name), /*#__PURE__*/React.createElement("button", {
+      className: "btn btn-sm btn-ghost",
+      onClick: () => onUndismissEntity && onUndismissEntity(pair)
+    }, es ? "Deshacer" : "Undo"));
+  }))), mergingPair && (() => {
     const pA = data.personas.find(p => p.id === mergingPair.idA);
     const pB = data.personas.find(p => p.id === mergingPair.idB);
     if (!pA || !pB) {
@@ -22017,6 +22136,84 @@ const App = () => {
       dismissed: false
     } : p));
   };
+
+  // ── Entity (medios) duplicate merge ──
+  const handleMergeEntities = (idA, idB) => {
+    const keep0 = data.entities.find(e => e.id === idA);
+    const drop = data.entities.find(e => e.id === idB);
+    if (!keep0 || !drop) return;
+    const merged = {
+      ...keep0,
+      email: keep0.email || drop.email || "",
+      phone: keep0.phone || drop.phone || "",
+      address: keep0.address || drop.address || "",
+      zip: keep0.zip || drop.zip || "",
+      city: keep0.city || drop.city || "",
+      state: keep0.state || drop.state || "",
+      country: keep0.country || drop.country || "",
+      website: keep0.website || drop.website || "",
+      denominacion: keep0.denominacion || drop.denominacion || "",
+      type: keep0.type && keep0.type !== "otro" ? keep0.type : drop.type || keep0.type || "otro",
+      tags: [...new Set([...(keep0.tags || []), ...(drop.tags || [])])],
+      social: {
+        ig: keep0.social?.ig || drop.social?.ig || "",
+        fb: keep0.social?.fb || drop.social?.fb || "",
+        tiktok: keep0.social?.tiktok || drop.social?.tiktok || "",
+        x: keep0.social?.x || drop.social?.x || ""
+      },
+      _localSavedAt: new Date().toISOString()
+    };
+    // Repoint any persona linked to the dropped entity → the kept entity, and remember
+    // which personas changed so we can persist them.
+    const repointed = [];
+    (data.personas || []).forEach(p => {
+      if (!(p.entities || []).some(le => le && le.id === idB)) return;
+      const ents = [];
+      (p.entities || []).forEach(le => {
+        const nid = le.id === idB ? idA : le.id;
+        if (!ents.some(x => x.id === nid)) ents.push({
+          ...le,
+          id: nid
+        });
+      });
+      repointed.push({
+        ...p,
+        entities: ents,
+        _localSavedAt: new Date().toISOString()
+      });
+    });
+    const repointMap = Object.fromEntries(repointed.map(p => [p.id, p]));
+    setData(d => ({
+      ...d,
+      entities: d.entities.map(e => e.id === idA ? merged : e).filter(e => e.id !== idB),
+      personas: d.personas.map(p => repointMap[p.id] || p)
+    }));
+    setEntityDupPairs(ps => ps.map(p => p.idA === idA && p.idB === idB || p.idA === idB && p.idB === idA ? {
+      ...p,
+      dismissed: true
+    } : p).filter(p => p.idA !== idB && p.idB !== idB));
+    if (route.name === "entity" && route.id === idB) setRoute({
+      name: "entity",
+      id: idA
+    });
+    // Persist: save merged keeper + repointed personas, DELETE the dropped entity.
+    window.AIRTABLE.saveEntity(merged, data.entities).catch(console.warn);
+    repointed.forEach(p => window.AIRTABLE.savePersona(p, data.entities).catch(console.warn));
+    const cfg = window.AIRTABLE.getConfig();
+    if (cfg.pat && cfg.baseId) window.AIRTABLE.deleteRecord(cfg.entidadesTable || "ENTIDADES PROMEZA CRM", idB).catch(console.warn);
+  };
+  const handleDismissEntityDup = pair => {
+    setEntityDupPairs(ps => ps.map(p => p.idA === pair.idA && p.idB === pair.idB ? {
+      ...p,
+      dismissed: true
+    } : p));
+  };
+  const handleUndismissEntityDup = pair => {
+    setEntityDupPairs(ps => ps.map(p => p.idA === pair.idA && p.idB === pair.idB ? {
+      ...p,
+      dismissed: false
+    } : p));
+  };
   const handleScanAll = () => {
     const pairs = findDuplicatePairs(data.personas, dupPairs);
     if (pairs.length > 0) {
@@ -22358,11 +22555,15 @@ const App = () => {
     case "duplicates":
       view = /*#__PURE__*/React.createElement(DuplicatesPage, {
         pairs: dupPairs,
+        entityPairs: entityDupPairs,
         data: data,
         onMerge: handleMergePersonas,
         onMergeWithData: handleMergeWithData,
+        onMergeEntity: handleMergeEntities,
         onDismiss: handleDismissDup,
         onUndismiss: handleUndismissDup,
+        onDismissEntity: handleDismissEntityDup,
+        onUndismissEntity: handleUndismissEntityDup,
         onScanAll: handleScanAll,
         onCreateDemo: handleCreateDemo,
         onCreateManual: handleCreateManualDup,

@@ -413,7 +413,7 @@ const DuplicateReviewModal = ({ pairs, data, onMerge, onDismiss, onClose, t, lan
 
 // ─── Duplicates Page ───
 
-const DuplicatesPage = ({ pairs, data, onMerge, onMergeWithData, onDismiss, onUndismiss, onScanAll, onCreateDemo, onCreateManual, t, lang }) => {
+const DuplicatesPage = ({ pairs, entityPairs = [], data, onMerge, onMergeWithData, onMergeEntity, onDismiss, onUndismiss, onDismissEntity, onUndismissEntity, onScanAll, onCreateDemo, onCreateManual, t, lang }) => {
   const [expanded, setExpanded] = React.useState(null);
   const [mergingPair, setMergingPair] = React.useState(null);
   const [showManual, setShowManual] = React.useState(false);
@@ -529,7 +529,7 @@ const DuplicatesPage = ({ pairs, data, onMerge, onMergeWithData, onDismiss, onUn
       )}
 
       {/* ── Empty state ── */}
-      {active.length === 0 && (
+      {active.length === 0 && entityPairs.filter(p => !p.dismissed).length === 0 && (
         <div className="card" style={{ padding: "48px 24px", textAlign: "center" }}>
           <div style={{ fontSize: 44, marginBottom: 12 }}>✓</div>
           <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 6 }}>
@@ -680,6 +680,60 @@ const DuplicatesPage = ({ pairs, data, onMerge, onMergeWithData, onDismiss, onUn
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* ── Entity (medios) duplicates ── */}
+      {entityPairs.length > 0 && (
+        <div style={{ marginTop: 32 }}>
+          <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 4 }}>
+            {es ? "Medios / entidades duplicados" : "Duplicate media / entities"}
+          </div>
+          <div style={{ fontSize: 12, color: "var(--ink-3)", marginBottom: 12 }}>
+            {entityPairs.filter(p => !p.dismissed).length} {es ? "pares pendientes de revisión" : "pairs pending review"}
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {entityPairs.filter(p => !p.dismissed).map(pair => {
+              const eA = data.entities.find(e => e.id === pair.idA);
+              const eB = data.entities.find(e => e.id === pair.idB);
+              if (!eA || !eB) return null;
+              return (
+                <div key={pair.idA + pair.idB} className="card" style={{ padding: "12px 16px" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+                    <div style={{ flex: 1, minWidth: 200 }}>
+                      <div style={{ fontWeight: 700, fontSize: 13 }}>{eA.name} <span style={{ color: "var(--ink-4)", fontWeight: 400 }}>vs</span> {eB.name}</div>
+                      <div style={{ fontSize: 11.5, color: "var(--ink-3)", marginTop: 3 }}>
+                        {[eA.city, eA.email, eA.phone].filter(Boolean).join(" · ") || "—"}{"  ·  "}{[eB.city, eB.email, eB.phone].filter(Boolean).join(" · ") || "—"}
+                      </div>
+                    </div>
+                    <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+                      <button className="btn btn-sm" onClick={() => onDismissEntity && onDismissEntity(pair)}>{es ? "Son distintos" : "Different"}</button>
+                      <button className="btn btn-sm btn-primary" onClick={() => onMergeEntity && onMergeEntity(pair.idA, pair.idB)}>🔀 {es ? "Fusionar" : "Merge"}</button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          {entityPairs.filter(p => p.dismissed).length > 0 && (
+            <div style={{ marginTop: 16 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".06em", color: "var(--ink-4)", marginBottom: 8 }}>
+                {es ? "Revisados — medios distintos" : "Reviewed — different"} ({entityPairs.filter(p => p.dismissed).length})
+              </div>
+              {entityPairs.filter(p => p.dismissed).map(pair => {
+                const eA = data.entities.find(e => e.id === pair.idA);
+                const eB = data.entities.find(e => e.id === pair.idB);
+                if (!eA || !eB) return null;
+                return (
+                  <div key={pair.idA + pair.idB} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 14px", background: "var(--bg-soft)", borderRadius: 8, marginBottom: 6, fontSize: 13 }}>
+                    <span style={{ color: "var(--good)" }}>✓</span>
+                    <span style={{ flex: 1, color: "var(--ink-3)" }}>{eA.name} · {eB.name}</span>
+                    <button className="btn btn-sm btn-ghost" onClick={() => onUndismissEntity && onUndismissEntity(pair)}>{es ? "Deshacer" : "Undo"}</button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 
