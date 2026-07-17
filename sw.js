@@ -1,8 +1,8 @@
-﻿const CACHE = "promeza-v196";
+﻿const CACHE = "promeza-v197";
 const ASSETS = [
   "./styles.css",
   "./i18n.js", "./airtable.js",
-  "./bundle.193.js", "./msal-browser.min.js",
+  "./bundle.194.js", "./msal-browser.min.js",
   "./data_churches.js",
 ];
 

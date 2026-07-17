@@ -422,7 +422,13 @@ const DuplicatesPage = ({ pairs, entityPairs = [], data, onMerge, onMergeWithDat
   const [manB, setManB] = React.useState(null);   // selected persona B
   const [qA, setQA] = React.useState("");
   const [qB, setQB] = React.useState("");
+  const [visP, setVisP] = React.useState(40);  // # of active contact pairs rendered (paginate — 2000 cards froze the page)
+  const [visE, setVisE] = React.useState(40);  // # of active entity pairs rendered
   const es = lang === "es";
+  // Index records by id ONCE. Was: data.personas.find() per pair × 2 × ~18k records
+  // = tens of millions of scans every render → the Duplicates page crawled.
+  const personaById = React.useMemo(() => { const m = Object.create(null); (data.personas || []).forEach(p => { m[p.id] = p; }); return m; }, [data.personas]);
+  const entityById = React.useMemo(() => { const m = Object.create(null); (data.entities || []).forEach(e => { m[e.id] = e; }); return m; }, [data.entities]);
   const searchP = (q) => {
     const sq = (q || "").trim().toLowerCase();
     if (sq.length < 2) return [];
@@ -568,9 +574,9 @@ const DuplicatesPage = ({ pairs, entityPairs = [], data, onMerge, onMergeWithDat
       {/* ── Active pairs ── */}
       {active.length > 0 && (
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          {active.map((pair) => {
-            const pA = data.personas.find(p => p.id === pair.idA);
-            const pB = data.personas.find(p => p.id === pair.idB);
+          {active.slice(0, visP).map((pair) => {
+            const pA = personaById[pair.idA];
+            const pB = personaById[pair.idB];
             if (!pA || !pB) return null;
             const key = pair.idA + pair.idB;
             const isOpen = expanded === key;
@@ -645,8 +651,8 @@ const DuplicatesPage = ({ pairs, entityPairs = [], data, onMerge, onMergeWithDat
                     <DupField label="Tags" a={(pA.tags || []).join(", ")} b={(pB.tags || []).join(", ")} />
                     <DupField
                       label={lang === "es" ? "Entidades" : "Entities"}
-                      a={(pA.entities || []).map(le => { const e = data.entities.find(x => x.id === le.id); return e ? e.name : le.id; }).join(", ")}
-                      b={(pB.entities || []).map(le => { const e = data.entities.find(x => x.id === le.id); return e ? e.name : le.id; }).join(", ")}
+                      a={(pA.entities || []).map(le => { const e = entityById[le.id]; return e ? e.name : le.id; }).join(", ")}
+                      b={(pB.entities || []).map(le => { const e = entityById[le.id]; return e ? e.name : le.id; }).join(", ")}
                     />
 
                     <div style={{ marginTop: 14, padding: "10px 14px", background: "var(--bg-soft)", borderRadius: 8, fontSize: 12, color: "var(--ink-3)", marginBottom: 14 }}>
@@ -671,6 +677,11 @@ const DuplicatesPage = ({ pairs, entityPairs = [], data, onMerge, onMergeWithDat
               </div>
             );
           })}
+          {active.length > visP && (
+            <button className="btn" style={{ alignSelf: "center", marginTop: 4 }} onClick={() => setVisP(v => v + 40)}>
+              {es ? `Ver más (${active.length - visP} restantes)` : `Show more (${active.length - visP} left)`}
+            </button>
+          )}
         </div>
       )}
 
@@ -681,8 +692,8 @@ const DuplicatesPage = ({ pairs, entityPairs = [], data, onMerge, onMergeWithDat
             {lang === "es" ? "Revisados — personas distintas" : "Reviewed — different people"} ({dismissed.length})
           </div>
           {dismissed.map(pair => {
-            const pA = data.personas.find(p => p.id === pair.idA);
-            const pB = data.personas.find(p => p.id === pair.idB);
+            const pA = personaById[pair.idA];
+            const pB = personaById[pair.idB];
             if (!pA || !pB) return null;
             return (
               <div key={pair.idA + pair.idB} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 14px", background: "var(--bg-soft)", borderRadius: 8, marginBottom: 6, fontSize: 13 }}>
@@ -714,9 +725,9 @@ const DuplicatesPage = ({ pairs, entityPairs = [], data, onMerge, onMergeWithDat
             {entityPairs.filter(p => !p.dismissed).length} {es ? "pares pendientes de revisión" : "pairs pending review"}
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {entityPairs.filter(p => !p.dismissed).map(pair => {
-              const eA = data.entities.find(e => e.id === pair.idA);
-              const eB = data.entities.find(e => e.id === pair.idB);
+            {entityPairs.filter(p => !p.dismissed).slice(0, visE).map(pair => {
+              const eA = entityById[pair.idA];
+              const eB = entityById[pair.idB];
               if (!eA || !eB) return null;
               return (
                 <div key={pair.idA + pair.idB} className="card" style={{ padding: "12px 16px" }}>
@@ -735,6 +746,11 @@ const DuplicatesPage = ({ pairs, entityPairs = [], data, onMerge, onMergeWithDat
                 </div>
               );
             })}
+            {entityPairs.filter(p => !p.dismissed).length > visE && (
+              <button className="btn" style={{ alignSelf: "center", marginTop: 4 }} onClick={() => setVisE(v => v + 40)}>
+                {es ? `Ver más (${entityPairs.filter(p => !p.dismissed).length - visE} restantes)` : `Show more`}
+              </button>
+            )}
           </div>
           {entityPairs.filter(p => p.dismissed).length > 0 && (
             <div style={{ marginTop: 16 }}>
@@ -742,8 +758,8 @@ const DuplicatesPage = ({ pairs, entityPairs = [], data, onMerge, onMergeWithDat
                 {es ? "Revisados — medios distintos" : "Reviewed — different"} ({entityPairs.filter(p => p.dismissed).length})
               </div>
               {entityPairs.filter(p => p.dismissed).map(pair => {
-                const eA = data.entities.find(e => e.id === pair.idA);
-                const eB = data.entities.find(e => e.id === pair.idB);
+                const eA = entityById[pair.idA];
+                const eB = entityById[pair.idB];
                 if (!eA || !eB) return null;
                 return (
                   <div key={pair.idA + pair.idB} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 14px", background: "var(--bg-soft)", borderRadius: 8, marginBottom: 6, fontSize: 13 }}>
@@ -760,8 +776,8 @@ const DuplicatesPage = ({ pairs, entityPairs = [], data, onMerge, onMergeWithDat
 
       {/* ── MergeEditor overlay ── */}
       {mergingPair && (() => {
-        const pA = data.personas.find(p => p.id === mergingPair.idA);
-        const pB = data.personas.find(p => p.id === mergingPair.idB);
+        const pA = personaById[mergingPair.idA];
+        const pB = personaById[mergingPair.idB];
         if (!pA || !pB) { setMergingPair(null); return null; }
         return (
           <MergeEditor

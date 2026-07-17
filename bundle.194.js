@@ -11242,7 +11242,25 @@ const DuplicatesPage = ({
   const [manB, setManB] = React.useState(null); // selected persona B
   const [qA, setQA] = React.useState("");
   const [qB, setQB] = React.useState("");
+  const [visP, setVisP] = React.useState(40); // # of active contact pairs rendered (paginate — 2000 cards froze the page)
+  const [visE, setVisE] = React.useState(40); // # of active entity pairs rendered
   const es = lang === "es";
+  // Index records by id ONCE. Was: data.personas.find() per pair × 2 × ~18k records
+  // = tens of millions of scans every render → the Duplicates page crawled.
+  const personaById = React.useMemo(() => {
+    const m = Object.create(null);
+    (data.personas || []).forEach(p => {
+      m[p.id] = p;
+    });
+    return m;
+  }, [data.personas]);
+  const entityById = React.useMemo(() => {
+    const m = Object.create(null);
+    (data.entities || []).forEach(e => {
+      m[e.id] = e;
+    });
+    return m;
+  }, [data.entities]);
   const searchP = q => {
     const sq = (q || "").trim().toLowerCase();
     if (sq.length < 2) return [];
@@ -11535,9 +11553,9 @@ const DuplicatesPage = ({
       flexDirection: "column",
       gap: 10
     }
-  }, active.map(pair => {
-    const pA = data.personas.find(p => p.id === pair.idA);
-    const pB = data.personas.find(p => p.id === pair.idB);
+  }, active.slice(0, visP).map(pair => {
+    const pA = personaById[pair.idA];
+    const pB = personaById[pair.idB];
     if (!pA || !pB) return null;
     const key = pair.idA + pair.idB;
     const isOpen = expanded === key;
@@ -11719,11 +11737,11 @@ const DuplicatesPage = ({
     }), /*#__PURE__*/React.createElement(DupField, {
       label: lang === "es" ? "Entidades" : "Entities",
       a: (pA.entities || []).map(le => {
-        const e = data.entities.find(x => x.id === le.id);
+        const e = entityById[le.id];
         return e ? e.name : le.id;
       }).join(", "),
       b: (pB.entities || []).map(le => {
-        const e = data.entities.find(x => x.id === le.id);
+        const e = entityById[le.id];
         return e ? e.name : le.id;
       }).join(", ")
     }), /*#__PURE__*/React.createElement("div", {
@@ -11758,7 +11776,14 @@ const DuplicatesPage = ({
       className: "btn btn-primary",
       onClick: () => setMergingPair(pair)
     }, "\u270E ", lang === "es" ? "Elegir datos →" : "Choose data →"))));
-  })), dismissed.length > 0 && /*#__PURE__*/React.createElement("div", {
+  }), active.length > visP && /*#__PURE__*/React.createElement("button", {
+    className: "btn",
+    style: {
+      alignSelf: "center",
+      marginTop: 4
+    },
+    onClick: () => setVisP(v => v + 40)
+  }, es ? `Ver más (${active.length - visP} restantes)` : `Show more (${active.length - visP} left)`)), dismissed.length > 0 && /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 28
     }
@@ -11772,8 +11797,8 @@ const DuplicatesPage = ({
       marginBottom: 8
     }
   }, lang === "es" ? "Revisados — personas distintas" : "Reviewed — different people", " (", dismissed.length, ")"), dismissed.map(pair => {
-    const pA = data.personas.find(p => p.id === pair.idA);
-    const pB = data.personas.find(p => p.id === pair.idB);
+    const pA = personaById[pair.idA];
+    const pB = personaById[pair.idB];
     if (!pA || !pB) return null;
     return /*#__PURE__*/React.createElement("div", {
       key: pair.idA + pair.idB,
@@ -11830,9 +11855,9 @@ const DuplicatesPage = ({
       flexDirection: "column",
       gap: 10
     }
-  }, entityPairs.filter(p => !p.dismissed).map(pair => {
-    const eA = data.entities.find(e => e.id === pair.idA);
-    const eB = data.entities.find(e => e.id === pair.idB);
+  }, entityPairs.filter(p => !p.dismissed).slice(0, visE).map(pair => {
+    const eA = entityById[pair.idA];
+    const eB = entityById[pair.idB];
     if (!eA || !eB) return null;
     return /*#__PURE__*/React.createElement("div", {
       key: pair.idA + pair.idB,
@@ -11881,7 +11906,14 @@ const DuplicatesPage = ({
       className: "btn btn-sm btn-primary",
       onClick: () => onMergeEntity && onMergeEntity(pair.idA, pair.idB)
     }, "\uD83D\uDD00 ", es ? "Fusionar" : "Merge"))));
-  })), entityPairs.filter(p => p.dismissed).length > 0 && /*#__PURE__*/React.createElement("div", {
+  }), entityPairs.filter(p => !p.dismissed).length > visE && /*#__PURE__*/React.createElement("button", {
+    className: "btn",
+    style: {
+      alignSelf: "center",
+      marginTop: 4
+    },
+    onClick: () => setVisE(v => v + 40)
+  }, es ? `Ver más (${entityPairs.filter(p => !p.dismissed).length - visE} restantes)` : `Show more`)), entityPairs.filter(p => p.dismissed).length > 0 && /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 16
     }
@@ -11895,8 +11927,8 @@ const DuplicatesPage = ({
       marginBottom: 8
     }
   }, es ? "Revisados — medios distintos" : "Reviewed — different", " (", entityPairs.filter(p => p.dismissed).length, ")"), entityPairs.filter(p => p.dismissed).map(pair => {
-    const eA = data.entities.find(e => e.id === pair.idA);
-    const eB = data.entities.find(e => e.id === pair.idB);
+    const eA = entityById[pair.idA];
+    const eB = entityById[pair.idB];
     if (!eA || !eB) return null;
     return /*#__PURE__*/React.createElement("div", {
       key: pair.idA + pair.idB,
@@ -11924,8 +11956,8 @@ const DuplicatesPage = ({
       onClick: () => onUndismissEntity && onUndismissEntity(pair)
     }, es ? "Deshacer" : "Undo"));
   }))), mergingPair && (() => {
-    const pA = data.personas.find(p => p.id === mergingPair.idA);
-    const pB = data.personas.find(p => p.id === mergingPair.idB);
+    const pA = personaById[mergingPair.idA];
+    const pB = personaById[mergingPair.idB];
     if (!pA || !pB) {
       setMergingPair(null);
       return null;
