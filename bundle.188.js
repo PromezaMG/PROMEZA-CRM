@@ -21885,6 +21885,12 @@ const App = () => {
     }));
   };
   const handleMergeWithData = (keepId, dropId, mergedData) => {
+    // Stamp _localSavedAt so a sync landing before the Airtable write completes keeps
+    // the merged version instead of restoring the pre-merge record.
+    const mergedKeep = {
+      ...mergedData,
+      _localSavedAt: new Date().toISOString()
+    };
     setData(d => {
       const drop = d.personas.find(p => p.id === dropId);
       const dropName = drop ? drop.first + " " + drop.last : dropId;
@@ -21910,7 +21916,7 @@ const App = () => {
       };
       return {
         ...d,
-        personas: d.personas.map(p => p.id === keepId ? mergedData : p).filter(p => p.id !== dropId),
+        personas: d.personas.map(p => p.id === keepId ? mergedKeep : p).filter(p => p.id !== dropId),
         comments: newComments,
         changelog: cl
       };
@@ -21923,34 +21929,41 @@ const App = () => {
       name: "person",
       id: keepId
     });
+    // Persist the merge to Airtable: save the merged keeper, DELETE the duplicate.
+    // Without this the merge is local-only and the next full sync re-adds the dropped
+    // record (it still exists in Airtable) and reverts the keeper → "queda todo igual".
+    window.AIRTABLE.savePersona(mergedKeep, data.entities).catch(console.warn);
+    const cfg = window.AIRTABLE.getConfig();
+    if (cfg.pat && cfg.baseId) window.AIRTABLE.deleteRecord(cfg.personasTable || "PERSONAS PROMEZA CRM", dropId).catch(console.warn);
   };
   const handleMergePersonas = (idA, idB) => {
+    const keep0 = data.personas.find(p => p.id === idA);
+    const drop = data.personas.find(p => p.id === idB);
+    if (!keep0 || !drop) return;
+    const dropName = drop.first + " " + drop.last;
+    const merged = {
+      ...keep0,
+      email: keep0.email || drop.email || "",
+      phone: keep0.phone || drop.phone || "",
+      address: keep0.address || drop.address || "",
+      zip: keep0.zip || drop.zip || "",
+      city: keep0.city || drop.city || "",
+      state: keep0.state || drop.state || "",
+      country: keep0.country || drop.country || "",
+      website: keep0.website || drop.website || "",
+      birthday: keep0.birthday || drop.birthday || "",
+      lastContact: (keep0.lastContact || "") >= (drop.lastContact || "") ? keep0.lastContact : drop.lastContact,
+      tags: [...new Set([...(keep0.tags || []), ...(drop.tags || [])])],
+      entities: [...(keep0.entities || []), ...(drop.entities || []).filter(de => !(keep0.entities || []).some(ke => ke.id === de.id))],
+      social: {
+        ig: keep0.social?.ig || drop.social?.ig || "",
+        fb: keep0.social?.fb || drop.social?.fb || "",
+        tiktok: keep0.social?.tiktok || drop.social?.tiktok || "",
+        x: keep0.social?.x || drop.social?.x || ""
+      },
+      _localSavedAt: new Date().toISOString()
+    };
     setData(d => {
-      const keep = d.personas.find(p => p.id === idA);
-      const drop = d.personas.find(p => p.id === idB);
-      if (!keep || !drop) return d;
-      const dropName = drop.first + " " + drop.last;
-      const merged = {
-        ...keep,
-        email: keep.email || drop.email || "",
-        phone: keep.phone || drop.phone || "",
-        address: keep.address || drop.address || "",
-        zip: keep.zip || drop.zip || "",
-        city: keep.city || drop.city || "",
-        state: keep.state || drop.state || "",
-        country: keep.country || drop.country || "",
-        website: keep.website || drop.website || "",
-        birthday: keep.birthday || drop.birthday || "",
-        lastContact: (keep.lastContact || "") >= (drop.lastContact || "") ? keep.lastContact : drop.lastContact,
-        tags: [...new Set([...(keep.tags || []), ...(drop.tags || [])])],
-        entities: [...(keep.entities || []), ...(drop.entities || []).filter(de => !(keep.entities || []).some(ke => ke.id === de.id))],
-        social: {
-          ig: keep.social?.ig || drop.social?.ig || "",
-          fb: keep.social?.fb || drop.social?.fb || "",
-          tiktok: keep.social?.tiktok || drop.social?.tiktok || "",
-          x: keep.social?.x || drop.social?.x || ""
-        }
-      };
       const mergedComments = [...(d.comments[idA] || []), ...(d.comments[idB] || [])].sort((a, b) => (b.date || "").localeCompare(a.date || ""));
       const newComments = {
         ...d.comments,
@@ -21986,6 +21999,11 @@ const App = () => {
       name: "person",
       id: idA
     });
+    // Persist to Airtable so the merge sticks (otherwise the next full sync re-adds
+    // the dropped record and reverts the keeper → the user saw "queda todo igual").
+    window.AIRTABLE.savePersona(merged, data.entities).catch(console.warn);
+    const cfg = window.AIRTABLE.getConfig();
+    if (cfg.pat && cfg.baseId) window.AIRTABLE.deleteRecord(cfg.personasTable || "PERSONAS PROMEZA CRM", idB).catch(console.warn);
   };
   const handleDismissDup = pair => {
     setDupPairs(ps => ps.map(p => p.idA === pair.idA && p.idB === pair.idB ? {

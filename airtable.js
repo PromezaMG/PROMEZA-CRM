@@ -612,13 +612,17 @@ window.AIRTABLE = (function () {
     }
   };
 
-  // Delete a record from Airtable by CRM_ID
+  // Delete a record from Airtable by CRM_ID. Find it with a filterByFormula lookup
+  // (1 request) rather than fetchAll (~180 paged requests at 18k records) — the old
+  // way made every delete/merge take ~30s.
   const deleteRecord = async (tableName, crmId) => {
     const cfg = getConfig();
     if (!cfg.pat || !cfg.baseId) return;
     try {
-      const records = await fetchAll(cfg.baseId, tableName, cfg.pat);
-      const match = records.find(r => r.fields["CRM_ID"] === crmId);
+      const findUrl = "https://api.airtable.com/v0/" + cfg.baseId + "/" + encodeURIComponent(tableName)
+        + "?maxRecords=1&filterByFormula=" + encodeURIComponent("{CRM_ID}='" + crmId + "'");
+      const r = await req("GET", findUrl, null, cfg.pat);
+      const match = (r.records || [])[0];
       if (!match) return;
       await req("DELETE", "https://api.airtable.com/v0/" + cfg.baseId + "/" + encodeURIComponent(tableName) + "/" + match.id, null, cfg.pat);
     } catch (err) { console.warn("deleteRecord failed:", err); }
