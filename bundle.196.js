@@ -10466,34 +10466,63 @@ window.NewEntityForm = NewEntityForm;
 
 const _norm = s => (s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/\s+/g, " ").trim();
 const _phone = s => (s || "").replace(/\D/g, "");
+
+// Blocking approach: group ids by shared email / phone / name (O(n)), then only
+// pair WITHIN each group. The old O(n²) double loop did ~n²/2 comparisons — at
+// ~18k records that's ~160M string-normalizations on the main thread and froze the
+// page on every create/import/scan. This is O(n + pairs). Groups larger than
+// GROUP_CAP (a shared org email or a very common name) are skipped — those are not
+// real duplicate clusters and would otherwise explode the pair count.
+const GROUP_CAP = 30;
+const _pushId = (map, key, id) => {
+  let a = map.get(key);
+  if (!a) {
+    a = [];
+    map.set(key, a);
+  }
+  a.push(id);
+};
 const findDuplicatePairs = (personas, existingPairs = []) => {
   const dismissed = new Set(existingPairs.filter(p => p.dismissed).map(p => p.idA + "|" + p.idB));
-  const pairs = [];
-  const seen = new Set();
+  const byEmail = new Map(),
+    byPhone = new Map(),
+    byName = new Map();
   for (let i = 0; i < personas.length; i++) {
-    for (let j = i + 1; j < personas.length; j++) {
-      const a = personas[i];
-      const b = personas[j];
-      const key = [a.id, b.id].sort().join("|");
-      if (seen.has(key) || dismissed.has(key)) continue;
-      seen.add(key);
-      const aName = _norm(a.first + " " + a.last);
-      const bName = _norm(b.first + " " + b.last);
-      const aEmail = _norm(a.email);
-      const bEmail = _norm(b.email);
-      const aPhone = _phone(a.phone);
-      const bPhone = _phone(b.phone);
-      let score = 0;
-      if (aEmail && bEmail && aEmail === bEmail) score += 3;
-      if (aPhone.length >= 7 && bPhone.length >= 7 && aPhone === bPhone) score += 3;
-      if (aName && bName && aName === bName) score += 2;
-      if (score >= 2) pairs.push({
-        idA: a.id,
-        idB: b.id,
-        score,
-        dismissed: false
-      });
+    const p = personas[i];
+    const e = _norm(p.email);
+    if (e) _pushId(byEmail, e, p.id);
+    const ph = _phone(p.phone);
+    if (ph.length >= 7) _pushId(byPhone, ph, p.id);
+    const n = _norm((p.first || "") + " " + (p.last || ""));
+    if (n && n !== " ") _pushId(byName, n, p.id);
+  }
+  const scores = new Map();
+  const addGroups = (map, w) => {
+    for (const ids of map.values()) {
+      const k = ids.length;
+      if (k < 2 || k > GROUP_CAP) continue;
+      for (let i = 0; i < k; i++) for (let j = i + 1; j < k; j++) {
+        const a = ids[i],
+          b = ids[j];
+        if (a === b) continue;
+        const key = a < b ? a + "|" + b : b + "|" + a;
+        scores.set(key, (scores.get(key) || 0) + w);
+      }
     }
+  };
+  addGroups(byEmail, 3);
+  addGroups(byPhone, 3);
+  addGroups(byName, 2);
+  const pairs = [];
+  for (const [key, s] of scores) {
+    if (s < 2 || dismissed.has(key)) continue;
+    const idx = key.indexOf("|");
+    pairs.push({
+      idA: key.slice(0, idx),
+      idB: key.slice(idx + 1),
+      score: s,
+      dismissed: false
+    });
   }
   return pairs.sort((a, b) => b.score - a.score);
 };
