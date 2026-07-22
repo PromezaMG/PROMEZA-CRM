@@ -694,6 +694,8 @@ const App = () => {
   const [modalPrefill, setModalPrefill] = useState(null);
   const [dupPairs, setDupPairs] = useState([]);
   const [entityDupPairs, setEntityDupPairs] = useState([]);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [historyLog, setHistoryLog] = useState(null); // null = loading
   const [sideOpen, setSideOpen] = useState(false);
   const [showReminders, setShowReminders] = useState(false);
   const [remindersShown, setRemindersShown] = useState(false);
@@ -2025,6 +2027,23 @@ const App = () => {
     }));
   };
 
+  // Persistent, cross-device action log (merges etc.) stored in the shared ESTADO
+  // table (key "actionLog"). The per-record changelog is local-only and wiped on a
+  // clean-slate reload; this survives and is visible from any device via "Historial".
+  const logAction = async (type, detail) => {
+    try {
+      const cur = (await window.AIRTABLE.loadAppState("actionLog")) || [];
+      cur.unshift({ ts: new Date().toISOString(), type, detail: detail || "", by: userEmail || "Usuario" });
+      if (cur.length > 400) cur.length = 400;
+      await window.AIRTABLE.saveAppState("actionLog", cur);
+    } catch (e) { console.warn("logAction", e); }
+  };
+  const openHistory = async () => {
+    setHistoryOpen(true); setHistoryLog(null);
+    try { setHistoryLog((await window.AIRTABLE.loadAppState("actionLog")) || []); }
+    catch (e) { setHistoryLog([]); }
+  };
+
   const handleMergeWithData = (keepId, dropId, mergedData) => {
     // Stamp _localSavedAt so a sync landing before the Airtable write completes keeps
     // the merged version instead of restoring the pre-merge record.
@@ -2058,6 +2077,8 @@ const App = () => {
     window.AIRTABLE.savePersona(mergedKeep, data.entities).catch(console.warn);
     const cfg = window.AIRTABLE.getConfig();
     if (cfg.pat && cfg.baseId) window.AIRTABLE.deleteRecord(cfg.personasTable || "PERSONAS PROMEZA CRM", dropId).catch(console.warn);
+    const _dw = data.personas.find(p => p.id === dropId) || {};
+    logAction("merge", `Fusionó contacto "${((_dw.first || "") + " " + (_dw.last || "")).trim()}" → "${((mergedData.first || "") + " " + (mergedData.last || "")).trim()}"`);
   };
 
   const handleMergePersonas = (idA, idB) => {
@@ -2116,6 +2137,7 @@ const App = () => {
     window.AIRTABLE.savePersona(merged, data.entities).catch(console.warn);
     const cfg = window.AIRTABLE.getConfig();
     if (cfg.pat && cfg.baseId) window.AIRTABLE.deleteRecord(cfg.personasTable || "PERSONAS PROMEZA CRM", idB).catch(console.warn);
+    logAction("merge", `Fusionó contacto "${dropName.trim()}" → "${((keep0.first || "") + " " + (keep0.last || "")).trim()}"`);
   };
 
   const handleDismissDup = (pair) => {
@@ -2184,6 +2206,7 @@ const App = () => {
     repointed.forEach(p => window.AIRTABLE.savePersona(p, data.entities).catch(console.warn));
     const cfg = window.AIRTABLE.getConfig();
     if (cfg.pat && cfg.baseId) window.AIRTABLE.deleteRecord(cfg.entidadesTable || "ENTIDADES PROMEZA CRM", idB).catch(console.warn);
+    logAction("merge", `Fusionó medio "${drop.name}" → "${keep0.name}"`);
   };
   const handleDismissEntityDup = (pair) => {
     setEntityDupPairs(ps => ps.map(p => p.idA === pair.idA && p.idB === pair.idB ? { ...p, dismissed: true } : p));
@@ -2332,7 +2355,7 @@ const App = () => {
     case "goals": view = <GoalsView lang={lang} data={data} go={go} onAddGoal={addGoal} onUpdateGoal={updateGoal} onDeleteGoal={deleteGoal} />; break;
     case "county": view = <CountyView t={t} lang={lang} data={data} go={go} />; break;
     case "map": view = <MapPage t={t} lang={lang} data={data} go={go} />; break;
-    case "duplicates": view = <DuplicatesPage pairs={dupPairs} entityPairs={entityDupPairs} data={data} onMerge={handleMergePersonas} onMergeWithData={handleMergeWithData} onMergeEntity={handleMergeEntities} onDismiss={handleDismissDup} onUndismiss={handleUndismissDup} onDismissEntity={handleDismissEntityDup} onUndismissEntity={handleUndismissEntityDup} onScanAll={handleScanAll} onCreateDemo={handleCreateDemo} onCreateManual={handleCreateManualDup} t={t} lang={lang} />; break;
+    case "duplicates": view = <DuplicatesPage pairs={dupPairs} entityPairs={entityDupPairs} data={data} onMerge={handleMergePersonas} onMergeWithData={handleMergeWithData} onMergeEntity={handleMergeEntities} onDismiss={handleDismissDup} onUndismiss={handleUndismissDup} onDismissEntity={handleDismissEntityDup} onUndismissEntity={handleUndismissEntityDup} onScanAll={handleScanAll} onCreateDemo={handleCreateDemo} onCreateManual={handleCreateManualDup} onOpenHistory={openHistory} t={t} lang={lang} />; break;
     default: view = <Home t={t} lang={lang} data={data} go={go} />;
   }
 
@@ -2382,6 +2405,29 @@ const App = () => {
           onRestoreData={setData}
           onForcePull={forcePullFromAirtable}
         />
+      )}
+      {historyOpen && (
+        <div className="modal-veil" onClick={() => setHistoryOpen(false)} style={{ position: "fixed", inset: 0, background: "rgba(15,21,48,.45)", display: "grid", placeItems: "center", zIndex: 200, padding: 20 }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: "var(--bg)", borderRadius: 14, width: "min(640px, 96vw)", maxHeight: "82vh", display: "flex", flexDirection: "column", boxShadow: "var(--shadow-lg)" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 20px", borderBottom: "1px solid var(--line)" }}>
+              <div style={{ fontWeight: 800, fontSize: 16 }}>{lang === "es" ? "Historial de fusiones y acciones" : "Merge & action history"}</div>
+              <button className="icon-btn" onClick={() => setHistoryOpen(false)}><Icon name="x" /></button>
+            </div>
+            <div style={{ padding: "12px 20px", overflowY: "auto" }}>
+              {historyLog === null && <div className="empty">{lang === "es" ? "Cargando…" : "Loading…"}</div>}
+              {historyLog !== null && historyLog.length === 0 && <div className="empty">{lang === "es" ? "Aún no hay acciones registradas. Las fusiones que hagas de ahora en adelante aparecerán aquí." : "No actions logged yet."}</div>}
+              {historyLog !== null && historyLog.length > 0 && historyLog.map((e, i) => (
+                <div key={i} style={{ display: "flex", gap: 10, padding: "9px 0", borderBottom: "1px solid var(--line)" }}>
+                  <span style={{ fontSize: 15 }}>{e.type === "merge" ? "🔀" : "•"}</span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 13, color: "var(--ink-1)" }}>{e.detail}</div>
+                    <div style={{ fontSize: 11, color: "var(--ink-4)", marginTop: 2 }}>{(e.by || "—")} · {e.ts ? new Date(e.ts).toLocaleString() : ""}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
       )}
       {modal === "edit-person" && editingId && (() => {
         const person = data.personas.find(p => p.id === editingId);

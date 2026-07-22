@@ -11260,6 +11260,7 @@ const DuplicatesPage = ({
   onScanAll,
   onCreateDemo,
   onCreateManual,
+  onOpenHistory,
   t,
   lang
 }) => {
@@ -11361,7 +11362,12 @@ const DuplicatesPage = ({
     onClick: onScanAll
   }, /*#__PURE__*/React.createElement(Icon, {
     name: "search"
-  }), " ", lang === "es" ? "Escanear base completa" : "Scan full database"))), /*#__PURE__*/React.createElement("div", {
+  }), " ", lang === "es" ? "Escanear base completa" : "Scan full database"), onOpenHistory && /*#__PURE__*/React.createElement("button", {
+    className: "btn",
+    onClick: onOpenHistory
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: "clock"
+  }), " ", lang === "es" ? "Historial" : "History"))), /*#__PURE__*/React.createElement("div", {
     style: {
       position: "relative",
       marginBottom: 12
@@ -20394,6 +20400,8 @@ const App = () => {
   const [modalPrefill, setModalPrefill] = useState(null);
   const [dupPairs, setDupPairs] = useState([]);
   const [entityDupPairs, setEntityDupPairs] = useState([]);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [historyLog, setHistoryLog] = useState(null); // null = loading
   const [sideOpen, setSideOpen] = useState(false);
   const [showReminders, setShowReminders] = useState(false);
   const [remindersShown, setRemindersShown] = useState(false);
@@ -22274,6 +22282,34 @@ const App = () => {
       } : p)
     }));
   };
+
+  // Persistent, cross-device action log (merges etc.) stored in the shared ESTADO
+  // table (key "actionLog"). The per-record changelog is local-only and wiped on a
+  // clean-slate reload; this survives and is visible from any device via "Historial".
+  const logAction = async (type, detail) => {
+    try {
+      const cur = (await window.AIRTABLE.loadAppState("actionLog")) || [];
+      cur.unshift({
+        ts: new Date().toISOString(),
+        type,
+        detail: detail || "",
+        by: userEmail || "Usuario"
+      });
+      if (cur.length > 400) cur.length = 400;
+      await window.AIRTABLE.saveAppState("actionLog", cur);
+    } catch (e) {
+      console.warn("logAction", e);
+    }
+  };
+  const openHistory = async () => {
+    setHistoryOpen(true);
+    setHistoryLog(null);
+    try {
+      setHistoryLog((await window.AIRTABLE.loadAppState("actionLog")) || []);
+    } catch (e) {
+      setHistoryLog([]);
+    }
+  };
   const handleMergeWithData = (keepId, dropId, mergedData) => {
     // Stamp _localSavedAt so a sync landing before the Airtable write completes keeps
     // the merged version instead of restoring the pre-merge record.
@@ -22325,6 +22361,8 @@ const App = () => {
     window.AIRTABLE.savePersona(mergedKeep, data.entities).catch(console.warn);
     const cfg = window.AIRTABLE.getConfig();
     if (cfg.pat && cfg.baseId) window.AIRTABLE.deleteRecord(cfg.personasTable || "PERSONAS PROMEZA CRM", dropId).catch(console.warn);
+    const _dw = data.personas.find(p => p.id === dropId) || {};
+    logAction("merge", `Fusionó contacto "${((_dw.first || "") + " " + (_dw.last || "")).trim()}" → "${((mergedData.first || "") + " " + (mergedData.last || "")).trim()}"`);
   };
   const handleMergePersonas = (idA, idB) => {
     const keep0 = data.personas.find(p => p.id === idA);
@@ -22394,6 +22432,7 @@ const App = () => {
     window.AIRTABLE.savePersona(merged, data.entities).catch(console.warn);
     const cfg = window.AIRTABLE.getConfig();
     if (cfg.pat && cfg.baseId) window.AIRTABLE.deleteRecord(cfg.personasTable || "PERSONAS PROMEZA CRM", idB).catch(console.warn);
+    logAction("merge", `Fusionó contacto "${dropName.trim()}" → "${((keep0.first || "") + " " + (keep0.last || "")).trim()}"`);
   };
   const handleDismissDup = pair => {
     setDupPairs(ps => ps.map(p => p.idA === pair.idA && p.idB === pair.idB ? {
@@ -22472,6 +22511,7 @@ const App = () => {
     repointed.forEach(p => window.AIRTABLE.savePersona(p, data.entities).catch(console.warn));
     const cfg = window.AIRTABLE.getConfig();
     if (cfg.pat && cfg.baseId) window.AIRTABLE.deleteRecord(cfg.entidadesTable || "ENTIDADES PROMEZA CRM", idB).catch(console.warn);
+    logAction("merge", `Fusionó medio "${drop.name}" → "${keep0.name}"`);
   };
   const handleDismissEntityDup = pair => {
     setEntityDupPairs(ps => ps.map(p => p.idA === pair.idA && p.idB === pair.idB ? {
@@ -22838,6 +22878,7 @@ const App = () => {
         onScanAll: handleScanAll,
         onCreateDemo: handleCreateDemo,
         onCreateManual: handleCreateManualDup,
+        onOpenHistory: openHistory,
         t: t,
         lang: lang
       });
@@ -22939,7 +22980,85 @@ const App = () => {
     },
     onRestoreData: setData,
     onForcePull: forcePullFromAirtable
-  }), modal === "edit-person" && editingId && (() => {
+  }), historyOpen && /*#__PURE__*/React.createElement("div", {
+    className: "modal-veil",
+    onClick: () => setHistoryOpen(false),
+    style: {
+      position: "fixed",
+      inset: 0,
+      background: "rgba(15,21,48,.45)",
+      display: "grid",
+      placeItems: "center",
+      zIndex: 200,
+      padding: 20
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    onClick: e => e.stopPropagation(),
+    style: {
+      background: "var(--bg)",
+      borderRadius: 14,
+      width: "min(640px, 96vw)",
+      maxHeight: "82vh",
+      display: "flex",
+      flexDirection: "column",
+      boxShadow: "var(--shadow-lg)"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      padding: "16px 20px",
+      borderBottom: "1px solid var(--line)"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontWeight: 800,
+      fontSize: 16
+    }
+  }, lang === "es" ? "Historial de fusiones y acciones" : "Merge & action history"), /*#__PURE__*/React.createElement("button", {
+    className: "icon-btn",
+    onClick: () => setHistoryOpen(false)
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: "x"
+  }))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "12px 20px",
+      overflowY: "auto"
+    }
+  }, historyLog === null && /*#__PURE__*/React.createElement("div", {
+    className: "empty"
+  }, lang === "es" ? "Cargando…" : "Loading…"), historyLog !== null && historyLog.length === 0 && /*#__PURE__*/React.createElement("div", {
+    className: "empty"
+  }, lang === "es" ? "Aún no hay acciones registradas. Las fusiones que hagas de ahora en adelante aparecerán aquí." : "No actions logged yet."), historyLog !== null && historyLog.length > 0 && historyLog.map((e, i) => /*#__PURE__*/React.createElement("div", {
+    key: i,
+    style: {
+      display: "flex",
+      gap: 10,
+      padding: "9px 0",
+      borderBottom: "1px solid var(--line)"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 15
+    }
+  }, e.type === "merge" ? "🔀" : "•"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13,
+      color: "var(--ink-1)"
+    }
+  }, e.detail), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "var(--ink-4)",
+      marginTop: 2
+    }
+  }, e.by || "—", " \xB7 ", e.ts ? new Date(e.ts).toLocaleString() : ""))))))), modal === "edit-person" && editingId && (() => {
     const person = data.personas.find(p => p.id === editingId);
     if (!person) return null;
     return /*#__PURE__*/React.createElement(NewPersonForm, {

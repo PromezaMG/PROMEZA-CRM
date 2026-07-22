@@ -419,7 +419,7 @@ const DuplicateReviewModal = ({ pairs, data, onMerge, onDismiss, onClose, t, lan
 
 // ─── Duplicates Page ───
 
-const DuplicatesPage = ({ pairs, entityPairs = [], data, onMerge, onMergeWithData, onMergeEntity, onDismiss, onUndismiss, onDismissEntity, onUndismissEntity, onScanAll, onCreateDemo, onCreateManual, t, lang }) => {
+const DuplicatesPage = ({ pairs, entityPairs = [], data, onMerge, onMergeWithData, onMergeEntity, onDismiss, onUndismiss, onDismissEntity, onUndismissEntity, onScanAll, onCreateDemo, onCreateManual, onOpenHistory, t, lang }) => {
   const [expanded, setExpanded] = React.useState(null);
   const [mergingPair, setMergingPair] = React.useState(null);
   const [showManual, setShowManual] = React.useState(false);
@@ -507,6 +507,11 @@ const DuplicatesPage = ({ pairs, entityPairs = [], data, onMerge, onMergeWithDat
           <button className="btn" onClick={onScanAll}>
             <Icon name="search" /> {lang === "es" ? "Escanear base completa" : "Scan full database"}
           </button>
+          {onOpenHistory && (
+            <button className="btn" onClick={onOpenHistory}>
+              <Icon name="clock" /> {lang === "es" ? "Historial" : "History"}
+            </button>
+          )}
         </div>
       </div>
 
