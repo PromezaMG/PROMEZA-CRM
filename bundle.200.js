@@ -7406,7 +7406,15 @@ const PersonProfile = ({
     link: le,
     entity: data.entities.find(e => e.id === le.id)
   })).filter(x => x.entity);
-  const hasDup = (p.tags || []).some(tg => (tg || "").toLowerCase() === "revisar duplicado");
+
+  // Does this contact have a real duplicate? Computed live (shares email or phone with
+  // another contact) so it's always accurate and doesn't depend on a tag having synced.
+  const hasDup = React.useMemo(() => {
+    const em = (p.email || "").toLowerCase().trim();
+    const ph = (p.phone || "").replace(/\D/g, "");
+    if (!em && ph.length < 7) return false;
+    return (data.personas || []).some(o => o.id !== p.id && (em && (o.email || "").toLowerCase().trim() === em || ph.length >= 7 && (o.phone || "").replace(/\D/g, "") === ph));
+  }, [p.id, p.email, p.phone, data.personas]);
   const pendingTasks = (tasks || []).filter(tk => !tk.done).length + (hasDup ? 1 : 0);
   const personProjectCount = (data.projects || []).filter(pr => (pr.members || []).some(m => m.personaId === p.id)).length;
   const tabs = [{
@@ -20555,43 +20563,55 @@ const App = () => {
         city: c
       };
     };
+    const outPersonas = withUIDs(parsed.personas || []).map(p => {
+      const {
+        zip,
+        city
+      } = fixZipCity(p.zip, p.city);
+      return {
+        ...p,
+        phone: normalizePhoneStr(p.phone),
+        phones: buildPhones(p.phones, p.phone, p.phone2),
+        emails: buildEmails(p.emails, p.email, p.email2),
+        entities: p.entities || [],
+        tags: p.tags || [],
+        zip,
+        city
+      };
+    });
+    const outEntities = withUIDs(parsed.entities || []).map(e => {
+      const {
+        zip,
+        city
+      } = fixZipCity(e.zip, e.city);
+      return {
+        ...e,
+        phone: normalizePhoneStr(e.phone),
+        phones: buildPhones(e.phones, e.phone, e.phone2),
+        emails: buildEmails(e.emails, e.email, e.email2),
+        schedule: e.schedule || [],
+        tags: e.tags || [],
+        zip,
+        city
+      };
+    });
+    // PERSIST HISTORY: each record now carries its own `changelog` inside _data (so it
+    // survives reloads/clean-slate and is shared across devices via Airtable). Rebuild
+    // the top-level changelog map from the records, keeping whichever copy has MORE
+    // entries (a device that saw more history wins) so nothing is lost.
+    const changelog = {
+      ...(parsed.changelog || {})
+    };
+    [...outPersonas, ...outEntities].forEach(r => {
+      if (Array.isArray(r.changelog) && r.changelog.length > (changelog[r.id] || []).length) changelog[r.id] = r.changelog;
+    });
     return {
       ...parsed,
-      personas: withUIDs(parsed.personas || []).map(p => {
-        const {
-          zip,
-          city
-        } = fixZipCity(p.zip, p.city);
-        return {
-          ...p,
-          phone: normalizePhoneStr(p.phone),
-          phones: buildPhones(p.phones, p.phone, p.phone2),
-          emails: buildEmails(p.emails, p.email, p.email2),
-          entities: p.entities || [],
-          tags: p.tags || [],
-          zip,
-          city
-        };
-      }),
-      entities: withUIDs(parsed.entities || []).map(e => {
-        const {
-          zip,
-          city
-        } = fixZipCity(e.zip, e.city);
-        return {
-          ...e,
-          phone: normalizePhoneStr(e.phone),
-          phones: buildPhones(e.phones, e.phone, e.phone2),
-          emails: buildEmails(e.emails, e.email, e.email2),
-          schedule: e.schedule || [],
-          tags: e.tags || [],
-          zip,
-          city
-        };
-      }),
+      personas: outPersonas,
+      entities: outEntities,
       interactions: parsed.interactions || {},
       tasks: parsed.tasks || {},
-      changelog: parsed.changelog || {},
+      changelog,
       segments: parsed.segments || [],
       attachments: parsed.attachments || {},
       projects: parsed.projects || [],
@@ -20762,10 +20782,21 @@ const App = () => {
       phones: e.phones || [],
       emails: e.emails || []
     }));
+    const finalPersonas = [...mergedPersonas, ...remoteOnlyPersonas];
+    const finalEntities = [...mergedEntities, ...remoteOnlyEntities];
+    // Keep the changelog map fresh from records' own (persisted) history — take
+    // whichever copy has more entries so a sync never loses history.
+    const changelog = {
+      ...prev.changelog
+    };
+    [...finalPersonas, ...finalEntities].forEach(r => {
+      if (Array.isArray(r.changelog) && r.changelog.length > (changelog[r.id] || []).length) changelog[r.id] = r.changelog;
+    });
     return {
       ...prev,
-      personas: [...mergedPersonas, ...remoteOnlyPersonas],
-      entities: [...mergedEntities, ...remoteOnlyEntities]
+      personas: finalPersonas,
+      entities: finalEntities,
+      changelog
     };
   };
   const syncFromAirtable = () => {
@@ -21979,28 +22010,33 @@ const App = () => {
   const handleUpdatePerson = (id, updates) => {
     const localSavedAt = new Date().toISOString();
     const current = data.personas.find(p => p.id === id);
+    const changes = current ? computeChanges(current, updates, PERSON_FIELD_LABELS) : [];
+    const baseLog = current && current.changelog || data.changelog[id] || [];
+    const newLog = changes.length > 0 ? [{
+      id: "cl" + Date.now(),
+      date: new Date().toISOString(),
+      author: userEmail || "Usuario",
+      changes
+    }, ...baseLog] : baseLog;
+    // changelog now lives INSIDE the record → savePersona persists it in _data, so the
+    // history survives reloads/clean-slate and is shared with every device.
     const updated = current ? {
       ...current,
       ...updates,
+      changelog: newLog,
       _localSavedAt: localSavedAt
     } : null;
     setData(d => {
-      const old = d.personas.find(p => p.id === id);
-      const changes = old ? computeChanges(old, updates, PERSON_FIELD_LABELS) : [];
       const cl = changes.length > 0 ? {
         ...d.changelog,
-        [id]: [{
-          id: "cl" + Date.now(),
-          date: new Date().toISOString(),
-          author: userEmail || "Usuario",
-          changes
-        }, ...(d.changelog[id] || [])]
+        [id]: newLog
       } : d.changelog;
       return {
         ...d,
         personas: d.personas.map(p => p.id === id ? {
           ...p,
           ...updates,
+          changelog: newLog,
           _localSavedAt: localSavedAt
         } : p),
         changelog: cl
@@ -22021,28 +22057,31 @@ const App = () => {
   const handleUpdateEntity = (id, updates) => {
     const localSavedAt = new Date().toISOString();
     const current = data.entities.find(e => e.id === id);
+    const changes = current ? computeChanges(current, updates, ENTITY_FIELD_LABELS) : [];
+    const baseLog = current && current.changelog || data.changelog[id] || [];
+    const newLog = changes.length > 0 ? [{
+      id: "cl" + Date.now(),
+      date: new Date().toISOString(),
+      author: userEmail || "Usuario",
+      changes
+    }, ...baseLog] : baseLog;
     const updated = current ? {
       ...current,
       ...updates,
+      changelog: newLog,
       _localSavedAt: localSavedAt
     } : null;
     setData(d => {
-      const old = d.entities.find(e => e.id === id);
-      const changes = old ? computeChanges(old, updates, ENTITY_FIELD_LABELS) : [];
       const cl = changes.length > 0 ? {
         ...d.changelog,
-        [id]: [{
-          id: "cl" + Date.now(),
-          date: new Date().toISOString(),
-          author: userEmail || "Usuario",
-          changes
-        }, ...(d.changelog[id] || [])]
+        [id]: newLog
       } : d.changelog;
       return {
         ...d,
         entities: d.entities.map(e => e.id === id ? {
           ...e,
           ...updates,
+          changelog: newLog,
           _localSavedAt: localSavedAt
         } : e),
         changelog: cl
@@ -22357,34 +22396,37 @@ const App = () => {
     }
   };
   const handleMergeWithData = (keepId, dropId, mergedData) => {
+    const _drop0 = data.personas.find(p => p.id === dropId);
+    const _dropName0 = _drop0 ? _drop0.first + " " + _drop0.last : dropId;
+    const _keep0 = data.personas.find(p => p.id === keepId);
+    const mergeEntry = {
+      id: "cl" + Date.now(),
+      date: new Date().toISOString(),
+      author: userEmail || "Usuario",
+      changes: [{
+        field: "record",
+        type: "merge",
+        with: _dropName0
+      }]
+    };
+    const newLog = [mergeEntry, ...(_keep0 && _keep0.changelog || data.changelog[keepId] || [])];
     // Stamp _localSavedAt so a sync landing before the Airtable write completes keeps
-    // the merged version instead of restoring the pre-merge record.
+    // the merged version; carry the changelog INSIDE the record so it persists.
     const mergedKeep = {
       ...mergedData,
+      changelog: newLog,
       _localSavedAt: new Date().toISOString()
     };
     setData(d => {
-      const drop = d.personas.find(p => p.id === dropId);
-      const dropName = drop ? drop.first + " " + drop.last : dropId;
       const mergedComments = [...(d.comments[keepId] || []), ...(d.comments[dropId] || [])].sort((a, b) => (b.date || "").localeCompare(a.date || ""));
       const newComments = {
         ...d.comments,
         [keepId]: mergedComments
       };
       delete newComments[dropId];
-      const mergeEntry = {
-        id: "cl" + Date.now(),
-        date: new Date().toISOString(),
-        author: userEmail || "Usuario",
-        changes: [{
-          field: "record",
-          type: "merge",
-          with: dropName
-        }]
-      };
       const cl = {
         ...d.changelog,
-        [keepId]: [mergeEntry, ...(d.changelog[keepId] || [])]
+        [keepId]: newLog
       };
       return {
         ...d,
@@ -22437,6 +22479,18 @@ const App = () => {
       },
       _localSavedAt: new Date().toISOString()
     };
+    const mergeEntry = {
+      id: "cl" + Date.now(),
+      date: new Date().toISOString(),
+      author: userEmail || "Usuario",
+      changes: [{
+        field: "record",
+        type: "merge",
+        with: dropName
+      }]
+    };
+    const newLog = [mergeEntry, ...(keep0.changelog || data.changelog[idA] || [])];
+    merged.changelog = newLog; // persist merge in the record's own history
     setData(d => {
       const mergedComments = [...(d.comments[idA] || []), ...(d.comments[idB] || [])].sort((a, b) => (b.date || "").localeCompare(a.date || ""));
       const newComments = {
@@ -22444,19 +22498,9 @@ const App = () => {
         [idA]: mergedComments
       };
       delete newComments[idB];
-      const mergeEntry = {
-        id: "cl" + Date.now(),
-        date: new Date().toISOString(),
-        author: userEmail || "Usuario",
-        changes: [{
-          field: "record",
-          type: "merge",
-          with: dropName
-        }]
-      };
       const cl = {
         ...d.changelog,
-        [idA]: [mergeEntry, ...(d.changelog[idA] || [])]
+        [idA]: newLog
       };
       return {
         ...d,
@@ -22549,13 +22593,15 @@ const App = () => {
         with: drop.name
       }]
     };
+    const entNewLog = [entMergeEntry, ...(keep0.changelog || data.changelog[idA] || [])];
+    merged.changelog = entNewLog; // persist merge in the entity's own history
     setData(d => ({
       ...d,
       entities: d.entities.map(e => e.id === idA ? merged : e).filter(e => e.id !== idB),
       personas: d.personas.map(p => repointMap[p.id] || p),
       changelog: {
         ...d.changelog,
-        [idA]: [entMergeEntry, ...(d.changelog[idA] || [])]
+        [idA]: entNewLog
       }
     }));
     setEntityDupPairs(ps => ps.map(p => p.idA === idA && p.idB === idB || p.idA === idB && p.idB === idA ? {

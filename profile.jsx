@@ -205,7 +205,17 @@ const PersonProfile = ({ id, t, lang, data, go, goBack, addComment, onUpdatePers
     link: le, entity: data.entities.find(e => e.id === le.id),
   })).filter(x => x.entity);
 
-  const hasDup = (p.tags || []).some(tg => (tg || "").toLowerCase() === "revisar duplicado");
+  // Does this contact have a real duplicate? Computed live (shares email or phone with
+  // another contact) so it's always accurate and doesn't depend on a tag having synced.
+  const hasDup = React.useMemo(() => {
+    const em = (p.email || "").toLowerCase().trim();
+    const ph = (p.phone || "").replace(/\D/g, "");
+    if (!em && ph.length < 7) return false;
+    return (data.personas || []).some(o => o.id !== p.id && (
+      (em && (o.email || "").toLowerCase().trim() === em) ||
+      (ph.length >= 7 && (o.phone || "").replace(/\D/g, "") === ph)
+    ));
+  }, [p.id, p.email, p.phone, data.personas]);
   const pendingTasks = (tasks || []).filter(tk => !tk.done).length + (hasDup ? 1 : 0);
   const personProjectCount = (data.projects || []).filter(pr => (pr.members || []).some(m => m.personaId === p.id)).length;
   const tabs = [
