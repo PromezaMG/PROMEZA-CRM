@@ -2435,7 +2435,7 @@ const App = () => {
     case "tasks": view = <GlobalTasksView t={t} lang={lang} data={data} go={go}
       tasks={data.tasks} users={window.PROMEZA_USERS || []} currentUser={userEmail}
       onAddTask={addTask} onToggleTask={toggleTask} onDeleteTask={deleteTask}
-      dupCount={totalDups}
+      dupCount={totalDups} dupPairs={dupPairs} entityDupPairs={entityDupPairs}
     />; break;
     case "my-tasks": view = <MyTasksView t={t} lang={lang} data={data} go={go}
       tasks={data.tasks} onToggleTask={toggleTask} onDeleteTask={deleteTask}

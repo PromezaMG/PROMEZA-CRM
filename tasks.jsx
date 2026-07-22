@@ -173,7 +173,7 @@ const BatchTaskModal = ({ t, lang, data, onAddTask, users, currentUser, onClose 
 };
 
 // ─── Global tasks view ───
-const GlobalTasksView = ({ t, lang, data, go, tasks, onAddTask, onToggleTask, onDeleteTask, users, currentUser, dupCount = 0 }) => {
+const GlobalTasksView = ({ t, lang, data, go, tasks, onAddTask, onToggleTask, onDeleteTask, users, currentUser, dupCount = 0, dupPairs = [], entityDupPairs = [] }) => {
   const [filterAssignee, setFilterAssignee] = React.useState("all");
   const [filterStatus, setFilterStatus] = React.useState("pending");
   const [filterPersona, setFilterPersona] = React.useState("all");
@@ -226,6 +226,32 @@ const GlobalTasksView = ({ t, lang, data, go, tasks, onAddTask, onToggleTask, on
     const da = a.due || "9999-12-31", db = b.due || "9999-12-31";
     return da < db ? -1 : da > db ? 1 : 0;
   });
+
+  // Virtual "Revisar duplicado" tasks — one per pending duplicate pair (the ones
+  // generated in the Duplicados section). Not stored; injected so they show here too.
+  const DUP_SHOWN_CAP = 500;
+  const dupTasks = React.useMemo(() => {
+    if (filterStatus === "done" || filterAssignee !== "all" || filterPersona !== "all") return [];
+    const pById = Object.create(null); (data.personas || []).forEach(p => { pById[p.id] = p; });
+    const eById = Object.create(null); (data.entities || []).forEach(e => { eById[e.id] = e; });
+    const out = [];
+    for (const pair of (dupPairs || [])) {
+      if (pair.dismissed) continue;
+      const a = pById[pair.idA], b = pById[pair.idB];
+      if (!a || !b) continue;
+      const na = ((a.first || "") + " " + (a.last || "")).trim(), nb = ((b.first || "") + " " + (b.last || "")).trim();
+      out.push({ id: "dup-" + pair.idA + pair.idB, personaId: pair.idA, done: false, _isDup: true, _label: na || pair.idA, _goRoute: { name: "person", id: pair.idA }, text: "Revisar posible duplicado: " + (na || pair.idA) + " ↔ " + (nb || pair.idB) });
+      if (out.length >= DUP_SHOWN_CAP) break;
+    }
+    for (const pair of (entityDupPairs || [])) {
+      if (pair.dismissed || out.length >= DUP_SHOWN_CAP) continue;
+      const a = eById[pair.idA], b = eById[pair.idB];
+      if (!a || !b) continue;
+      out.push({ id: "dup-" + pair.idA + pair.idB, personaId: pair.idA, done: false, _isDup: true, _isEnt: true, _label: a.name, _goRoute: { name: "entity", id: pair.idA }, text: "Revisar posible duplicado (medio): " + a.name + " ↔ " + b.name });
+    }
+    return out;
+  }, [dupPairs, entityDupPairs, data.personas, data.entities, filterStatus, filterAssignee, filterPersona]);
+  const displayed = [...dupTasks, ...filtered];
 
   const pendingCount = allTasks.filter(t => !t.done).length;
   const overdueCount = allTasks.filter(isOverdue).length;
@@ -424,26 +450,30 @@ const GlobalTasksView = ({ t, lang, data, go, tasks, onAddTask, onToggleTask, on
       {/* Task list */}
       <div className="section">
         <div className="section-body" style={{ padding: 0 }}>
-          {filtered.length === 0 && (
+          {displayed.length === 0 && (
             <div className="empty" style={{ padding: "28px 0" }}>
               {lang === "es" ? "Sin tareas para mostrar" : "No tasks to show"}
             </div>
           )}
-          {filtered.map(task => {
+          {displayed.map(task => {
             const overdue = isOverdue(task);
             return (
               <div key={task.id + task.personaId} style={{
                 display: "flex", alignItems: "flex-start", gap: 12,
                 padding: "12px 16px", borderBottom: "1px solid var(--line)",
                 opacity: task.done ? 0.55 : 1,
-                background: overdue ? "rgba(239,68,68,.04)" : undefined,
+                background: task._isDup ? "#fff7ed" : (overdue ? "rgba(239,68,68,.04)" : undefined),
               }}>
-                <input
-                  type="checkbox"
-                  checked={!!task.done}
-                  onChange={() => onToggleTask(task.personaId, task.id)}
-                  style={{ marginTop: 3, cursor: "pointer", width: 16, height: 16, flexShrink: 0 }}
-                />
+                {task._isDup ? (
+                  <span style={{ marginTop: 1, fontSize: 16, flexShrink: 0 }} title={lang === "es" ? "Duplicado por revisar" : "Duplicate to review"}>⚠</span>
+                ) : (
+                  <input
+                    type="checkbox"
+                    checked={!!task.done}
+                    onChange={() => onToggleTask(task.personaId, task.id)}
+                    style={{ marginTop: 3, cursor: "pointer", width: 16, height: 16, flexShrink: 0 }}
+                  />
+                )}
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{
                     fontSize: 13.5, fontWeight: 500,
@@ -458,12 +488,12 @@ const GlobalTasksView = ({ t, lang, data, go, tasks, onAddTask, onToggleTask, on
                     {task.text}
                   </div>
                   <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 5, flexWrap: "wrap" }}>
-                    {/* Persona link */}
+                    {/* Record link (person or entity) */}
                     <button
                       className="btn btn-ghost btn-sm"
                       style={{ padding: "1px 6px", fontSize: 11.5, color: "var(--accent)", fontWeight: 600, height: "auto" }}
-                      onClick={() => go({ name: "person", id: task.personaId })}>
-                      <Icon name="users" size={11} /> {personaName(task.personaId)}
+                      onClick={() => go(task._isDup ? task._goRoute : { name: "person", id: task.personaId })}>
+                      <Icon name={task._isEnt ? "building" : "users"} size={11} /> {task._isDup ? task._label : personaName(task.personaId)}
                     </button>
                     {/* Due date */}
                     {task.due && (
@@ -473,12 +503,12 @@ const GlobalTasksView = ({ t, lang, data, go, tasks, onAddTask, onToggleTask, on
                       </span>
                     )}
                     {/* Assignee badge */}
-                    {task.assignedTo && (
+                    {!task._isDup && task.assignedTo && (
                       <span style={{ fontSize: 11, padding: "1px 7px", borderRadius: 10, background: "var(--accent-50)", color: "var(--accent)", fontWeight: 500 }}>
                         {userLabel(task.assignedTo)}
                       </span>
                     )}
-                    {!task.assignedTo && (
+                    {!task._isDup && !task.assignedTo && (
                       <span style={{ fontSize: 11, color: "var(--ink-4)" }}>
                         {lang === "es" ? "Sin asignar" : "Unassigned"}
                       </span>
@@ -494,12 +524,14 @@ const GlobalTasksView = ({ t, lang, data, go, tasks, onAddTask, onToggleTask, on
                     )}
                   </div>
                 </div>
-                <button
-                  className="btn btn-sm btn-ghost"
-                  style={{ padding: "1px 6px", color: "var(--ink-4)", flexShrink: 0 }}
-                  onClick={() => onDeleteTask(task.personaId, task.id)}>
-                  <Icon name="trash" size={13} />
-                </button>
+                {!task._isDup && (
+                  <button
+                    className="btn btn-sm btn-ghost"
+                    style={{ padding: "1px 6px", color: "var(--ink-4)", flexShrink: 0 }}
+                    onClick={() => onDeleteTask(task.personaId, task.id)}>
+                    <Icon name="trash" size={13} />
+                  </button>
+                )}
               </div>
             );
           })}

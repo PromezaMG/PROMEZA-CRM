@@ -13855,7 +13855,9 @@ const GlobalTasksView = ({
   onDeleteTask,
   users,
   currentUser,
-  dupCount = 0
+  dupCount = 0,
+  dupPairs = [],
+  entityDupPairs = []
 }) => {
   const [filterAssignee, setFilterAssignee] = React.useState("all");
   const [filterStatus, setFilterStatus] = React.useState("pending");
@@ -13918,6 +13920,64 @@ const GlobalTasksView = ({
       db = b.due || "9999-12-31";
     return da < db ? -1 : da > db ? 1 : 0;
   });
+
+  // Virtual "Revisar duplicado" tasks — one per pending duplicate pair (the ones
+  // generated in the Duplicados section). Not stored; injected so they show here too.
+  const DUP_SHOWN_CAP = 500;
+  const dupTasks = React.useMemo(() => {
+    if (filterStatus === "done" || filterAssignee !== "all" || filterPersona !== "all") return [];
+    const pById = Object.create(null);
+    (data.personas || []).forEach(p => {
+      pById[p.id] = p;
+    });
+    const eById = Object.create(null);
+    (data.entities || []).forEach(e => {
+      eById[e.id] = e;
+    });
+    const out = [];
+    for (const pair of dupPairs || []) {
+      if (pair.dismissed) continue;
+      const a = pById[pair.idA],
+        b = pById[pair.idB];
+      if (!a || !b) continue;
+      const na = ((a.first || "") + " " + (a.last || "")).trim(),
+        nb = ((b.first || "") + " " + (b.last || "")).trim();
+      out.push({
+        id: "dup-" + pair.idA + pair.idB,
+        personaId: pair.idA,
+        done: false,
+        _isDup: true,
+        _label: na || pair.idA,
+        _goRoute: {
+          name: "person",
+          id: pair.idA
+        },
+        text: "Revisar posible duplicado: " + (na || pair.idA) + " ↔ " + (nb || pair.idB)
+      });
+      if (out.length >= DUP_SHOWN_CAP) break;
+    }
+    for (const pair of entityDupPairs || []) {
+      if (pair.dismissed || out.length >= DUP_SHOWN_CAP) continue;
+      const a = eById[pair.idA],
+        b = eById[pair.idB];
+      if (!a || !b) continue;
+      out.push({
+        id: "dup-" + pair.idA + pair.idB,
+        personaId: pair.idA,
+        done: false,
+        _isDup: true,
+        _isEnt: true,
+        _label: a.name,
+        _goRoute: {
+          name: "entity",
+          id: pair.idA
+        },
+        text: "Revisar posible duplicado (medio): " + a.name + " ↔ " + b.name
+      });
+    }
+    return out;
+  }, [dupPairs, entityDupPairs, data.personas, data.entities, filterStatus, filterAssignee, filterPersona]);
+  const displayed = [...dupTasks, ...filtered];
   const pendingCount = allTasks.filter(t => !t.done).length;
   const overdueCount = allTasks.filter(isOverdue).length;
   const userLabel = email => {
@@ -14296,12 +14356,12 @@ const GlobalTasksView = ({
     style: {
       padding: 0
     }
-  }, filtered.length === 0 && /*#__PURE__*/React.createElement("div", {
+  }, displayed.length === 0 && /*#__PURE__*/React.createElement("div", {
     className: "empty",
     style: {
       padding: "28px 0"
     }
-  }, lang === "es" ? "Sin tareas para mostrar" : "No tasks to show"), filtered.map(task => {
+  }, lang === "es" ? "Sin tareas para mostrar" : "No tasks to show"), displayed.map(task => {
     const overdue = isOverdue(task);
     return /*#__PURE__*/React.createElement("div", {
       key: task.id + task.personaId,
@@ -14312,9 +14372,16 @@ const GlobalTasksView = ({
         padding: "12px 16px",
         borderBottom: "1px solid var(--line)",
         opacity: task.done ? 0.55 : 1,
-        background: overdue ? "rgba(239,68,68,.04)" : undefined
+        background: task._isDup ? "#fff7ed" : overdue ? "rgba(239,68,68,.04)" : undefined
       }
-    }, /*#__PURE__*/React.createElement("input", {
+    }, task._isDup ? /*#__PURE__*/React.createElement("span", {
+      style: {
+        marginTop: 1,
+        fontSize: 16,
+        flexShrink: 0
+      },
+      title: lang === "es" ? "Duplicado por revisar" : "Duplicate to review"
+    }, "\u26A0") : /*#__PURE__*/React.createElement("input", {
       type: "checkbox",
       checked: !!task.done,
       onChange: () => onToggleTask(task.personaId, task.id),
@@ -14371,14 +14438,14 @@ const GlobalTasksView = ({
         fontWeight: 600,
         height: "auto"
       },
-      onClick: () => go({
+      onClick: () => go(task._isDup ? task._goRoute : {
         name: "person",
         id: task.personaId
       })
     }, /*#__PURE__*/React.createElement(Icon, {
-      name: "users",
+      name: task._isEnt ? "building" : "users",
       size: 11
-    }), " ", personaName(task.personaId)), task.due && /*#__PURE__*/React.createElement("span", {
+    }), " ", task._isDup ? task._label : personaName(task.personaId)), task.due && /*#__PURE__*/React.createElement("span", {
       style: {
         fontSize: 11.5,
         color: overdue ? "var(--bad)" : "var(--ink-3)",
@@ -14391,7 +14458,7 @@ const GlobalTasksView = ({
       style: {
         marginLeft: 4
       }
-    }, lang === "es" ? "¡Vencida!" : "Overdue!")), task.assignedTo && /*#__PURE__*/React.createElement("span", {
+    }, lang === "es" ? "¡Vencida!" : "Overdue!")), !task._isDup && task.assignedTo && /*#__PURE__*/React.createElement("span", {
       style: {
         fontSize: 11,
         padding: "1px 7px",
@@ -14400,7 +14467,7 @@ const GlobalTasksView = ({
         color: "var(--accent)",
         fontWeight: 500
       }
-    }, userLabel(task.assignedTo)), !task.assignedTo && /*#__PURE__*/React.createElement("span", {
+    }, userLabel(task.assignedTo)), !task._isDup && !task.assignedTo && /*#__PURE__*/React.createElement("span", {
       style: {
         fontSize: 11,
         color: "var(--ink-4)"
@@ -14421,7 +14488,7 @@ const GlobalTasksView = ({
     }, /*#__PURE__*/React.createElement(Icon, {
       name: "users",
       size: 11
-    }), " ", lang === "es" ? "Revisar duplicados →" : "Review duplicates →"))), /*#__PURE__*/React.createElement("button", {
+    }), " ", lang === "es" ? "Revisar duplicados →" : "Review duplicates →"))), !task._isDup && /*#__PURE__*/React.createElement("button", {
       className: "btn btn-sm btn-ghost",
       style: {
         padding: "1px 6px",
@@ -23807,7 +23874,9 @@ const App = () => {
         onAddTask: addTask,
         onToggleTask: toggleTask,
         onDeleteTask: deleteTask,
-        dupCount: totalDups
+        dupCount: totalDups,
+        dupPairs: dupPairs,
+        entityDupPairs: entityDupPairs
       });
       break;
     case "my-tasks":
