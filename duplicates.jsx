@@ -638,8 +638,9 @@ const DuplicatesPage = ({ pairs, entityPairs = [], data, onMerge, onMergeWithDat
           </div>
         </div>
         <div className="page-actions">
-          <button className={"btn" + (showManual ? " btn-primary" : "")} onClick={() => setShowManual(v => !v)}>
-            <Icon name="plus" /> {es ? "Marcar duplicado manual" : "Add manual duplicate"}
+          <button className={"btn" + ((dupTab === "entidades" ? showManualEnt : showManual) ? " btn-primary" : "")}
+            onClick={() => dupTab === "entidades" ? setShowManualEnt(v => !v) : setShowManual(v => !v)}>
+            <Icon name="plus" /> {dupTab === "entidades" ? (es ? "Marcar medio duplicado manual" : "Add manual entity duplicate") : (es ? "Marcar duplicado manual" : "Add manual duplicate")}
           </button>
           <button className="btn" onClick={onScanAll}>
             <Icon name="search" /> {lang === "es" ? "Escanear base completa" : "Scan full database"}
@@ -896,13 +897,8 @@ const DuplicatesPage = ({ pairs, entityPairs = [], data, onMerge, onMergeWithDat
       </React.Fragment>)}
 
       {/* ═══ ENTIDADES / MEDIOS ═══ */}
-      {dupTab === "entidades" && (
-        <div style={{ marginBottom: 14 }}>
-          <button className={"btn btn-sm" + (showManualEnt ? " btn-primary" : "")} onClick={() => setShowManualEnt(v => !v)}>
-            <Icon name="plus" /> {es ? "Marcar medios duplicados manualmente" : "Add manual entity duplicate"}
-          </button>
-          {showManualEnt && (
-            <div className="card" style={{ padding: "16px 20px", marginTop: 12 }}>
+      {dupTab === "entidades" && showManualEnt && (
+            <div className="card" style={{ padding: "16px 20px", marginBottom: 14 }}>
               <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4 }}>{es ? "Marcar dos medios/entidades como duplicados" : "Mark two entities as duplicates"}</div>
               <div style={{ fontSize: 12, color: "var(--ink-3)", marginBottom: 12 }}>{es ? "Busca y elige los dos medios que son el mismo. Aparecerán abajo para revisarlos y fusionarlos." : "Search and pick the two entities that are the same."}</div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
@@ -950,8 +946,6 @@ const DuplicatesPage = ({ pairs, entityPairs = [], data, onMerge, onMergeWithDat
               </div>
               {manEA && manEB && manEA.id === manEB.id && <div style={{ marginTop: 8, fontSize: 12, color: "var(--bad)" }}>{es ? "Elige dos medios distintos." : "Pick two different entities."}</div>}
             </div>
-          )}
-        </div>
       )}
       {dupTab === "entidades" && entActive.length === 0 && !showManualEnt && (
         <div className="card" style={{ padding: "40px 24px", textAlign: "center", color: "var(--ink-3)", fontSize: 13 }}>

@@ -11784,11 +11784,11 @@ const DuplicatesPage = ({
   }, active.length > 0 ? `${active.length} ${lang === "es" ? "pares pendientes de revisión" : "pairs pending review"}` : lang === "es" ? "Sin duplicados pendientes" : "No pending duplicates")), /*#__PURE__*/React.createElement("div", {
     className: "page-actions"
   }, /*#__PURE__*/React.createElement("button", {
-    className: "btn" + (showManual ? " btn-primary" : ""),
-    onClick: () => setShowManual(v => !v)
+    className: "btn" + ((dupTab === "entidades" ? showManualEnt : showManual) ? " btn-primary" : ""),
+    onClick: () => dupTab === "entidades" ? setShowManualEnt(v => !v) : setShowManual(v => !v)
   }, /*#__PURE__*/React.createElement(Icon, {
     name: "plus"
-  }), " ", es ? "Marcar duplicado manual" : "Add manual duplicate"), /*#__PURE__*/React.createElement("button", {
+  }), " ", dupTab === "entidades" ? es ? "Marcar medio duplicado manual" : "Add manual entity duplicate" : es ? "Marcar duplicado manual" : "Add manual duplicate"), /*#__PURE__*/React.createElement("button", {
     className: "btn",
     onClick: onScanAll
   }, /*#__PURE__*/React.createElement(Icon, {
@@ -12363,20 +12363,11 @@ const DuplicatesPage = ({
       className: "btn btn-sm btn-ghost",
       onClick: () => onUndismiss(pair)
     }, lang === "es" ? "Deshacer" : "Undo"));
-  }))), dupTab === "entidades" && /*#__PURE__*/React.createElement("div", {
-    style: {
-      marginBottom: 14
-    }
-  }, /*#__PURE__*/React.createElement("button", {
-    className: "btn btn-sm" + (showManualEnt ? " btn-primary" : ""),
-    onClick: () => setShowManualEnt(v => !v)
-  }, /*#__PURE__*/React.createElement(Icon, {
-    name: "plus"
-  }), " ", es ? "Marcar medios duplicados manualmente" : "Add manual entity duplicate"), showManualEnt && /*#__PURE__*/React.createElement("div", {
+  }))), dupTab === "entidades" && showManualEnt && /*#__PURE__*/React.createElement("div", {
     className: "card",
     style: {
       padding: "16px 20px",
-      marginTop: 12
+      marginBottom: 14
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -12547,7 +12538,7 @@ const DuplicatesPage = ({
       fontSize: 12,
       color: "var(--bad)"
     }
-  }, es ? "Elige dos medios distintos." : "Pick two different entities."))), dupTab === "entidades" && entActive.length === 0 && !showManualEnt && /*#__PURE__*/React.createElement("div", {
+  }, es ? "Elige dos medios distintos." : "Pick two different entities.")), dupTab === "entidades" && entActive.length === 0 && !showManualEnt && /*#__PURE__*/React.createElement("div", {
     className: "card",
     style: {
       padding: "40px 24px",
