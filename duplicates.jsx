@@ -430,6 +430,7 @@ const DuplicatesPage = ({ pairs, entityPairs = [], data, onMerge, onMergeWithDat
   const [qB, setQB] = React.useState("");
   const [visP, setVisP] = React.useState(40);  // # of active contact pairs rendered (paginate — 2000 cards froze the page)
   const [visE, setVisE] = React.useState(40);  // # of active entity pairs rendered
+  const [dupSearch, setDupSearch] = React.useState("");
   const es = lang === "es";
   // Index records by id ONCE. Was: data.personas.find() per pair × 2 × ~18k records
   // = tens of millions of scans every render → the Duplicates page crawled.
@@ -449,8 +450,28 @@ const DuplicatesPage = ({ pairs, entityPairs = [], data, onMerge, onMergeWithDat
     }).slice(0, 8);
   };
 
-  const active = pairs.filter(p => !p.dismissed);
-  const dismissed = pairs.filter(p => p.dismissed);
+  // Search within the Duplicates section: match a pair if EITHER record matches by
+  // name / email / phone / code. Lets the user look up one person and see if they
+  // have a pending duplicate.
+  const dsq = (dupSearch || "").trim().toLowerCase();
+  const dsqAl = dsq.replace(/[^a-z0-9]/g, "");
+  const recMatches = (rec, isEnt) => {
+    if (!rec) return false;
+    const code = (window.getUID ? window.getUID(rec.id) : rec.id) || "";
+    const nm = isEnt ? (rec.name || "") : fullName(rec);
+    const s = (nm + " " + (rec.email || "") + " " + (rec.phone || "") + " " + rec.id + " " + (rec.uid || "") + " " + code).toLowerCase();
+    if (s.includes(dsq)) return true;
+    return dsqAl.length >= 2 && s.replace(/[^a-z0-9]/g, "").includes(dsqAl);
+  };
+  const pairMatches = (pair, isEnt) => {
+    if (!dsq) return true;
+    const idx = isEnt ? entityById : personaById;
+    return recMatches(idx[pair.idA], isEnt) || recMatches(idx[pair.idB], isEnt);
+  };
+
+  const active = pairs.filter(p => !p.dismissed && pairMatches(p, false));
+  const dismissed = pairs.filter(p => p.dismissed && pairMatches(p, false));
+  const entActive = entityPairs.filter(p => !p.dismissed && pairMatches(p, true));
 
   const toggle = (key) => setExpanded(k => k === key ? null : key);
 
@@ -489,13 +510,29 @@ const DuplicatesPage = ({ pairs, entityPairs = [], data, onMerge, onMergeWithDat
         </div>
       </div>
 
+      {/* ── Search within duplicates ── */}
+      <div style={{ position: "relative", marginBottom: 12 }}>
+        <input value={dupSearch} onChange={e => { setDupSearch(e.target.value); setVisP(40); setVisE(40); }}
+          placeholder={es ? "Buscar en duplicados: nombre, correo, teléfono, código…" : "Search duplicates: name, email, phone, code…"}
+          style={{ width: "100%", padding: "9px 12px 9px 34px", border: "1px solid var(--line)", borderRadius: 8, fontFamily: "inherit", fontSize: 13 }} />
+        <span style={{ position: "absolute", left: 11, top: "50%", transform: "translateY(-50%)", color: "var(--ink-4)" }}><Icon name="search" size={15} /></span>
+        {dupSearch && <button onClick={() => setDupSearch("")} style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", border: "none", background: "none", cursor: "pointer", color: "var(--ink-4)", fontSize: 16 }}>×</button>}
+      </div>
+      {dsq && (
+        <div style={{ fontSize: 12.5, color: "var(--ink-3)", marginBottom: 12 }}>
+          {active.length + entActive.length > 0
+            ? `${active.length + entActive.length} ${es ? "resultado(s) para" : "result(s) for"} "${dupSearch}"`
+            : (es ? `Sin duplicados para "${dupSearch}" — esa persona/medio no tiene duplicado pendiente.` : `No duplicates for "${dupSearch}".`)}
+        </div>
+      )}
+
       {/* ── Tabs: Contactos | Entidades ── */}
       <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
         <button className={"btn btn-sm" + (dupTab === "personas" ? " btn-primary" : "")} onClick={() => setDupTab("personas")}>
           {es ? "Contactos" : "Contacts"} ({active.length})
         </button>
         <button className={"btn btn-sm" + (dupTab === "entidades" ? " btn-primary" : "")} onClick={() => setDupTab("entidades")}>
-          {es ? "Entidades / Medios" : "Entities / Media"} ({entityPairs.filter(p => !p.dismissed).length})
+          {es ? "Entidades / Medios" : "Entities / Media"} ({entActive.length})
         </button>
       </div>
 
@@ -728,10 +765,10 @@ const DuplicatesPage = ({ pairs, entityPairs = [], data, onMerge, onMergeWithDat
             {es ? "Medios / entidades duplicados" : "Duplicate media / entities"}
           </div>
           <div style={{ fontSize: 12, color: "var(--ink-3)", marginBottom: 12 }}>
-            {entityPairs.filter(p => !p.dismissed).length} {es ? "pares pendientes de revisión" : "pairs pending review"}
+            {entActive.length} {es ? "pares pendientes de revisión" : "pairs pending review"}
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {entityPairs.filter(p => !p.dismissed).slice(0, visE).map(pair => {
+            {entActive.slice(0, visE).map(pair => {
               const eA = entityById[pair.idA];
               const eB = entityById[pair.idB];
               if (!eA || !eB) return null;
@@ -752,9 +789,9 @@ const DuplicatesPage = ({ pairs, entityPairs = [], data, onMerge, onMergeWithDat
                 </div>
               );
             })}
-            {entityPairs.filter(p => !p.dismissed).length > visE && (
+            {entActive.length > visE && (
               <button className="btn" style={{ alignSelf: "center", marginTop: 4 }} onClick={() => setVisE(v => v + 40)}>
-                {es ? `Ver más (${entityPairs.filter(p => !p.dismissed).length - visE} restantes)` : `Show more`}
+                {es ? `Ver más (${entActive.length - visE} restantes)` : `Show more`}
               </button>
             )}
           </div>
