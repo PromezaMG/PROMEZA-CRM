@@ -152,7 +152,7 @@ const InteractionsTab = ({ personId, interactions, onAdd, onDelete, lang }) => {
   );
 };
 
-const TasksTab = ({ personId, tasks, onAddTask, onToggleTask, onDeleteTask, lang, users, currentUser }) => {
+const TasksTab = ({ personId, tasks, onAddTask, onToggleTask, onDeleteTask, lang, users, currentUser, hasDuplicate, go }) => {
   const [text, setText] = React.useState("");
   const [due, setDue] = React.useState("");
   const [assignedTo, setAssignedTo] = React.useState(currentUser || "");
@@ -183,9 +183,9 @@ const TasksTab = ({ personId, tasks, onAddTask, onToggleTask, onDeleteTask, lang
     <div className="section">
       <h3>
         {lang === "es" ? "Tareas y seguimiento" : "Tasks & follow-up"}
-        {pending.length > 0 && (
+        {(pending.length + (hasDuplicate ? 1 : 0)) > 0 && (
           <span className="badge" style={{ background: pending.some(isOverdue) ? "#ef4444" : "var(--accent)", color: "#fff", marginLeft: 8 }}>
-            {pending.length}
+            {pending.length + (hasDuplicate ? 1 : 0)}
           </span>
         )}
       </h3>
@@ -221,9 +221,28 @@ const TasksTab = ({ personId, tasks, onAddTask, onToggleTask, onDeleteTask, lang
       </div>
 
       <div className="section-body">
-        {items.length === 0 && (
+        {items.length === 0 && !hasDuplicate && (
           <div className="empty" style={{ padding: "24px 0" }}>
             {lang === "es" ? "Sin tareas asignadas" : "No tasks assigned"}
+          </div>
+        )}
+
+        {/* Virtual pending task: this contact has a possible duplicate (from the
+            "Revisar duplicado" tag). Not stored — derived so it stays in sync. */}
+        {hasDuplicate && (
+          <div style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "10px 12px", marginBottom: 8, borderRadius: 8, background: "#fff7ed", border: "1px solid #fed7aa" }}>
+            <span style={{ fontSize: 16, lineHeight: 1.2 }}>⚠</span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 13.5, fontWeight: 600, color: "#9a3412" }}>
+                {lang === "es" ? "Revisar posible duplicado" : "Review possible duplicate"}
+              </div>
+              <div style={{ fontSize: 11.5, color: "#b45309", marginTop: 2 }}>
+                {lang === "es" ? "Este contacto comparte correo o teléfono con otro registro." : "Shares email/phone with another record."}
+              </div>
+            </div>
+            <button className="btn btn-sm" style={{ flexShrink: 0 }} onClick={() => go && go({ name: "duplicates" })}>
+              {lang === "es" ? "Ver duplicados" : "View duplicates"}
+            </button>
           </div>
         )}
 

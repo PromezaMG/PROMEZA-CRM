@@ -205,7 +205,8 @@ const PersonProfile = ({ id, t, lang, data, go, goBack, addComment, onUpdatePers
     link: le, entity: data.entities.find(e => e.id === le.id),
   })).filter(x => x.entity);
 
-  const pendingTasks = (tasks || []).filter(tk => !tk.done).length;
+  const hasDup = (p.tags || []).some(tg => (tg || "").toLowerCase() === "revisar duplicado");
+  const pendingTasks = (tasks || []).filter(tk => !tk.done).length + (hasDup ? 1 : 0);
   const personProjectCount = (data.projects || []).filter(pr => (pr.members || []).some(m => m.personaId === p.id)).length;
   const tabs = [
     { id: "details", label: t.common.details },
@@ -653,6 +654,8 @@ const PersonProfile = ({ id, t, lang, data, go, goBack, addComment, onUpdatePers
           lang={lang}
           users={users}
           currentUser={currentUser}
+          hasDuplicate={hasDup}
+          go={go}
         />
       )}
 

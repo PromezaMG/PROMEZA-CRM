@@ -2191,10 +2191,12 @@ const App = () => {
       repointed.push({ ...p, entities: ents, _localSavedAt: new Date().toISOString() });
     });
     const repointMap = Object.fromEntries(repointed.map(p => [p.id, p]));
+    const entMergeEntry = { id: "cl" + Date.now(), date: new Date().toISOString(), author: userEmail || "Usuario", changes: [{ field: "record", type: "merge", with: drop.name }] };
     setData(d => ({
       ...d,
       entities: d.entities.map(e => e.id === idA ? merged : e).filter(e => e.id !== idB),
       personas: d.personas.map(p => repointMap[p.id] || p),
+      changelog: { ...d.changelog, [idA]: [entMergeEntry, ...(d.changelog[idA] || [])] },
     }));
     setEntityDupPairs(ps => ps
       .map(p => (p.idA === idA && p.idB === idB) || (p.idA === idB && p.idB === idA) ? { ...p, dismissed: true } : p)

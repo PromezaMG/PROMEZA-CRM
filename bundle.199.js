@@ -7406,7 +7406,8 @@ const PersonProfile = ({
     link: le,
     entity: data.entities.find(e => e.id === le.id)
   })).filter(x => x.entity);
-  const pendingTasks = (tasks || []).filter(tk => !tk.done).length;
+  const hasDup = (p.tags || []).some(tg => (tg || "").toLowerCase() === "revisar duplicado");
+  const pendingTasks = (tasks || []).filter(tk => !tk.done).length + (hasDup ? 1 : 0);
   const personProjectCount = (data.projects || []).filter(pr => (pr.members || []).some(m => m.personaId === p.id)).length;
   const tabs = [{
     id: "details",
@@ -8419,7 +8420,9 @@ const PersonProfile = ({
     onDeleteTask: onDeleteTask,
     lang: lang,
     users: users,
-    currentUser: currentUser
+    currentUser: currentUser,
+    hasDuplicate: hasDup,
+    go: go
   }), tab === "comments" && /*#__PURE__*/React.createElement("div", {
     className: "section"
   }, /*#__PURE__*/React.createElement("h3", null, t.common.comments), /*#__PURE__*/React.createElement("div", {
@@ -12390,7 +12393,9 @@ const TasksTab = ({
   onDeleteTask,
   lang,
   users,
-  currentUser
+  currentUser,
+  hasDuplicate,
+  go
 }) => {
   const [text, setText] = React.useState("");
   const [due, setDue] = React.useState("");
@@ -12423,14 +12428,14 @@ const TasksTab = ({
   };
   return /*#__PURE__*/React.createElement("div", {
     className: "section"
-  }, /*#__PURE__*/React.createElement("h3", null, lang === "es" ? "Tareas y seguimiento" : "Tasks & follow-up", pending.length > 0 && /*#__PURE__*/React.createElement("span", {
+  }, /*#__PURE__*/React.createElement("h3", null, lang === "es" ? "Tareas y seguimiento" : "Tasks & follow-up", pending.length + (hasDuplicate ? 1 : 0) > 0 && /*#__PURE__*/React.createElement("span", {
     className: "badge",
     style: {
       background: pending.some(isOverdue) ? "#ef4444" : "var(--accent)",
       color: "#fff",
       marginLeft: 8
     }
-  }, pending.length)), /*#__PURE__*/React.createElement("div", {
+  }, pending.length + (hasDuplicate ? 1 : 0))), /*#__PURE__*/React.createElement("div", {
     style: {
       padding: "12px 16px",
       borderBottom: "1px solid var(--line)",
@@ -12499,12 +12504,53 @@ const TasksTab = ({
     value: u.email
   }, u.name))))), /*#__PURE__*/React.createElement("div", {
     className: "section-body"
-  }, items.length === 0 && /*#__PURE__*/React.createElement("div", {
+  }, items.length === 0 && !hasDuplicate && /*#__PURE__*/React.createElement("div", {
     className: "empty",
     style: {
       padding: "24px 0"
     }
-  }, lang === "es" ? "Sin tareas asignadas" : "No tasks assigned"), pending.map(task => /*#__PURE__*/React.createElement("div", {
+  }, lang === "es" ? "Sin tareas asignadas" : "No tasks assigned"), hasDuplicate && /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "flex-start",
+      gap: 10,
+      padding: "10px 12px",
+      marginBottom: 8,
+      borderRadius: 8,
+      background: "#fff7ed",
+      border: "1px solid #fed7aa"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 16,
+      lineHeight: 1.2
+    }
+  }, "\u26A0"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13.5,
+      fontWeight: 600,
+      color: "#9a3412"
+    }
+  }, lang === "es" ? "Revisar posible duplicado" : "Review possible duplicate"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11.5,
+      color: "#b45309",
+      marginTop: 2
+    }
+  }, lang === "es" ? "Este contacto comparte correo o teléfono con otro registro." : "Shares email/phone with another record.")), /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-sm",
+    style: {
+      flexShrink: 0
+    },
+    onClick: () => go && go({
+      name: "duplicates"
+    })
+  }, lang === "es" ? "Ver duplicados" : "View duplicates")), pending.map(task => /*#__PURE__*/React.createElement("div", {
     key: task.id,
     style: {
       display: "flex",
@@ -22493,10 +22539,24 @@ const App = () => {
       });
     });
     const repointMap = Object.fromEntries(repointed.map(p => [p.id, p]));
+    const entMergeEntry = {
+      id: "cl" + Date.now(),
+      date: new Date().toISOString(),
+      author: userEmail || "Usuario",
+      changes: [{
+        field: "record",
+        type: "merge",
+        with: drop.name
+      }]
+    };
     setData(d => ({
       ...d,
       entities: d.entities.map(e => e.id === idA ? merged : e).filter(e => e.id !== idB),
-      personas: d.personas.map(p => repointMap[p.id] || p)
+      personas: d.personas.map(p => repointMap[p.id] || p),
+      changelog: {
+        ...d.changelog,
+        [idA]: [entMergeEntry, ...(d.changelog[idA] || [])]
+      }
     }));
     setEntityDupPairs(ps => ps.map(p => p.idA === idA && p.idB === idB || p.idA === idB && p.idB === idA ? {
       ...p,
