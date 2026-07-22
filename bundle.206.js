@@ -8495,6 +8495,7 @@ const EntityProfile = ({
   const [linking, setLinking] = React.useState(false);
   const [linkPersonId, setLinkPersonId] = React.useState("");
   const [linkRole, setLinkRole] = React.useState("miembro");
+  const [copiedId, setCopiedId] = React.useState(false);
   const [showAllTags, setShowAllTags] = React.useState(false);
   if (!e) return /*#__PURE__*/React.createElement("div", {
     className: "empty"
@@ -8568,9 +8569,53 @@ const EntityProfile = ({
     className: "i-lg"
   })), /*#__PURE__*/React.createElement("div", {
     className: "meta"
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      flexWrap: "wrap"
+    }
   }, /*#__PURE__*/React.createElement("h1", {
-    className: "name"
-  }, e.name), /*#__PURE__*/React.createElement("div", {
+    className: "name",
+    style: {
+      margin: 0
+    }
+  }, e.name), /*#__PURE__*/React.createElement("span", {
+    title: lang === "es" ? "Clic para copiar el código" : "Click to copy code",
+    onClick: () => {
+      try {
+        navigator.clipboard.writeText(e.id);
+        setCopiedId(true);
+        setTimeout(() => setCopiedId(false), 1200);
+      } catch (err) {}
+    },
+    style: {
+      fontFamily: "var(--font-mono)",
+      fontSize: 12,
+      fontWeight: 700,
+      color: "var(--accent)",
+      background: "var(--accent-50)",
+      padding: "3px 10px",
+      borderRadius: 6,
+      letterSpacing: ".04em",
+      flexShrink: 0,
+      cursor: "pointer",
+      whiteSpace: "nowrap",
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 5
+    }
+  }, "#", window.getUID ? window.getUID(e.id) : e.id, /*#__PURE__*/React.createElement(Icon, {
+    name: "copy",
+    size: 11
+  }), copiedId && /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 10,
+      color: "var(--good)",
+      fontWeight: 700
+    }
+  }, lang === "es" ? "¡copiado!" : "copied!"))), /*#__PURE__*/React.createElement("div", {
     className: "sub"
   }, /*#__PURE__*/React.createElement("span", {
     className: "role-pill"

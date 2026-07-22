@@ -714,6 +714,7 @@ const EntityProfile = ({ id, t, lang, data, go, goBack, addComment, onUpdateEnti
   const [linking, setLinking] = React.useState(false);
   const [linkPersonId, setLinkPersonId] = React.useState("");
   const [linkRole, setLinkRole] = React.useState("miembro");
+  const [copiedId, setCopiedId] = React.useState(false);
   const [showAllTags, setShowAllTags] = React.useState(false);
   if (!e) return <div className="empty">Not found</div>;
 
@@ -766,7 +767,17 @@ const EntityProfile = ({ id, t, lang, data, go, goBack, addComment, onUpdateEnti
       <div className="profile-head">
         <div className="ent-icon xl"><Icon name="building" className="i-lg" /></div>
         <div className="meta">
-          <h1 className="name">{e.name}</h1>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+            <h1 className="name" style={{ margin: 0 }}>{e.name}</h1>
+            <span
+              title={lang === "es" ? "Clic para copiar el código" : "Click to copy code"}
+              onClick={() => { try { navigator.clipboard.writeText(e.id); setCopiedId(true); setTimeout(() => setCopiedId(false), 1200); } catch (err) {} }}
+              style={{ fontFamily: "var(--font-mono)", fontSize: 12, fontWeight: 700, color: "var(--accent)", background: "var(--accent-50)", padding: "3px 10px", borderRadius: 6, letterSpacing: ".04em", flexShrink: 0, cursor: "pointer", whiteSpace: "nowrap", display: "inline-flex", alignItems: "center", gap: 5 }}>
+              #{window.getUID ? window.getUID(e.id) : e.id}
+              <Icon name="copy" size={11} />
+              {copiedId && <span style={{ fontSize: 10, color: "var(--good)", fontWeight: 700 }}>{lang === "es" ? "¡copiado!" : "copied!"}</span>}
+            </span>
+          </div>
           <div className="sub">
             <span className="role-pill">{t.types[e.type]}</span>
             <span><span className={"status-dot " + ((e.status || "activo") === "inactivo" ? "off" : "")} />{t.common[(e.status || "activo") === "inactivo" ? "inactivos" : "activos"]}</span>
