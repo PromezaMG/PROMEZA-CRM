@@ -11981,19 +11981,25 @@ const DuplicatesPage = ({
     const eA = entityById[pair.idA];
     const eB = entityById[pair.idB];
     if (!eA || !eB) return null;
+    const ekey = "ent-" + pair.idA + pair.idB;
+    const isOpen = expanded === ekey;
+    const typeLabel = e => t.types && t.types[e.type] || e.type || "—";
     return /*#__PURE__*/React.createElement("div", {
       key: pair.idA + pair.idB,
       className: "card",
       style: {
-        padding: "12px 16px"
+        overflow: "hidden"
       }
     }, /*#__PURE__*/React.createElement("div", {
       style: {
         display: "flex",
         alignItems: "center",
         gap: 12,
+        padding: "12px 16px",
+        cursor: "pointer",
         flexWrap: "wrap"
-      }
+      },
+      onClick: () => toggle(ekey)
     }, /*#__PURE__*/React.createElement("div", {
       style: {
         flex: 1,
@@ -12015,18 +12021,132 @@ const DuplicatesPage = ({
         color: "var(--ink-3)",
         marginTop: 3
       }
-    }, [eA.city, eA.email, eA.phone].filter(Boolean).join(" · ") || "—", "  ·  ", [eB.city, eB.email, eB.phone].filter(Boolean).join(" · ") || "—")), /*#__PURE__*/React.createElement("div", {
+    }, [typeLabel(eA), eA.city, eA.email, eA.phone].filter(Boolean).join(" · ") || "—", "  ·  ", [typeLabel(eB), eB.city, eB.email, eB.phone].filter(Boolean).join(" · ") || "—")), /*#__PURE__*/React.createElement("div", {
       style: {
         display: "flex",
         gap: 8,
-        flexShrink: 0
+        flexShrink: 0,
+        alignItems: "center"
       }
-    }, /*#__PURE__*/React.createElement("button", {
+    }, !isOpen && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("button", {
       className: "btn btn-sm",
-      onClick: () => onDismissEntity && onDismissEntity(pair)
+      onClick: e => {
+        e.stopPropagation();
+        onDismissEntity && onDismissEntity(pair);
+      }
     }, es ? "Son distintos" : "Different"), /*#__PURE__*/React.createElement("button", {
       className: "btn btn-sm btn-primary",
-      onClick: () => onMergeEntity && onMergeEntity(pair.idA, pair.idB)
+      onClick: e => {
+        e.stopPropagation();
+        onMergeEntity && onMergeEntity(pair.idA, pair.idB);
+      }
+    }, "\uD83D\uDD00 ", es ? "Fusionar" : "Merge")), /*#__PURE__*/React.createElement("span", {
+      style: {
+        color: "var(--ink-4)",
+        fontSize: 12
+      }
+    }, isOpen ? "▲" : "▼"))), isOpen && /*#__PURE__*/React.createElement("div", {
+      style: {
+        borderTop: "1px solid var(--line)",
+        padding: 16
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "grid",
+        gridTemplateColumns: "90px 1fr 1fr",
+        gap: 10,
+        marginBottom: 8
+      }
+    }, /*#__PURE__*/React.createElement("div", null), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontWeight: 700,
+        fontSize: 13.5
+      }
+    }, eA.name), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 10,
+        color: "var(--ink-4)",
+        fontFamily: "var(--font-mono)"
+      }
+    }, "ID ", eA.id)), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontWeight: 700,
+        fontSize: 13.5
+      }
+    }, eB.name), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 10,
+        color: "var(--ink-4)",
+        fontFamily: "var(--font-mono)"
+      }
+    }, "ID ", eB.id))), /*#__PURE__*/React.createElement(DupField, {
+      label: es ? "Nombre" : "Name",
+      a: eA.name,
+      b: eB.name
+    }), /*#__PURE__*/React.createElement(DupField, {
+      label: es ? "Tipo" : "Type",
+      a: typeLabel(eA),
+      b: typeLabel(eB)
+    }), /*#__PURE__*/React.createElement(DupField, {
+      label: "Email",
+      a: eA.email,
+      b: eB.email
+    }), /*#__PURE__*/React.createElement(DupField, {
+      label: es ? "Teléfono" : "Phone",
+      a: eA.phone,
+      b: eB.phone
+    }), /*#__PURE__*/React.createElement(DupField, {
+      label: es ? "Ciudad" : "City",
+      a: eA.city,
+      b: eB.city
+    }), /*#__PURE__*/React.createElement(DupField, {
+      label: es ? "Estado" : "State",
+      a: eA.state,
+      b: eB.state
+    }), /*#__PURE__*/React.createElement(DupField, {
+      label: es ? "País" : "Country",
+      a: eA.country,
+      b: eB.country
+    }), /*#__PURE__*/React.createElement(DupField, {
+      label: "Web",
+      a: eA.website,
+      b: eB.website
+    }), /*#__PURE__*/React.createElement(DupField, {
+      label: es ? "Dirección" : "Address",
+      a: eA.address,
+      b: eB.address
+    }), /*#__PURE__*/React.createElement(DupField, {
+      label: "Tags",
+      a: (eA.tags || []).join(", "),
+      b: (eB.tags || []).join(", ")
+    }), /*#__PURE__*/React.createElement("div", {
+      style: {
+        marginTop: 14,
+        padding: "10px 14px",
+        background: "var(--bg-soft)",
+        borderRadius: 8,
+        fontSize: 12,
+        color: "var(--ink-3)",
+        marginBottom: 14
+      }
+    }, es ? "Fusionar combina los datos (prefiere lo no vacío), une etiquetas y contactos vinculados, y elimina el duplicado." : "Merge combines data, joins tags & linked contacts, and removes the duplicate."), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        gap: 8,
+        flexWrap: "wrap"
+      }
+    }, /*#__PURE__*/React.createElement("button", {
+      className: "btn",
+      onClick: () => {
+        onDismissEntity && onDismissEntity(pair);
+        setExpanded(null);
+      }
+    }, "\uD83C\uDFE2 ", es ? "Son medios distintos" : "Different"), /*#__PURE__*/React.createElement("button", {
+      className: "btn btn-primary",
+      onClick: () => {
+        onMergeEntity && onMergeEntity(pair.idA, pair.idB);
+        setExpanded(null);
+      }
     }, "\uD83D\uDD00 ", es ? "Fusionar" : "Merge"))));
   }), entActive.length > visE && /*#__PURE__*/React.createElement("button", {
     className: "btn",

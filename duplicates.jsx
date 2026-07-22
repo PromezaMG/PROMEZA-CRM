@@ -777,20 +777,54 @@ const DuplicatesPage = ({ pairs, entityPairs = [], data, onMerge, onMergeWithDat
               const eA = entityById[pair.idA];
               const eB = entityById[pair.idB];
               if (!eA || !eB) return null;
+              const ekey = "ent-" + pair.idA + pair.idB;
+              const isOpen = expanded === ekey;
+              const typeLabel = (e) => (t.types && t.types[e.type]) || e.type || "—";
               return (
-                <div key={pair.idA + pair.idB} className="card" style={{ padding: "12px 16px" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+                <div key={pair.idA + pair.idB} className="card" style={{ overflow: "hidden" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", cursor: "pointer", flexWrap: "wrap" }} onClick={() => toggle(ekey)}>
                     <div style={{ flex: 1, minWidth: 200 }}>
                       <div style={{ fontWeight: 700, fontSize: 13 }}>{eA.name} <span style={{ color: "var(--ink-4)", fontWeight: 400 }}>vs</span> {eB.name}</div>
                       <div style={{ fontSize: 11.5, color: "var(--ink-3)", marginTop: 3 }}>
-                        {[eA.city, eA.email, eA.phone].filter(Boolean).join(" · ") || "—"}{"  ·  "}{[eB.city, eB.email, eB.phone].filter(Boolean).join(" · ") || "—"}
+                        {[typeLabel(eA), eA.city, eA.email, eA.phone].filter(Boolean).join(" · ") || "—"}{"  ·  "}{[typeLabel(eB), eB.city, eB.email, eB.phone].filter(Boolean).join(" · ") || "—"}
                       </div>
                     </div>
-                    <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
-                      <button className="btn btn-sm" onClick={() => onDismissEntity && onDismissEntity(pair)}>{es ? "Son distintos" : "Different"}</button>
-                      <button className="btn btn-sm btn-primary" onClick={() => onMergeEntity && onMergeEntity(pair.idA, pair.idB)}>🔀 {es ? "Fusionar" : "Merge"}</button>
+                    <div style={{ display: "flex", gap: 8, flexShrink: 0, alignItems: "center" }}>
+                      {!isOpen && (
+                        <>
+                          <button className="btn btn-sm" onClick={e => { e.stopPropagation(); onDismissEntity && onDismissEntity(pair); }}>{es ? "Son distintos" : "Different"}</button>
+                          <button className="btn btn-sm btn-primary" onClick={e => { e.stopPropagation(); onMergeEntity && onMergeEntity(pair.idA, pair.idB); }}>🔀 {es ? "Fusionar" : "Merge"}</button>
+                        </>
+                      )}
+                      <span style={{ color: "var(--ink-4)", fontSize: 12 }}>{isOpen ? "▲" : "▼"}</span>
                     </div>
                   </div>
+                  {isOpen && (
+                    <div style={{ borderTop: "1px solid var(--line)", padding: 16 }}>
+                      <div style={{ display: "grid", gridTemplateColumns: "90px 1fr 1fr", gap: 10, marginBottom: 8 }}>
+                        <div />
+                        <div><div style={{ fontWeight: 700, fontSize: 13.5 }}>{eA.name}</div><div style={{ fontSize: 10, color: "var(--ink-4)", fontFamily: "var(--font-mono)" }}>ID {eA.id}</div></div>
+                        <div><div style={{ fontWeight: 700, fontSize: 13.5 }}>{eB.name}</div><div style={{ fontSize: 10, color: "var(--ink-4)", fontFamily: "var(--font-mono)" }}>ID {eB.id}</div></div>
+                      </div>
+                      <DupField label={es ? "Nombre" : "Name"} a={eA.name} b={eB.name} />
+                      <DupField label={es ? "Tipo" : "Type"} a={typeLabel(eA)} b={typeLabel(eB)} />
+                      <DupField label="Email" a={eA.email} b={eB.email} />
+                      <DupField label={es ? "Teléfono" : "Phone"} a={eA.phone} b={eB.phone} />
+                      <DupField label={es ? "Ciudad" : "City"} a={eA.city} b={eB.city} />
+                      <DupField label={es ? "Estado" : "State"} a={eA.state} b={eB.state} />
+                      <DupField label={es ? "País" : "Country"} a={eA.country} b={eB.country} />
+                      <DupField label="Web" a={eA.website} b={eB.website} />
+                      <DupField label={es ? "Dirección" : "Address"} a={eA.address} b={eB.address} />
+                      <DupField label="Tags" a={(eA.tags || []).join(", ")} b={(eB.tags || []).join(", ")} />
+                      <div style={{ marginTop: 14, padding: "10px 14px", background: "var(--bg-soft)", borderRadius: 8, fontSize: 12, color: "var(--ink-3)", marginBottom: 14 }}>
+                        {es ? "Fusionar combina los datos (prefiere lo no vacío), une etiquetas y contactos vinculados, y elimina el duplicado." : "Merge combines data, joins tags & linked contacts, and removes the duplicate."}
+                      </div>
+                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                        <button className="btn" onClick={() => { onDismissEntity && onDismissEntity(pair); setExpanded(null); }}>🏢 {es ? "Son medios distintos" : "Different"}</button>
+                        <button className="btn btn-primary" onClick={() => { onMergeEntity && onMergeEntity(pair.idA, pair.idB); setExpanded(null); }}>🔀 {es ? "Fusionar" : "Merge"}</button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               );
             })}
