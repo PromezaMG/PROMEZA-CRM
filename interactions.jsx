@@ -152,7 +152,7 @@ const InteractionsTab = ({ personId, interactions, onAdd, onDelete, lang }) => {
   );
 };
 
-const TasksTab = ({ personId, tasks, onAddTask, onToggleTask, onDeleteTask, lang, users, currentUser, hasDuplicate, go }) => {
+const TasksTab = ({ personId, tasks, onAddTask, onToggleTask, onDeleteTask, lang, users, currentUser, hasDuplicate, go, onResolveDuplicate }) => {
   const [text, setText] = React.useState("");
   const [due, setDue] = React.useState("");
   const [assignedTo, setAssignedTo] = React.useState(currentUser || "");
@@ -231,17 +231,23 @@ const TasksTab = ({ personId, tasks, onAddTask, onToggleTask, onDeleteTask, lang
             "Revisar duplicado" tag). Not stored — derived so it stays in sync. */}
         {hasDuplicate && (
           <div style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "10px 12px", marginBottom: 8, borderRadius: 8, background: "#fff7ed", border: "1px solid #fed7aa" }}>
-            <span style={{ fontSize: 16, lineHeight: 1.2 }}>⚠</span>
+            <input
+              type="checkbox"
+              checked={false}
+              title={lang === "es" ? "Marcar como resuelto" : "Mark as resolved"}
+              onChange={() => onResolveDuplicate && onResolveDuplicate(true)}
+              style={{ marginTop: 3, cursor: "pointer", width: 16, height: 16, flexShrink: 0 }}
+            />
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 13.5, fontWeight: 600, color: "#9a3412" }}>
                 {lang === "es" ? "Revisar posible duplicado" : "Review possible duplicate"}
               </div>
               <div style={{ fontSize: 11.5, color: "#b45309", marginTop: 2 }}>
-                {lang === "es" ? "Este contacto comparte correo o teléfono con otro registro." : "Shares email/phone with another record."}
+                {lang === "es" ? "Comparte correo o teléfono con otro registro. Al fusionarlo o marcarlo como resuelto, esta tarea desaparece." : "Shares email/phone with another record."}
               </div>
             </div>
             <button className="btn btn-sm" style={{ flexShrink: 0 }} onClick={() => go && go({ name: "duplicates" })}>
-              {lang === "es" ? "Ver duplicados" : "View duplicates"}
+              {lang === "es" ? "Ver" : "View"}
             </button>
           </div>
         )}

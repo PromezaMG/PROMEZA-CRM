@@ -7353,6 +7353,7 @@ const PersonProfile = ({
   onAddTask,
   onToggleTask,
   onDeleteTask,
+  onResolveDuplicate,
   changelog,
   users,
   currentUser,
@@ -7409,12 +7410,14 @@ const PersonProfile = ({
 
   // Does this contact have a real duplicate? Computed live (shares email or phone with
   // another contact) so it's always accurate and doesn't depend on a tag having synced.
-  const hasDup = React.useMemo(() => {
+  const hasDupRaw = React.useMemo(() => {
     const em = (p.email || "").toLowerCase().trim();
     const ph = (p.phone || "").replace(/\D/g, "");
     if (!em && ph.length < 7) return false;
     return (data.personas || []).some(o => o.id !== p.id && (em && (o.email || "").toLowerCase().trim() === em || ph.length >= 7 && (o.phone || "").replace(/\D/g, "") === ph));
   }, [p.id, p.email, p.phone, data.personas]);
+  // Hide the task once the user marks it resolved (still a real duplicate, but reviewed).
+  const hasDup = hasDupRaw && !p.dupResolved;
   const pendingTasks = (tasks || []).filter(tk => !tk.done).length + (hasDup ? 1 : 0);
   const personProjectCount = (data.projects || []).filter(pr => (pr.members || []).some(m => m.personaId === p.id)).length;
   const tabs = [{
@@ -8430,7 +8433,8 @@ const PersonProfile = ({
     users: users,
     currentUser: currentUser,
     hasDuplicate: hasDup,
-    go: go
+    go: go,
+    onResolveDuplicate: onResolveDuplicate
   }), tab === "comments" && /*#__PURE__*/React.createElement("div", {
     className: "section"
   }, /*#__PURE__*/React.createElement("h3", null, t.common.comments), /*#__PURE__*/React.createElement("div", {
@@ -12403,7 +12407,8 @@ const TasksTab = ({
   users,
   currentUser,
   hasDuplicate,
-  go
+  go,
+  onResolveDuplicate
 }) => {
   const [text, setText] = React.useState("");
   const [due, setDue] = React.useState("");
@@ -12528,12 +12533,19 @@ const TasksTab = ({
       background: "#fff7ed",
       border: "1px solid #fed7aa"
     }
-  }, /*#__PURE__*/React.createElement("span", {
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "checkbox",
+    checked: false,
+    title: lang === "es" ? "Marcar como resuelto" : "Mark as resolved",
+    onChange: () => onResolveDuplicate && onResolveDuplicate(true),
     style: {
-      fontSize: 16,
-      lineHeight: 1.2
+      marginTop: 3,
+      cursor: "pointer",
+      width: 16,
+      height: 16,
+      flexShrink: 0
     }
-  }, "\u26A0"), /*#__PURE__*/React.createElement("div", {
+  }), /*#__PURE__*/React.createElement("div", {
     style: {
       flex: 1,
       minWidth: 0
@@ -12550,7 +12562,7 @@ const TasksTab = ({
       color: "#b45309",
       marginTop: 2
     }
-  }, lang === "es" ? "Este contacto comparte correo o teléfono con otro registro." : "Shares email/phone with another record.")), /*#__PURE__*/React.createElement("button", {
+  }, lang === "es" ? "Comparte correo o teléfono con otro registro. Al fusionarlo o marcarlo como resuelto, esta tarea desaparece." : "Shares email/phone with another record.")), /*#__PURE__*/React.createElement("button", {
     className: "btn btn-sm",
     style: {
       flexShrink: 0
@@ -12558,7 +12570,7 @@ const TasksTab = ({
     onClick: () => go && go({
       name: "duplicates"
     })
-  }, lang === "es" ? "Ver duplicados" : "View duplicates")), pending.map(task => /*#__PURE__*/React.createElement("div", {
+  }, lang === "es" ? "Ver" : "View")), pending.map(task => /*#__PURE__*/React.createElement("div", {
     key: task.id,
     style: {
       display: "flex",
@@ -22206,6 +22218,23 @@ const App = () => {
       }
     }));
   };
+
+  // Mark the "possible duplicate" task as resolved (reviewed). `resolved=false` re-opens
+  // it. The flag lives on the record (_data) so it persists and syncs across devices.
+  const handleResolveDuplicate = (personId, resolved = true) => {
+    const cur = data.personas.find(p => p.id === personId);
+    if (!cur) return;
+    const updated = {
+      ...cur,
+      dupResolved: resolved,
+      _localSavedAt: new Date().toISOString()
+    };
+    setData(d => ({
+      ...d,
+      personas: d.personas.map(p => p.id === personId ? updated : p)
+    }));
+    window.AIRTABLE.savePersona(updated, data.entities).catch(console.warn);
+  };
   const handleBulkAddTask = (personId, task) => {
     addTask(personId, task);
   };
@@ -22843,6 +22872,7 @@ const App = () => {
         onAddTask: task => addTask(route.id, task),
         onToggleTask: id => toggleTask(route.id, id),
         onDeleteTask: id => deleteTask(route.id, id),
+        onResolveDuplicate: resolved => handleResolveDuplicate(route.id, resolved),
         changelog: data.changelog[route.id] || [],
         users: window.PROMEZA_USERS || [],
         currentUser: userEmail,

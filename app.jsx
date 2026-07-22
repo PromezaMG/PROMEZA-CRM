@@ -1959,6 +1959,16 @@ const App = () => {
     }));
   };
 
+  // Mark the "possible duplicate" task as resolved (reviewed). `resolved=false` re-opens
+  // it. The flag lives on the record (_data) so it persists and syncs across devices.
+  const handleResolveDuplicate = (personId, resolved = true) => {
+    const cur = data.personas.find(p => p.id === personId);
+    if (!cur) return;
+    const updated = { ...cur, dupResolved: resolved, _localSavedAt: new Date().toISOString() };
+    setData(d => ({ ...d, personas: d.personas.map(p => p.id === personId ? updated : p) }));
+    window.AIRTABLE.savePersona(updated, data.entities).catch(console.warn);
+  };
+
   const handleBulkAddTask = (personId, task) => {
     addTask(personId, task);
   };
@@ -2361,6 +2371,7 @@ const App = () => {
       onAddTask={(task) => addTask(route.id, task)}
       onToggleTask={(id) => toggleTask(route.id, id)}
       onDeleteTask={(id) => deleteTask(route.id, id)}
+      onResolveDuplicate={(resolved) => handleResolveDuplicate(route.id, resolved)}
       changelog={data.changelog[route.id] || []}
       users={window.PROMEZA_USERS || []} currentUser={userEmail}
       attachments={data.attachments[route.id] || []}

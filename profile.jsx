@@ -166,7 +166,7 @@ const ChangelogTab = ({ changelog, lang }) => {
 
 const PersonProfile = ({ id, t, lang, data, go, goBack, addComment, onUpdatePerson, onEditPerson, onDeletePerson,
   interactions, onAddInteraction, onDeleteInteraction,
-  tasks, onAddTask, onToggleTask, onDeleteTask, changelog, users, currentUser,
+  tasks, onAddTask, onToggleTask, onDeleteTask, onResolveDuplicate, changelog, users, currentUser,
   attachments, onAddAttachment, onDeleteAttachment }) => {
   const p = data.personas.find(x => x.id === id);
   const [tab, setTab] = React.useState("details");
@@ -207,7 +207,7 @@ const PersonProfile = ({ id, t, lang, data, go, goBack, addComment, onUpdatePers
 
   // Does this contact have a real duplicate? Computed live (shares email or phone with
   // another contact) so it's always accurate and doesn't depend on a tag having synced.
-  const hasDup = React.useMemo(() => {
+  const hasDupRaw = React.useMemo(() => {
     const em = (p.email || "").toLowerCase().trim();
     const ph = (p.phone || "").replace(/\D/g, "");
     if (!em && ph.length < 7) return false;
@@ -216,6 +216,8 @@ const PersonProfile = ({ id, t, lang, data, go, goBack, addComment, onUpdatePers
       (ph.length >= 7 && (o.phone || "").replace(/\D/g, "") === ph)
     ));
   }, [p.id, p.email, p.phone, data.personas]);
+  // Hide the task once the user marks it resolved (still a real duplicate, but reviewed).
+  const hasDup = hasDupRaw && !p.dupResolved;
   const pendingTasks = (tasks || []).filter(tk => !tk.done).length + (hasDup ? 1 : 0);
   const personProjectCount = (data.projects || []).filter(pr => (pr.members || []).some(m => m.personaId === p.id)).length;
   const tabs = [
@@ -666,6 +668,7 @@ const PersonProfile = ({ id, t, lang, data, go, goBack, addComment, onUpdatePers
           currentUser={currentUser}
           hasDuplicate={hasDup}
           go={go}
+          onResolveDuplicate={onResolveDuplicate}
         />
       )}
 
