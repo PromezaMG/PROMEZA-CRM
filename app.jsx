@@ -1751,6 +1751,11 @@ const App = () => {
     return metric && metric.compute(data) >= g.target;
   }).length : 0;
   const totalDups = dupPairs.filter(p => !p.dismissed).length + entityDupPairs.filter(p => !p.dismissed).length;
+  // Ids that are in a PENDING duplicate pair (auto-detected OR manually marked) — used
+  // so the "Revisar duplicado" task shows on a profile even when the pair was flagged
+  // manually (different name/email/phone).
+  const dupPersonaIds = React.useMemo(() => { const s = new Set(); (dupPairs || []).forEach(p => { if (!p.dismissed) { s.add(p.idA); s.add(p.idB); } }); return s; }, [dupPairs]);
+  const dupEntityIds = React.useMemo(() => { const s = new Set(); (entityDupPairs || []).forEach(p => { if (!p.dismissed) { s.add(p.idA); s.add(p.idB); } }); return s; }, [entityDupPairs]);
   const counts = data ? { personas: data.personas.length, entities: data.entities.length, dups: totalDups, pendingTasks: pendingTasks || null, overdueCount, projects: (data.projects || []).length || null, completedGoals: completedGoals || null } : {};
 
   const addComment = (targetId, text) => {
@@ -2426,6 +2431,7 @@ const App = () => {
       onToggleTask={(id) => toggleTask(route.id, id)}
       onDeleteTask={(id) => deleteTask(route.id, id)}
       onResolveDuplicate={(resolved) => handleResolveDuplicate(route.id, resolved)}
+      inDupPair={dupPersonaIds.has(route.id)}
       changelog={data.changelog[route.id] || []}
       users={window.PROMEZA_USERS || []} currentUser={userEmail}
       attachments={data.attachments[route.id] || []}
@@ -2441,7 +2447,7 @@ const App = () => {
       tasks={data.tasks} onToggleTask={toggleTask} onDeleteTask={deleteTask}
       currentUser={userEmail} users={window.PROMEZA_USERS || []}
     />; break;
-    case "entity": view = <ViewErrorBoundary key={"entity-" + route.id}><EntityProfile id={route.id} t={t} lang={lang} data={data} go={go} goBack={goBack} addComment={addComment} onUpdateEntity={handleUpdateEntity} onUpdatePerson={handleUpdatePerson} onEditEntity={handleEditEntity} onDeleteEntity={handleDeleteEntity} changelog={data.changelog[route.id] || []} attachments={data.attachments[route.id] || []} onAddAttachment={(att) => addAttachment(route.id, att)} onDeleteAttachment={(attId) => deleteAttachment(route.id, attId)} tasks={data.tasks[route.id] || []} onAddTask={(task) => addTask(route.id, task)} onToggleTask={(id) => toggleTask(route.id, id)} onDeleteTask={(id) => deleteTask(route.id, id)} onResolveDuplicate={(resolved) => handleResolveEntityDuplicate(route.id, resolved)} users={window.PROMEZA_USERS || []} currentUser={userEmail} /></ViewErrorBoundary>; break;
+    case "entity": view = <ViewErrorBoundary key={"entity-" + route.id}><EntityProfile id={route.id} t={t} lang={lang} data={data} go={go} goBack={goBack} addComment={addComment} onUpdateEntity={handleUpdateEntity} onUpdatePerson={handleUpdatePerson} onEditEntity={handleEditEntity} onDeleteEntity={handleDeleteEntity} changelog={data.changelog[route.id] || []} attachments={data.attachments[route.id] || []} onAddAttachment={(att) => addAttachment(route.id, att)} onDeleteAttachment={(attId) => deleteAttachment(route.id, attId)} tasks={data.tasks[route.id] || []} onAddTask={(task) => addTask(route.id, task)} onToggleTask={(id) => toggleTask(route.id, id)} onDeleteTask={(id) => deleteTask(route.id, id)} onResolveDuplicate={(resolved) => handleResolveEntityDuplicate(route.id, resolved)} inDupPair={dupEntityIds.has(route.id)} users={window.PROMEZA_USERS || []} currentUser={userEmail} /></ViewErrorBoundary>; break;
     case "projects": view = <ProjectsListView lang={lang} data={data} go={go} onAddProject={addProject} />; break;
     case "project": view = <ProjectDetailView id={route.id} lang={lang} data={data} go={go} onUpdateProject={updateProject} onDeleteProject={deleteProject} onAddMember={addProjectMember} onRemoveMember={removeProjectMember} comments={data.comments[route.id] || []} onAddComment={(projectId, text) => addComment(projectId, text)} attachments={data.attachments[route.id] || []} onAddAttachment={(att) => addAttachment(route.id, att)} onDeleteAttachment={(attId) => deleteAttachment(route.id, attId)} />; break;
     case "campaigns": view = <CampaignsView lang={lang} data={data} go={go} onSaveCampaign={saveCampaign} />; break;

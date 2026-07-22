@@ -166,7 +166,7 @@ const ChangelogTab = ({ changelog, lang }) => {
 
 const PersonProfile = ({ id, t, lang, data, go, goBack, addComment, onUpdatePerson, onEditPerson, onDeletePerson,
   interactions, onAddInteraction, onDeleteInteraction,
-  tasks, onAddTask, onToggleTask, onDeleteTask, onResolveDuplicate, changelog, users, currentUser,
+  tasks, onAddTask, onToggleTask, onDeleteTask, onResolveDuplicate, inDupPair, changelog, users, currentUser,
   attachments, onAddAttachment, onDeleteAttachment }) => {
   const p = data.personas.find(x => x.id === id);
   const [tab, setTab] = React.useState("details");
@@ -216,8 +216,9 @@ const PersonProfile = ({ id, t, lang, data, go, goBack, addComment, onUpdatePers
       (ph.length >= 7 && (o.phone || "").replace(/\D/g, "") === ph)
     ));
   }, [p.id, p.email, p.phone, data.personas]);
-  // Hide the task once the user marks it resolved (still a real duplicate, but reviewed).
-  const hasDup = hasDupRaw && !p.dupResolved;
+  // Show the task if it shares email/phone OR is in a pending duplicate pair (incl.
+  // manually-marked). Hide once the user marks it resolved.
+  const hasDup = (hasDupRaw || inDupPair) && !p.dupResolved;
   const pendingTasks = (tasks || []).filter(tk => !tk.done).length + (hasDup ? 1 : 0);
   const personProjectCount = (data.projects || []).filter(pr => (pr.members || []).some(m => m.personaId === p.id)).length;
   const tabs = [
@@ -708,7 +709,7 @@ const PersonProfile = ({ id, t, lang, data, go, goBack, addComment, onUpdatePers
 
 // ─── ENTITY PROFILE ───
 
-const EntityProfile = ({ id, t, lang, data, go, goBack, addComment, onUpdateEntity, onUpdatePerson, onEditEntity, onDeleteEntity, changelog, attachments, onAddAttachment, onDeleteAttachment, tasks, onAddTask, onToggleTask, onDeleteTask, onResolveDuplicate, users, currentUser }) => {
+const EntityProfile = ({ id, t, lang, data, go, goBack, addComment, onUpdateEntity, onUpdatePerson, onEditEntity, onDeleteEntity, changelog, attachments, onAddAttachment, onDeleteAttachment, tasks, onAddTask, onToggleTask, onDeleteTask, onResolveDuplicate, inDupPair, users, currentUser }) => {
   const e = data.entities.find(x => x.id === id);
   const [tab, setTab] = React.useState("details");
   const [linking, setLinking] = React.useState(false);
@@ -759,7 +760,7 @@ const EntityProfile = ({ id, t, lang, data, go, goBack, addComment, onUpdateEnti
       (ph.length >= 7 && (o.phone || "").replace(/\D/g, "") === ph)
     ));
   }, [e.id, e.name, e.email, e.phone, data.entities]);
-  const hasDup = hasDupRaw && !e.dupResolved;
+  const hasDup = (hasDupRaw || inDupPair) && !e.dupResolved;
   const pendingTasks = (tasks || []).filter(tk => !tk.done).length + (hasDup ? 1 : 0);
   const tabs = [
     { id: "details", label: t.common.details },

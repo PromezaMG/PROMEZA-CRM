@@ -7354,6 +7354,7 @@ const PersonProfile = ({
   onToggleTask,
   onDeleteTask,
   onResolveDuplicate,
+  inDupPair,
   changelog,
   users,
   currentUser,
@@ -7416,8 +7417,9 @@ const PersonProfile = ({
     if (!em && ph.length < 7) return false;
     return (data.personas || []).some(o => o.id !== p.id && (em && (o.email || "").toLowerCase().trim() === em || ph.length >= 7 && (o.phone || "").replace(/\D/g, "") === ph));
   }, [p.id, p.email, p.phone, data.personas]);
-  // Hide the task once the user marks it resolved (still a real duplicate, but reviewed).
-  const hasDup = hasDupRaw && !p.dupResolved;
+  // Show the task if it shares email/phone OR is in a pending duplicate pair (incl.
+  // manually-marked). Hide once the user marks it resolved.
+  const hasDup = (hasDupRaw || inDupPair) && !p.dupResolved;
   const pendingTasks = (tasks || []).filter(tk => !tk.done).length + (hasDup ? 1 : 0);
   const personProjectCount = (data.projects || []).filter(pr => (pr.members || []).some(m => m.personaId === p.id)).length;
   const tabs = [{
@@ -8494,6 +8496,7 @@ const EntityProfile = ({
   onToggleTask,
   onDeleteTask,
   onResolveDuplicate,
+  inDupPair,
   users,
   currentUser
 }) => {
@@ -8546,7 +8549,7 @@ const EntityProfile = ({
     if (!nm && !em && ph.length < 7) return false;
     return (data.entities || []).some(o => o.id !== e.id && (nm && (o.name || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/\s+/g, " ").trim() === nm || em && (o.email || "").toLowerCase().trim() === em || ph.length >= 7 && (o.phone || "").replace(/\D/g, "") === ph));
   }, [e.id, e.name, e.email, e.phone, data.entities]);
-  const hasDup = hasDupRaw && !e.dupResolved;
+  const hasDup = (hasDupRaw || inDupPair) && !e.dupResolved;
   const pendingTasks = (tasks || []).filter(tk => !tk.done).length + (hasDup ? 1 : 0);
   const tabs = [{
     id: "details",
@@ -22694,6 +22697,29 @@ const App = () => {
     return metric && metric.compute(data) >= g.target;
   }).length : 0;
   const totalDups = dupPairs.filter(p => !p.dismissed).length + entityDupPairs.filter(p => !p.dismissed).length;
+  // Ids that are in a PENDING duplicate pair (auto-detected OR manually marked) — used
+  // so the "Revisar duplicado" task shows on a profile even when the pair was flagged
+  // manually (different name/email/phone).
+  const dupPersonaIds = React.useMemo(() => {
+    const s = new Set();
+    (dupPairs || []).forEach(p => {
+      if (!p.dismissed) {
+        s.add(p.idA);
+        s.add(p.idB);
+      }
+    });
+    return s;
+  }, [dupPairs]);
+  const dupEntityIds = React.useMemo(() => {
+    const s = new Set();
+    (entityDupPairs || []).forEach(p => {
+      if (!p.dismissed) {
+        s.add(p.idA);
+        s.add(p.idB);
+      }
+    });
+    return s;
+  }, [entityDupPairs]);
   const counts = data ? {
     personas: data.personas.length,
     entities: data.entities.length,
@@ -23854,6 +23880,7 @@ const App = () => {
         onToggleTask: id => toggleTask(route.id, id),
         onDeleteTask: id => deleteTask(route.id, id),
         onResolveDuplicate: resolved => handleResolveDuplicate(route.id, resolved),
+        inDupPair: dupPersonaIds.has(route.id),
         changelog: data.changelog[route.id] || [],
         users: window.PROMEZA_USERS || [],
         currentUser: userEmail,
@@ -23916,6 +23943,7 @@ const App = () => {
         onToggleTask: id => toggleTask(route.id, id),
         onDeleteTask: id => deleteTask(route.id, id),
         onResolveDuplicate: resolved => handleResolveEntityDuplicate(route.id, resolved),
+        inDupPair: dupEntityIds.has(route.id),
         users: window.PROMEZA_USERS || [],
         currentUser: userEmail
       }));
