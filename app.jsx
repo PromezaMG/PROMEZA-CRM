@@ -2314,6 +2314,17 @@ const App = () => {
     });
   };
 
+  const handleCreateManualEntityDup = (idA, idB) => {
+    if (!idA || !idB || idA === idB) return;
+    const key = [idA, idB].sort().join("|");
+    setEntityDupPairs(prev => {
+      if (prev.some(p => [p.idA, p.idB].sort().join("|") === key)) {
+        return prev.map(p => ([p.idA, p.idB].sort().join("|") === key ? { ...p, dismissed: false } : p));
+      }
+      return [...prev, { idA, idB, score: 5, dismissed: false, kind: "entity", manual: true }];
+    });
+  };
+
   const handleCreateDemo = () => {
     const source = data.personas[0];
     if (!source) return;
@@ -2431,7 +2442,7 @@ const App = () => {
     case "goals": view = <GoalsView lang={lang} data={data} go={go} onAddGoal={addGoal} onUpdateGoal={updateGoal} onDeleteGoal={deleteGoal} />; break;
     case "county": view = <CountyView t={t} lang={lang} data={data} go={go} />; break;
     case "map": view = <MapPage t={t} lang={lang} data={data} go={go} />; break;
-    case "duplicates": view = <DuplicatesPage pairs={dupPairs} entityPairs={entityDupPairs} data={data} onMerge={handleMergePersonas} onMergeWithData={handleMergeWithData} onMergeEntity={handleMergeEntities} onMergeEntityWithData={handleMergeEntitiesWithData} onDismiss={handleDismissDup} onUndismiss={handleUndismissDup} onDismissEntity={handleDismissEntityDup} onUndismissEntity={handleUndismissEntityDup} onScanAll={handleScanAll} onCreateDemo={handleCreateDemo} onCreateManual={handleCreateManualDup} onOpenHistory={openHistory} t={t} lang={lang} />; break;
+    case "duplicates": view = <DuplicatesPage pairs={dupPairs} entityPairs={entityDupPairs} data={data} onMerge={handleMergePersonas} onMergeWithData={handleMergeWithData} onMergeEntity={handleMergeEntities} onMergeEntityWithData={handleMergeEntitiesWithData} onDismiss={handleDismissDup} onUndismiss={handleUndismissDup} onDismissEntity={handleDismissEntityDup} onUndismissEntity={handleUndismissEntityDup} onScanAll={handleScanAll} onCreateDemo={handleCreateDemo} onCreateManual={handleCreateManualDup} onCreateManualEntity={handleCreateManualEntityDup} onOpenHistory={openHistory} t={t} lang={lang} />; break;
     default: view = <Home t={t} lang={lang} data={data} go={go} />;
   }
 

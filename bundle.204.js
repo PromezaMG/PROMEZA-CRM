@@ -11673,6 +11673,7 @@ const DuplicatesPage = ({
   onScanAll,
   onCreateDemo,
   onCreateManual,
+  onCreateManualEntity,
   onOpenHistory,
   t,
   lang
@@ -11681,6 +11682,11 @@ const DuplicatesPage = ({
   const [mergingPair, setMergingPair] = React.useState(null);
   const [mergingEntPair, setMergingEntPair] = React.useState(null);
   const [showManual, setShowManual] = React.useState(false);
+  const [showManualEnt, setShowManualEnt] = React.useState(false);
+  const [manEA, setManEA] = React.useState(null);
+  const [manEB, setManEB] = React.useState(null);
+  const [qEA, setQEA] = React.useState("");
+  const [qEB, setQEB] = React.useState("");
   const [dupTab, setDupTab] = React.useState("personas"); // "personas" | "entidades"
   const [manA, setManA] = React.useState(null); // selected persona A
   const [manB, setManB] = React.useState(null); // selected persona B
@@ -11715,6 +11721,17 @@ const DuplicatesPage = ({
       const phones = [p.phone, ...(p.phones || []).map(x => x && x.value)].filter(Boolean).join(" ");
       const emails = [p.email, ...(p.emails || []).map(x => x && x.value)].filter(Boolean).join(" ");
       const s = (fullName(p) + " " + emails + " " + phones + " " + p.id + " " + (p.uid || "") + " " + code).toLowerCase();
+      if (s.includes(sq)) return true;
+      return sqAl.length >= 2 && s.replace(/[^a-z0-9]/g, "").includes(sqAl);
+    }).slice(0, 8);
+  };
+  const searchE = q => {
+    const sq = (q || "").trim().toLowerCase();
+    if (sq.length < 2) return [];
+    const sqAl = sq.replace(/[^a-z0-9]/g, "");
+    return (data.entities || []).filter(e => {
+      const code = (window.getUID ? window.getUID(e.id) : e.id) || "";
+      const s = ((e.name || "") + " " + (e.email || "") + " " + (e.phone || "") + " " + (e.city || "") + " " + e.id + " " + (e.uid || "") + " " + code).toLowerCase();
       if (s.includes(sq)) return true;
       return sqAl.length >= 2 && s.replace(/[^a-z0-9]/g, "").includes(sqAl);
     }).slice(0, 8);
@@ -12346,7 +12363,191 @@ const DuplicatesPage = ({
       className: "btn btn-sm btn-ghost",
       onClick: () => onUndismiss(pair)
     }, lang === "es" ? "Deshacer" : "Undo"));
-  }))), dupTab === "entidades" && entityPairs.length === 0 && /*#__PURE__*/React.createElement("div", {
+  }))), dupTab === "entidades" && /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginBottom: 14
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-sm" + (showManualEnt ? " btn-primary" : ""),
+    onClick: () => setShowManualEnt(v => !v)
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: "plus"
+  }), " ", es ? "Marcar medios duplicados manualmente" : "Add manual entity duplicate"), showManualEnt && /*#__PURE__*/React.createElement("div", {
+    className: "card",
+    style: {
+      padding: "16px 20px",
+      marginTop: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontWeight: 700,
+      fontSize: 14,
+      marginBottom: 4
+    }
+  }, es ? "Marcar dos medios/entidades como duplicados" : "Mark two entities as duplicates"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: "var(--ink-3)",
+      marginBottom: 12
+    }
+  }, es ? "Busca y elige los dos medios que son el mismo. Aparecerán abajo para revisarlos y fusionarlos." : "Search and pick the two entities that are the same."), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr",
+      gap: 16
+    }
+  }, [{
+    q: qEA,
+    setQ: setQEA,
+    pick: manEA,
+    setPick: setManEA
+  }, {
+    q: qEB,
+    setQ: setQEB,
+    pick: manEB,
+    setPick: setManEB
+  }].map((col, ci) => /*#__PURE__*/React.createElement("div", {
+    key: ci
+  }, col.pick ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 8,
+      padding: "8px 10px",
+      border: "2px solid var(--accent)",
+      borderRadius: 8,
+      background: "var(--accent-50)"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 18
+    }
+  }, "\uD83C\uDFE2"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontWeight: 700,
+      fontSize: 13
+    }
+  }, col.pick.name), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "var(--ink-4)"
+    }
+  }, col.pick.city || col.pick.email || col.pick.id)), /*#__PURE__*/React.createElement("button", {
+    className: "icon-btn",
+    onClick: () => {
+      col.setPick(null);
+      col.setQ("");
+    }
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: "x"
+  }))) : /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "relative"
+    }
+  }, /*#__PURE__*/React.createElement("input", {
+    value: col.q,
+    onChange: e => col.setQ(e.target.value),
+    placeholder: es ? "Nombre del medio, ciudad, código…" : "Entity name, city, code…",
+    style: {
+      width: "100%",
+      padding: "8px 10px",
+      border: "1px solid var(--line)",
+      borderRadius: 8,
+      fontFamily: "inherit",
+      fontSize: 13
+    }
+  }), col.q.trim().length >= 2 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 6,
+      border: "1px solid var(--line)",
+      borderRadius: 8,
+      overflow: "hidden",
+      maxHeight: 220,
+      overflowY: "auto"
+    }
+  }, searchE(col.q).length === 0 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: 10,
+      fontSize: 12,
+      color: "var(--ink-4)"
+    }
+  }, es ? "Sin resultados" : "No results"), searchE(col.q).map(e => /*#__PURE__*/React.createElement("div", {
+    key: e.id,
+    className: "hover-row",
+    style: {
+      padding: "7px 10px",
+      cursor: "pointer",
+      display: "flex",
+      gap: 8,
+      alignItems: "center"
+    },
+    onClick: () => {
+      col.setPick(e);
+      col.setQ("");
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 16
+    }
+  }, "\uD83C\uDFE2"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontWeight: 600,
+      fontSize: 12.5,
+      whiteSpace: "nowrap",
+      overflow: "hidden",
+      textOverflow: "ellipsis"
+    }
+  }, e.name), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "var(--ink-4)"
+    }
+  }, e.city || e.email || "—"))))))))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "flex-end",
+      gap: 8,
+      marginTop: 14
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    className: "btn",
+    onClick: () => {
+      setManEA(null);
+      setManEB(null);
+      setQEA("");
+      setQEB("");
+      setShowManualEnt(false);
+    }
+  }, t.common.cancel), /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-primary",
+    disabled: !manEA || !manEB || manEA && manEB && manEA.id === manEB.id,
+    style: {
+      opacity: !manEA || !manEB || manEA && manEB && manEA.id === manEB.id ? 0.5 : 1
+    },
+    onClick: () => {
+      onCreateManualEntity && onCreateManualEntity(manEA.id, manEB.id);
+      setManEA(null);
+      setManEB(null);
+      setQEA("");
+      setQEB("");
+    }
+  }, "\uD83D\uDD17 ", es ? "Marcar como duplicado" : "Mark as duplicate")), manEA && manEB && manEA.id === manEB.id && /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 8,
+      fontSize: 12,
+      color: "var(--bad)"
+    }
+  }, es ? "Elige dos medios distintos." : "Pick two different entities."))), dupTab === "entidades" && entActive.length === 0 && !showManualEnt && /*#__PURE__*/React.createElement("div", {
     className: "card",
     style: {
       padding: "40px 24px",
@@ -23305,6 +23506,26 @@ const App = () => {
       }];
     });
   };
+  const handleCreateManualEntityDup = (idA, idB) => {
+    if (!idA || !idB || idA === idB) return;
+    const key = [idA, idB].sort().join("|");
+    setEntityDupPairs(prev => {
+      if (prev.some(p => [p.idA, p.idB].sort().join("|") === key)) {
+        return prev.map(p => [p.idA, p.idB].sort().join("|") === key ? {
+          ...p,
+          dismissed: false
+        } : p);
+      }
+      return [...prev, {
+        idA,
+        idB,
+        score: 5,
+        dismissed: false,
+        kind: "entity",
+        manual: true
+      }];
+    });
+  };
   const handleCreateDemo = () => {
     const source = data.personas[0];
     if (!source) return;
@@ -23625,6 +23846,7 @@ const App = () => {
         onScanAll: handleScanAll,
         onCreateDemo: handleCreateDemo,
         onCreateManual: handleCreateManualDup,
+        onCreateManualEntity: handleCreateManualEntityDup,
         onOpenHistory: openHistory,
         t: t,
         lang: lang

@@ -539,11 +539,16 @@ const DuplicateReviewModal = ({ pairs, data, onMerge, onDismiss, onClose, t, lan
 
 // ─── Duplicates Page ───
 
-const DuplicatesPage = ({ pairs, entityPairs = [], data, onMerge, onMergeWithData, onMergeEntity, onMergeEntityWithData, onDismiss, onUndismiss, onDismissEntity, onUndismissEntity, onScanAll, onCreateDemo, onCreateManual, onOpenHistory, t, lang }) => {
+const DuplicatesPage = ({ pairs, entityPairs = [], data, onMerge, onMergeWithData, onMergeEntity, onMergeEntityWithData, onDismiss, onUndismiss, onDismissEntity, onUndismissEntity, onScanAll, onCreateDemo, onCreateManual, onCreateManualEntity, onOpenHistory, t, lang }) => {
   const [expanded, setExpanded] = React.useState(null);
   const [mergingPair, setMergingPair] = React.useState(null);
   const [mergingEntPair, setMergingEntPair] = React.useState(null);
   const [showManual, setShowManual] = React.useState(false);
+  const [showManualEnt, setShowManualEnt] = React.useState(false);
+  const [manEA, setManEA] = React.useState(null);
+  const [manEB, setManEB] = React.useState(null);
+  const [qEA, setQEA] = React.useState("");
+  const [qEB, setQEB] = React.useState("");
   const [dupTab, setDupTab] = React.useState("personas"); // "personas" | "entidades"
   const [manA, setManA] = React.useState(null);   // selected persona A
   const [manB, setManB] = React.useState(null);   // selected persona B
@@ -566,6 +571,17 @@ const DuplicatesPage = ({ pairs, entityPairs = [], data, onMerge, onMergeWithDat
       const phones = [p.phone, ...(p.phones || []).map(x => x && x.value)].filter(Boolean).join(" ");
       const emails = [p.email, ...(p.emails || []).map(x => x && x.value)].filter(Boolean).join(" ");
       const s = (fullName(p) + " " + emails + " " + phones + " " + p.id + " " + (p.uid || "") + " " + code).toLowerCase();
+      if (s.includes(sq)) return true;
+      return sqAl.length >= 2 && s.replace(/[^a-z0-9]/g, "").includes(sqAl);
+    }).slice(0, 8);
+  };
+  const searchE = (q) => {
+    const sq = (q || "").trim().toLowerCase();
+    if (sq.length < 2) return [];
+    const sqAl = sq.replace(/[^a-z0-9]/g, "");
+    return (data.entities || []).filter(e => {
+      const code = (window.getUID ? window.getUID(e.id) : e.id) || "";
+      const s = ((e.name || "") + " " + (e.email || "") + " " + (e.phone || "") + " " + (e.city || "") + " " + e.id + " " + (e.uid || "") + " " + code).toLowerCase();
       if (s.includes(sq)) return true;
       return sqAl.length >= 2 && s.replace(/[^a-z0-9]/g, "").includes(sqAl);
     }).slice(0, 8);
@@ -880,7 +896,64 @@ const DuplicatesPage = ({ pairs, entityPairs = [], data, onMerge, onMergeWithDat
       </React.Fragment>)}
 
       {/* ═══ ENTIDADES / MEDIOS ═══ */}
-      {dupTab === "entidades" && entityPairs.length === 0 && (
+      {dupTab === "entidades" && (
+        <div style={{ marginBottom: 14 }}>
+          <button className={"btn btn-sm" + (showManualEnt ? " btn-primary" : "")} onClick={() => setShowManualEnt(v => !v)}>
+            <Icon name="plus" /> {es ? "Marcar medios duplicados manualmente" : "Add manual entity duplicate"}
+          </button>
+          {showManualEnt && (
+            <div className="card" style={{ padding: "16px 20px", marginTop: 12 }}>
+              <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4 }}>{es ? "Marcar dos medios/entidades como duplicados" : "Mark two entities as duplicates"}</div>
+              <div style={{ fontSize: 12, color: "var(--ink-3)", marginBottom: 12 }}>{es ? "Busca y elige los dos medios que son el mismo. Aparecerán abajo para revisarlos y fusionarlos." : "Search and pick the two entities that are the same."}</div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                {[{ q: qEA, setQ: setQEA, pick: manEA, setPick: setManEA }, { q: qEB, setQ: setQEB, pick: manEB, setPick: setManEB }].map((col, ci) => (
+                  <div key={ci}>
+                    {col.pick ? (
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", border: "2px solid var(--accent)", borderRadius: 8, background: "var(--accent-50)" }}>
+                        <span style={{ fontSize: 18 }}>🏢</span>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontWeight: 700, fontSize: 13 }}>{col.pick.name}</div>
+                          <div style={{ fontSize: 11, color: "var(--ink-4)" }}>{col.pick.city || col.pick.email || col.pick.id}</div>
+                        </div>
+                        <button className="icon-btn" onClick={() => { col.setPick(null); col.setQ(""); }}><Icon name="x" /></button>
+                      </div>
+                    ) : (
+                      <div style={{ position: "relative" }}>
+                        <input value={col.q} onChange={e => col.setQ(e.target.value)} placeholder={es ? "Nombre del medio, ciudad, código…" : "Entity name, city, code…"}
+                          style={{ width: "100%", padding: "8px 10px", border: "1px solid var(--line)", borderRadius: 8, fontFamily: "inherit", fontSize: 13 }} />
+                        {col.q.trim().length >= 2 && (
+                          <div style={{ marginTop: 6, border: "1px solid var(--line)", borderRadius: 8, overflow: "hidden", maxHeight: 220, overflowY: "auto" }}>
+                            {searchE(col.q).length === 0 && <div style={{ padding: 10, fontSize: 12, color: "var(--ink-4)" }}>{es ? "Sin resultados" : "No results"}</div>}
+                            {searchE(col.q).map(e => (
+                              <div key={e.id} className="hover-row" style={{ padding: "7px 10px", cursor: "pointer", display: "flex", gap: 8, alignItems: "center" }} onClick={() => { col.setPick(e); col.setQ(""); }}>
+                                <span style={{ fontSize: 16 }}>🏢</span>
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                  <div style={{ fontWeight: 600, fontSize: 12.5, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{e.name}</div>
+                                  <div style={{ fontSize: 11, color: "var(--ink-4)" }}>{e.city || e.email || "—"}</div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 14 }}>
+                <button className="btn" onClick={() => { setManEA(null); setManEB(null); setQEA(""); setQEB(""); setShowManualEnt(false); }}>{t.common.cancel}</button>
+                <button className="btn btn-primary" disabled={!manEA || !manEB || (manEA && manEB && manEA.id === manEB.id)}
+                  style={{ opacity: (!manEA || !manEB || (manEA && manEB && manEA.id === manEB.id)) ? 0.5 : 1 }}
+                  onClick={() => { onCreateManualEntity && onCreateManualEntity(manEA.id, manEB.id); setManEA(null); setManEB(null); setQEA(""); setQEB(""); }}>
+                  🔗 {es ? "Marcar como duplicado" : "Mark as duplicate"}
+                </button>
+              </div>
+              {manEA && manEB && manEA.id === manEB.id && <div style={{ marginTop: 8, fontSize: 12, color: "var(--bad)" }}>{es ? "Elige dos medios distintos." : "Pick two different entities."}</div>}
+            </div>
+          )}
+        </div>
+      )}
+      {dupTab === "entidades" && entActive.length === 0 && !showManualEnt && (
         <div className="card" style={{ padding: "40px 24px", textAlign: "center", color: "var(--ink-3)", fontSize: 13 }}>
           {es ? "No hay medios / entidades duplicados detectados." : "No duplicate media / entities detected."}
         </div>
