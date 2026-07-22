@@ -2247,6 +2247,42 @@ const App = () => {
     if (cfg.pat && cfg.baseId) window.AIRTABLE.deleteRecord(cfg.entidadesTable || "ENTIDADES PROMEZA CRM", idB).catch(console.warn);
     logAction("merge", `Fusionó medio "${drop.name}" → "${keep0.name}"`);
   };
+
+  // Merge two entities using the field-by-field data chosen in EntityMergeEditor.
+  // keepId is the entity that stays; dropId is deleted; mergedData holds the picked values.
+  const handleMergeEntitiesWithData = (keepId, dropId, mergedData) => {
+    const keep0 = data.entities.find(e => e.id === keepId);
+    const drop = data.entities.find(e => e.id === dropId);
+    if (!keep0 || !drop) return;
+    const entMergeEntry = { id: "cl" + Date.now(), date: new Date().toISOString(), author: userEmail || "Usuario", changes: [{ field: "record", type: "merge", with: drop.name }] };
+    const entNewLog = [entMergeEntry, ...(keep0.changelog || data.changelog[keepId] || [])];
+    const merged = { ...mergedData, id: keepId, changelog: entNewLog, _localSavedAt: new Date().toISOString() };
+    // Repoint personas linked to the dropped entity → the kept one.
+    const repointed = [];
+    (data.personas || []).forEach(p => {
+      if (!(p.entities || []).some(le => le && le.id === dropId)) return;
+      const ents = [];
+      (p.entities || []).forEach(le => { const nid = le.id === dropId ? keepId : le.id; if (!ents.some(x => x.id === nid)) ents.push({ ...le, id: nid }); });
+      repointed.push({ ...p, entities: ents, _localSavedAt: new Date().toISOString() });
+    });
+    const repointMap = Object.fromEntries(repointed.map(p => [p.id, p]));
+    setData(d => ({
+      ...d,
+      entities: d.entities.map(e => e.id === keepId ? merged : e).filter(e => e.id !== dropId),
+      personas: d.personas.map(p => repointMap[p.id] || p),
+      changelog: { ...d.changelog, [keepId]: entNewLog },
+    }));
+    setEntityDupPairs(ps => ps
+      .map(p => (p.idA === keepId && p.idB === dropId) || (p.idA === dropId && p.idB === keepId) ? { ...p, dismissed: true } : p)
+      .filter(p => p.idA !== dropId && p.idB !== dropId)
+    );
+    if (route.name === "entity" && route.id === dropId) setRoute({ name: "entity", id: keepId });
+    window.AIRTABLE.saveEntity(merged, data.entities).catch(console.warn);
+    repointed.forEach(p => window.AIRTABLE.savePersona(p, data.entities).catch(console.warn));
+    const cfg = window.AIRTABLE.getConfig();
+    if (cfg.pat && cfg.baseId) window.AIRTABLE.deleteRecord(cfg.entidadesTable || "ENTIDADES PROMEZA CRM", dropId).catch(console.warn);
+    logAction("merge", `Fusionó medio "${drop.name}" → "${merged.name}"`);
+  };
   const handleDismissEntityDup = (pair) => {
     setEntityDupPairs(ps => ps.map(p => p.idA === pair.idA && p.idB === pair.idB ? { ...p, dismissed: true } : p));
   };
@@ -2395,7 +2431,7 @@ const App = () => {
     case "goals": view = <GoalsView lang={lang} data={data} go={go} onAddGoal={addGoal} onUpdateGoal={updateGoal} onDeleteGoal={deleteGoal} />; break;
     case "county": view = <CountyView t={t} lang={lang} data={data} go={go} />; break;
     case "map": view = <MapPage t={t} lang={lang} data={data} go={go} />; break;
-    case "duplicates": view = <DuplicatesPage pairs={dupPairs} entityPairs={entityDupPairs} data={data} onMerge={handleMergePersonas} onMergeWithData={handleMergeWithData} onMergeEntity={handleMergeEntities} onDismiss={handleDismissDup} onUndismiss={handleUndismissDup} onDismissEntity={handleDismissEntityDup} onUndismissEntity={handleUndismissEntityDup} onScanAll={handleScanAll} onCreateDemo={handleCreateDemo} onCreateManual={handleCreateManualDup} onOpenHistory={openHistory} t={t} lang={lang} />; break;
+    case "duplicates": view = <DuplicatesPage pairs={dupPairs} entityPairs={entityDupPairs} data={data} onMerge={handleMergePersonas} onMergeWithData={handleMergeWithData} onMergeEntity={handleMergeEntities} onMergeEntityWithData={handleMergeEntitiesWithData} onDismiss={handleDismissDup} onUndismiss={handleUndismissDup} onDismissEntity={handleDismissEntityDup} onUndismissEntity={handleUndismissEntityDup} onScanAll={handleScanAll} onCreateDemo={handleCreateDemo} onCreateManual={handleCreateManualDup} onOpenHistory={openHistory} t={t} lang={lang} />; break;
     default: view = <Home t={t} lang={lang} data={data} go={go} />;
   }
 

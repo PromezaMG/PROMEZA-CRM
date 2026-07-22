@@ -313,6 +313,126 @@ const MergeEditor = ({ pA, pB, data, onConfirm, onCancel, t, lang }) => {
   );
 };
 
+// ─── Entity Merge Editor — field-by-field selection for media / entities ───
+
+const EntityMergeEditor = ({ eA, eB, t, lang, onConfirm, onCancel }) => {
+  const es = lang === "es";
+  const typeLabel = (v) => (t.types && t.types[v]) || v || "";
+  const FIELDS = [
+    { key: "name",          label: es ? "Nombre" : "Name",          group: "basic" },
+    { key: "type",          label: es ? "Tipo" : "Type",            group: "basic", fmt: typeLabel },
+    { key: "denominacion",  label: es ? "Denominación" : "Denom.",  group: "basic" },
+    { key: "email",         label: "Email",                          group: "contact" },
+    { key: "phone",         label: es ? "Teléfono" : "Phone",       group: "contact" },
+    { key: "website",       label: "Web",                            group: "contact" },
+    { key: "address",       label: es ? "Dirección" : "Address",    group: "location" },
+    { key: "zip",           label: "ZIP",                            group: "location" },
+    { key: "city",          label: es ? "Ciudad" : "City",          group: "location" },
+    { key: "state",         label: es ? "Estado" : "State",         group: "location" },
+    { key: "country",       label: es ? "País" : "Country",         group: "location" },
+    { key: "social.ig",     label: "Instagram",                      group: "social" },
+    { key: "social.fb",     label: "Facebook",                       group: "social" },
+    { key: "social.tiktok", label: "TikTok",                         group: "social" },
+    { key: "social.x",      label: "X (Twitter)",                    group: "social" },
+  ];
+  const GROUPS = [
+    { id: "basic",    label: es ? "Datos básicos" : "Basic info" },
+    { id: "contact",  label: es ? "Contacto" : "Contact" },
+    { id: "location", label: es ? "Ubicación" : "Location" },
+    { id: "social",   label: "Social & Web" },
+  ];
+  const getVal = (e, key) => { if (key.includes(".")) { const [o, k] = key.split("."); return (e[o] && e[o][k]) || ""; } return e[key] || ""; };
+  const [sels, setSels] = React.useState(() => { const s = {}; FIELDS.forEach(f => { const av = getVal(eA, f.key), bv = getVal(eB, f.key); s[f.key] = (!bv && av) ? "A" : (!av && bv) ? "B" : "A"; }); return s; });
+  const [keepSide, setKeepSide] = React.useState("A");
+  const setAll = (side) => { const n = {}; FIELDS.forEach(f => n[f.key] = side); setSels(n); };
+  const pickVal = (key) => { if (key.includes(".")) { const [o, k] = key.split("."); return sels[key] === "B" ? ((eB[o] && eB[o][k]) || "") : ((eA[o] && eA[o][k]) || ""); } return sels[key] === "B" ? (eB[key] || "") : (eA[key] || ""); };
+  const handleConfirm = () => {
+    const base = keepSide === "A" ? eA : eB;
+    const merged = {
+      ...base,
+      name: pickVal("name"), type: pickVal("type"), denominacion: pickVal("denominacion"),
+      email: pickVal("email"), phone: pickVal("phone"), website: pickVal("website"),
+      address: pickVal("address"), zip: pickVal("zip"), city: pickVal("city"), state: pickVal("state"), country: pickVal("country"),
+      social: { ig: pickVal("social.ig"), fb: pickVal("social.fb"), tiktok: pickVal("social.tiktok"), x: pickVal("social.x") },
+      tags: [...new Set([...(eA.tags || []), ...(eB.tags || [])])],
+    };
+    onConfirm(keepSide === "A" ? eA.id : eB.id, keepSide === "A" ? eB.id : eA.id, merged);
+  };
+  return (
+    <div className="modal-veil" style={{ zIndex: 1300 }} onClick={onCancel}>
+      <div className="modal" style={{ width: "min(840px,100%)" }} onClick={e => e.stopPropagation()}>
+        <div className="modal-head">
+          <div>
+            <div style={{ fontWeight: 700, fontSize: 15 }}>{es ? "Elegir datos del medio fusionado" : "Choose data for merged entity"}</div>
+            <div style={{ fontSize: 12, color: "var(--ink-3)", marginTop: 2 }}>{es ? "1) Elige el medio que se queda.  2) Elige el dato de cada campo." : "1) Pick which entity stays.  2) Pick each field's value."}</div>
+          </div>
+          <button className="icon-btn" onClick={onCancel}><Icon name="x" /></button>
+        </div>
+        <div className="modal-body">
+          <div style={{ display: "grid", gridTemplateColumns: "90px 1fr 1fr", gap: 10, marginBottom: 14, paddingBottom: 14, borderBottom: "2px solid var(--line)" }}>
+            <div style={{ display: "flex", alignItems: "center" }}>
+              <span style={{ fontSize: 10.5, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".05em", color: "var(--ink-4)" }}>{es ? "Se queda" : "Keeps"}
+                <span style={{ display: "block", fontSize: 9, fontWeight: 500, textTransform: "none", letterSpacing: 0, color: "var(--ink-4)", marginTop: 2 }}>{es ? "el otro se borra" : "other is deleted"}</span>
+              </span>
+            </div>
+            {[{ side: "A", e: eA }, { side: "B", e: eB }].map(({ side, e }) => (
+              <div key={side} onClick={() => setKeepSide(side)} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 8, cursor: "pointer", border: "2px solid " + (keepSide === side ? "var(--accent)" : "var(--line)"), background: keepSide === side ? "var(--accent-50)" : "transparent" }}>
+                <span style={{ fontSize: 20, flexShrink: 0 }}>🏢</span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 700, fontSize: 13 }}>{e.name}</div>
+                  <div style={{ fontSize: 10, color: "var(--ink-4)", fontFamily: "var(--font-mono)" }}>ID conservado: {e.id}</div>
+                </div>
+                {keepSide === side && <Icon name="check" />}
+              </div>
+            ))}
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "90px 1fr 1fr", gap: 10, marginBottom: 14 }}>
+            <div style={{ display: "flex", alignItems: "center" }}><span style={{ fontSize: 10.5, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".05em", color: "var(--ink-4)" }}>{es ? "Datos: todos de…" : "Data: all from…"}</span></div>
+            <button className="btn btn-sm" onClick={() => setAll("A")} style={{ width: "100%" }}>← {es ? "Datos de A" : "Data from A"}</button>
+            <button className="btn btn-sm" onClick={() => setAll("B")} style={{ width: "100%" }}>{es ? "Datos de B" : "Data from B"} →</button>
+          </div>
+          {GROUPS.map(group => {
+            const gFields = FIELDS.filter(f => f.group === group.id).filter(f => getVal(eA, f.key) || getVal(eB, f.key));
+            if (!gFields.length) return null;
+            return (
+              <div key={group.id}>
+                <div style={{ fontSize: 10.5, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".06em", color: "var(--ink-4)", margin: "16px 0 6px" }}>{group.label}</div>
+                {gFields.map(f => {
+                  const aRaw = getVal(eA, f.key), bRaw = getVal(eB, f.key);
+                  const aDisp = f.fmt ? f.fmt(aRaw) : aRaw, bDisp = f.fmt ? f.fmt(bRaw) : bRaw;
+                  const same = aRaw === bRaw;
+                  return (
+                    <div key={f.key} style={{ display: "grid", gridTemplateColumns: "90px 1fr 1fr", gap: 8, marginBottom: 5 }}>
+                      <div style={{ fontSize: 10.5, fontWeight: 600, textTransform: "uppercase", letterSpacing: ".05em", color: "var(--ink-4)", display: "flex", alignItems: "center" }}>{f.label}</div>
+                      {[{ side: "A", disp: aDisp, raw: aRaw }, { side: "B", disp: bDisp, raw: bRaw }].map(({ side, disp, raw }) => {
+                        const sel = sels[f.key] === side;
+                        return (
+                          <div key={side} onClick={() => !same && setSels(s => ({ ...s, [f.key]: side }))} style={{ display: "flex", alignItems: "center", gap: 7, padding: "7px 10px", borderRadius: 7, fontSize: 13, border: "2px solid " + (same ? "var(--line)" : sel ? "var(--accent)" : "var(--line)"), background: same ? "transparent" : sel ? "var(--accent-50)" : "var(--bg-soft)", cursor: same ? "default" : "pointer", color: raw ? (sel && !same ? "var(--accent-700)" : "var(--ink-1)") : "var(--ink-5)", fontWeight: sel && !same ? 600 : 400 }}>
+                            {!same && (<div style={{ width: 14, height: 14, borderRadius: "50%", flexShrink: 0, border: "2px solid " + (sel ? "var(--accent)" : "var(--ink-4)"), background: sel ? "var(--accent)" : "transparent" }} />)}
+                            <span>{disp || <em style={{ color: "var(--ink-5)", fontStyle: "italic", fontWeight: 400 }}>{es ? "vacío" : "empty"}</em>}</span>
+                            {same && <span style={{ fontSize: 10, color: "var(--ink-4)", marginLeft: "auto" }}>={es ? "igual" : "same"}</span>}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })}
+          <div style={{ marginTop: 16, padding: "10px 14px", background: "var(--bg-soft)", borderRadius: 8, fontSize: 12, color: "var(--ink-3)" }}>
+            <strong>{es ? "Se combinan siempre:" : "Always combined:"}</strong> {es ? "Etiquetas (unión) · Contactos vinculados se mueven al medio que se queda." : "Tags (union) · Linked contacts move to the kept entity."}
+          </div>
+        </div>
+        <div className="modal-foot">
+          <button className="btn" onClick={onCancel}>{t.common.cancel}</button>
+          <button className="btn btn-primary" onClick={handleConfirm}>🔀 {es ? "Fusionar con estos datos" : "Merge with these selections"}</button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // ─── Duplicate Review Modal ───
 
 const DuplicateReviewModal = ({ pairs, data, onMerge, onDismiss, onClose, t, lang }) => {
@@ -419,9 +539,10 @@ const DuplicateReviewModal = ({ pairs, data, onMerge, onDismiss, onClose, t, lan
 
 // ─── Duplicates Page ───
 
-const DuplicatesPage = ({ pairs, entityPairs = [], data, onMerge, onMergeWithData, onMergeEntity, onDismiss, onUndismiss, onDismissEntity, onUndismissEntity, onScanAll, onCreateDemo, onCreateManual, onOpenHistory, t, lang }) => {
+const DuplicatesPage = ({ pairs, entityPairs = [], data, onMerge, onMergeWithData, onMergeEntity, onMergeEntityWithData, onDismiss, onUndismiss, onDismissEntity, onUndismissEntity, onScanAll, onCreateDemo, onCreateManual, onOpenHistory, t, lang }) => {
   const [expanded, setExpanded] = React.useState(null);
   const [mergingPair, setMergingPair] = React.useState(null);
+  const [mergingEntPair, setMergingEntPair] = React.useState(null);
   const [showManual, setShowManual] = React.useState(false);
   const [dupTab, setDupTab] = React.useState("personas"); // "personas" | "entidades"
   const [manA, setManA] = React.useState(null);   // selected persona A
@@ -793,7 +914,7 @@ const DuplicatesPage = ({ pairs, entityPairs = [], data, onMerge, onMergeWithDat
                       {!isOpen && (
                         <>
                           <button className="btn btn-sm" onClick={e => { e.stopPropagation(); onDismissEntity && onDismissEntity(pair); }}>{es ? "Son distintos" : "Different"}</button>
-                          <button className="btn btn-sm btn-primary" onClick={e => { e.stopPropagation(); onMergeEntity && onMergeEntity(pair.idA, pair.idB); }}>🔀 {es ? "Fusionar" : "Merge"}</button>
+                          <button className="btn btn-sm btn-primary" onClick={e => { e.stopPropagation(); setMergingEntPair(pair); }}>✎ {es ? "Elegir datos" : "Choose data"}</button>
                         </>
                       )}
                       <span style={{ color: "var(--ink-4)", fontSize: 12 }}>{isOpen ? "▲" : "▼"}</span>
@@ -821,7 +942,8 @@ const DuplicatesPage = ({ pairs, entityPairs = [], data, onMerge, onMergeWithDat
                       </div>
                       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                         <button className="btn" onClick={() => { onDismissEntity && onDismissEntity(pair); setExpanded(null); }}>🏢 {es ? "Son medios distintos" : "Different"}</button>
-                        <button className="btn btn-primary" onClick={() => { onMergeEntity && onMergeEntity(pair.idA, pair.idB); setExpanded(null); }}>🔀 {es ? "Fusionar" : "Merge"}</button>
+                        <button className="btn" onClick={() => { onMergeEntity && onMergeEntity(pair.idA, pair.idB); setExpanded(null); }}>🔀 {es ? "Fusionar (auto)" : "Auto-merge"}</button>
+                        <button className="btn btn-primary" onClick={() => { setMergingEntPair(pair); setExpanded(null); }}>✎ {es ? "Elegir datos →" : "Choose data →"}</button>
                       </div>
                     </div>
                   )}
@@ -870,6 +992,24 @@ const DuplicatesPage = ({ pairs, entityPairs = [], data, onMerge, onMergeWithDat
               setExpanded(null);
             }}
             onCancel={() => setMergingPair(null)}
+            t={t} lang={lang}
+          />
+        );
+      })()}
+
+      {mergingEntPair && (() => {
+        const eA = entityById[mergingEntPair.idA];
+        const eB = entityById[mergingEntPair.idB];
+        if (!eA || !eB) { setMergingEntPair(null); return null; }
+        return (
+          <EntityMergeEditor
+            eA={eA} eB={eB}
+            onConfirm={(keepId, dropId, mergedData) => {
+              (onMergeEntityWithData || onMergeEntity)(keepId, dropId, mergedData);
+              setMergingEntPair(null);
+              setExpanded(null);
+            }}
+            onCancel={() => setMergingEntPair(null)}
             t={t} lang={lang}
           />
         );

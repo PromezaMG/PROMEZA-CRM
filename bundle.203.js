@@ -11070,6 +11070,403 @@ const MergeEditor = ({
   }, "\uD83D\uDD00 ", lang === "es" ? "Fusionar con estos datos" : "Merge with these selections"))));
 };
 
+// ─── Entity Merge Editor — field-by-field selection for media / entities ───
+
+const EntityMergeEditor = ({
+  eA,
+  eB,
+  t,
+  lang,
+  onConfirm,
+  onCancel
+}) => {
+  const es = lang === "es";
+  const typeLabel = v => t.types && t.types[v] || v || "";
+  const FIELDS = [{
+    key: "name",
+    label: es ? "Nombre" : "Name",
+    group: "basic"
+  }, {
+    key: "type",
+    label: es ? "Tipo" : "Type",
+    group: "basic",
+    fmt: typeLabel
+  }, {
+    key: "denominacion",
+    label: es ? "Denominación" : "Denom.",
+    group: "basic"
+  }, {
+    key: "email",
+    label: "Email",
+    group: "contact"
+  }, {
+    key: "phone",
+    label: es ? "Teléfono" : "Phone",
+    group: "contact"
+  }, {
+    key: "website",
+    label: "Web",
+    group: "contact"
+  }, {
+    key: "address",
+    label: es ? "Dirección" : "Address",
+    group: "location"
+  }, {
+    key: "zip",
+    label: "ZIP",
+    group: "location"
+  }, {
+    key: "city",
+    label: es ? "Ciudad" : "City",
+    group: "location"
+  }, {
+    key: "state",
+    label: es ? "Estado" : "State",
+    group: "location"
+  }, {
+    key: "country",
+    label: es ? "País" : "Country",
+    group: "location"
+  }, {
+    key: "social.ig",
+    label: "Instagram",
+    group: "social"
+  }, {
+    key: "social.fb",
+    label: "Facebook",
+    group: "social"
+  }, {
+    key: "social.tiktok",
+    label: "TikTok",
+    group: "social"
+  }, {
+    key: "social.x",
+    label: "X (Twitter)",
+    group: "social"
+  }];
+  const GROUPS = [{
+    id: "basic",
+    label: es ? "Datos básicos" : "Basic info"
+  }, {
+    id: "contact",
+    label: es ? "Contacto" : "Contact"
+  }, {
+    id: "location",
+    label: es ? "Ubicación" : "Location"
+  }, {
+    id: "social",
+    label: "Social & Web"
+  }];
+  const getVal = (e, key) => {
+    if (key.includes(".")) {
+      const [o, k] = key.split(".");
+      return e[o] && e[o][k] || "";
+    }
+    return e[key] || "";
+  };
+  const [sels, setSels] = React.useState(() => {
+    const s = {};
+    FIELDS.forEach(f => {
+      const av = getVal(eA, f.key),
+        bv = getVal(eB, f.key);
+      s[f.key] = !bv && av ? "A" : !av && bv ? "B" : "A";
+    });
+    return s;
+  });
+  const [keepSide, setKeepSide] = React.useState("A");
+  const setAll = side => {
+    const n = {};
+    FIELDS.forEach(f => n[f.key] = side);
+    setSels(n);
+  };
+  const pickVal = key => {
+    if (key.includes(".")) {
+      const [o, k] = key.split(".");
+      return sels[key] === "B" ? eB[o] && eB[o][k] || "" : eA[o] && eA[o][k] || "";
+    }
+    return sels[key] === "B" ? eB[key] || "" : eA[key] || "";
+  };
+  const handleConfirm = () => {
+    const base = keepSide === "A" ? eA : eB;
+    const merged = {
+      ...base,
+      name: pickVal("name"),
+      type: pickVal("type"),
+      denominacion: pickVal("denominacion"),
+      email: pickVal("email"),
+      phone: pickVal("phone"),
+      website: pickVal("website"),
+      address: pickVal("address"),
+      zip: pickVal("zip"),
+      city: pickVal("city"),
+      state: pickVal("state"),
+      country: pickVal("country"),
+      social: {
+        ig: pickVal("social.ig"),
+        fb: pickVal("social.fb"),
+        tiktok: pickVal("social.tiktok"),
+        x: pickVal("social.x")
+      },
+      tags: [...new Set([...(eA.tags || []), ...(eB.tags || [])])]
+    };
+    onConfirm(keepSide === "A" ? eA.id : eB.id, keepSide === "A" ? eB.id : eA.id, merged);
+  };
+  return /*#__PURE__*/React.createElement("div", {
+    className: "modal-veil",
+    style: {
+      zIndex: 1300
+    },
+    onClick: onCancel
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "modal",
+    style: {
+      width: "min(840px,100%)"
+    },
+    onClick: e => e.stopPropagation()
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "modal-head"
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontWeight: 700,
+      fontSize: 15
+    }
+  }, es ? "Elegir datos del medio fusionado" : "Choose data for merged entity"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: "var(--ink-3)",
+      marginTop: 2
+    }
+  }, es ? "1) Elige el medio que se queda.  2) Elige el dato de cada campo." : "1) Pick which entity stays.  2) Pick each field's value.")), /*#__PURE__*/React.createElement("button", {
+    className: "icon-btn",
+    onClick: onCancel
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: "x"
+  }))), /*#__PURE__*/React.createElement("div", {
+    className: "modal-body"
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "90px 1fr 1fr",
+      gap: 10,
+      marginBottom: 14,
+      paddingBottom: 14,
+      borderBottom: "2px solid var(--line)"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 10.5,
+      fontWeight: 700,
+      textTransform: "uppercase",
+      letterSpacing: ".05em",
+      color: "var(--ink-4)"
+    }
+  }, es ? "Se queda" : "Keeps", /*#__PURE__*/React.createElement("span", {
+    style: {
+      display: "block",
+      fontSize: 9,
+      fontWeight: 500,
+      textTransform: "none",
+      letterSpacing: 0,
+      color: "var(--ink-4)",
+      marginTop: 2
+    }
+  }, es ? "el otro se borra" : "other is deleted"))), [{
+    side: "A",
+    e: eA
+  }, {
+    side: "B",
+    e: eB
+  }].map(({
+    side,
+    e
+  }) => /*#__PURE__*/React.createElement("div", {
+    key: side,
+    onClick: () => setKeepSide(side),
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      padding: "10px 12px",
+      borderRadius: 8,
+      cursor: "pointer",
+      border: "2px solid " + (keepSide === side ? "var(--accent)" : "var(--line)"),
+      background: keepSide === side ? "var(--accent-50)" : "transparent"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 20,
+      flexShrink: 0
+    }
+  }, "\uD83C\uDFE2"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontWeight: 700,
+      fontSize: 13
+    }
+  }, e.name), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 10,
+      color: "var(--ink-4)",
+      fontFamily: "var(--font-mono)"
+    }
+  }, "ID conservado: ", e.id)), keepSide === side && /*#__PURE__*/React.createElement(Icon, {
+    name: "check"
+  })))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "90px 1fr 1fr",
+      gap: 10,
+      marginBottom: 14
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 10.5,
+      fontWeight: 700,
+      textTransform: "uppercase",
+      letterSpacing: ".05em",
+      color: "var(--ink-4)"
+    }
+  }, es ? "Datos: todos de…" : "Data: all from…")), /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-sm",
+    onClick: () => setAll("A"),
+    style: {
+      width: "100%"
+    }
+  }, "\u2190 ", es ? "Datos de A" : "Data from A"), /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-sm",
+    onClick: () => setAll("B"),
+    style: {
+      width: "100%"
+    }
+  }, es ? "Datos de B" : "Data from B", " \u2192")), GROUPS.map(group => {
+    const gFields = FIELDS.filter(f => f.group === group.id).filter(f => getVal(eA, f.key) || getVal(eB, f.key));
+    if (!gFields.length) return null;
+    return /*#__PURE__*/React.createElement("div", {
+      key: group.id
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 10.5,
+        fontWeight: 700,
+        textTransform: "uppercase",
+        letterSpacing: ".06em",
+        color: "var(--ink-4)",
+        margin: "16px 0 6px"
+      }
+    }, group.label), gFields.map(f => {
+      const aRaw = getVal(eA, f.key),
+        bRaw = getVal(eB, f.key);
+      const aDisp = f.fmt ? f.fmt(aRaw) : aRaw,
+        bDisp = f.fmt ? f.fmt(bRaw) : bRaw;
+      const same = aRaw === bRaw;
+      return /*#__PURE__*/React.createElement("div", {
+        key: f.key,
+        style: {
+          display: "grid",
+          gridTemplateColumns: "90px 1fr 1fr",
+          gap: 8,
+          marginBottom: 5
+        }
+      }, /*#__PURE__*/React.createElement("div", {
+        style: {
+          fontSize: 10.5,
+          fontWeight: 600,
+          textTransform: "uppercase",
+          letterSpacing: ".05em",
+          color: "var(--ink-4)",
+          display: "flex",
+          alignItems: "center"
+        }
+      }, f.label), [{
+        side: "A",
+        disp: aDisp,
+        raw: aRaw
+      }, {
+        side: "B",
+        disp: bDisp,
+        raw: bRaw
+      }].map(({
+        side,
+        disp,
+        raw
+      }) => {
+        const sel = sels[f.key] === side;
+        return /*#__PURE__*/React.createElement("div", {
+          key: side,
+          onClick: () => !same && setSels(s => ({
+            ...s,
+            [f.key]: side
+          })),
+          style: {
+            display: "flex",
+            alignItems: "center",
+            gap: 7,
+            padding: "7px 10px",
+            borderRadius: 7,
+            fontSize: 13,
+            border: "2px solid " + (same ? "var(--line)" : sel ? "var(--accent)" : "var(--line)"),
+            background: same ? "transparent" : sel ? "var(--accent-50)" : "var(--bg-soft)",
+            cursor: same ? "default" : "pointer",
+            color: raw ? sel && !same ? "var(--accent-700)" : "var(--ink-1)" : "var(--ink-5)",
+            fontWeight: sel && !same ? 600 : 400
+          }
+        }, !same && /*#__PURE__*/React.createElement("div", {
+          style: {
+            width: 14,
+            height: 14,
+            borderRadius: "50%",
+            flexShrink: 0,
+            border: "2px solid " + (sel ? "var(--accent)" : "var(--ink-4)"),
+            background: sel ? "var(--accent)" : "transparent"
+          }
+        }), /*#__PURE__*/React.createElement("span", null, disp || /*#__PURE__*/React.createElement("em", {
+          style: {
+            color: "var(--ink-5)",
+            fontStyle: "italic",
+            fontWeight: 400
+          }
+        }, es ? "vacío" : "empty")), same && /*#__PURE__*/React.createElement("span", {
+          style: {
+            fontSize: 10,
+            color: "var(--ink-4)",
+            marginLeft: "auto"
+          }
+        }, "=", es ? "igual" : "same"));
+      }));
+    }));
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 16,
+      padding: "10px 14px",
+      background: "var(--bg-soft)",
+      borderRadius: 8,
+      fontSize: 12,
+      color: "var(--ink-3)"
+    }
+  }, /*#__PURE__*/React.createElement("strong", null, es ? "Se combinan siempre:" : "Always combined:"), " ", es ? "Etiquetas (unión) · Contactos vinculados se mueven al medio que se queda." : "Tags (union) · Linked contacts move to the kept entity.")), /*#__PURE__*/React.createElement("div", {
+    className: "modal-foot"
+  }, /*#__PURE__*/React.createElement("button", {
+    className: "btn",
+    onClick: onCancel
+  }, t.common.cancel), /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-primary",
+    onClick: handleConfirm
+  }, "\uD83D\uDD00 ", es ? "Fusionar con estos datos" : "Merge with these selections"))));
+};
+
 // ─── Duplicate Review Modal ───
 
 const DuplicateReviewModal = ({
@@ -11268,6 +11665,7 @@ const DuplicatesPage = ({
   onMerge,
   onMergeWithData,
   onMergeEntity,
+  onMergeEntityWithData,
   onDismiss,
   onUndismiss,
   onDismissEntity,
@@ -11281,6 +11679,7 @@ const DuplicatesPage = ({
 }) => {
   const [expanded, setExpanded] = React.useState(null);
   const [mergingPair, setMergingPair] = React.useState(null);
+  const [mergingEntPair, setMergingEntPair] = React.useState(null);
   const [showManual, setShowManual] = React.useState(false);
   const [dupTab, setDupTab] = React.useState("personas"); // "personas" | "entidades"
   const [manA, setManA] = React.useState(null); // selected persona A
@@ -12038,9 +12437,9 @@ const DuplicatesPage = ({
       className: "btn btn-sm btn-primary",
       onClick: e => {
         e.stopPropagation();
-        onMergeEntity && onMergeEntity(pair.idA, pair.idB);
+        setMergingEntPair(pair);
       }
-    }, "\uD83D\uDD00 ", es ? "Fusionar" : "Merge")), /*#__PURE__*/React.createElement("span", {
+    }, "\u270E ", es ? "Elegir datos" : "Choose data")), /*#__PURE__*/React.createElement("span", {
       style: {
         color: "var(--ink-4)",
         fontSize: 12
@@ -12142,12 +12541,18 @@ const DuplicatesPage = ({
         setExpanded(null);
       }
     }, "\uD83C\uDFE2 ", es ? "Son medios distintos" : "Different"), /*#__PURE__*/React.createElement("button", {
-      className: "btn btn-primary",
+      className: "btn",
       onClick: () => {
         onMergeEntity && onMergeEntity(pair.idA, pair.idB);
         setExpanded(null);
       }
-    }, "\uD83D\uDD00 ", es ? "Fusionar" : "Merge"))));
+    }, "\uD83D\uDD00 ", es ? "Fusionar (auto)" : "Auto-merge"), /*#__PURE__*/React.createElement("button", {
+      className: "btn btn-primary",
+      onClick: () => {
+        setMergingEntPair(pair);
+        setExpanded(null);
+      }
+    }, "\u270E ", es ? "Elegir datos →" : "Choose data →"))));
   }), entActive.length > visE && /*#__PURE__*/React.createElement("button", {
     className: "btn",
     style: {
@@ -12214,6 +12619,25 @@ const DuplicatesPage = ({
         setExpanded(null);
       },
       onCancel: () => setMergingPair(null),
+      t: t,
+      lang: lang
+    });
+  })(), mergingEntPair && (() => {
+    const eA = entityById[mergingEntPair.idA];
+    const eB = entityById[mergingEntPair.idB];
+    if (!eA || !eB) {
+      setMergingEntPair(null);
+      return null;
+    }
+    return /*#__PURE__*/React.createElement(EntityMergeEditor, {
+      eA: eA,
+      eB: eB,
+      onConfirm: (keepId, dropId, mergedData) => {
+        (onMergeEntityWithData || onMergeEntity)(keepId, dropId, mergedData);
+        setMergingEntPair(null);
+        setExpanded(null);
+      },
+      onCancel: () => setMergingEntPair(null),
       t: t,
       lang: lang
     });
@@ -22768,6 +23192,72 @@ const App = () => {
     if (cfg.pat && cfg.baseId) window.AIRTABLE.deleteRecord(cfg.entidadesTable || "ENTIDADES PROMEZA CRM", idB).catch(console.warn);
     logAction("merge", `Fusionó medio "${drop.name}" → "${keep0.name}"`);
   };
+
+  // Merge two entities using the field-by-field data chosen in EntityMergeEditor.
+  // keepId is the entity that stays; dropId is deleted; mergedData holds the picked values.
+  const handleMergeEntitiesWithData = (keepId, dropId, mergedData) => {
+    const keep0 = data.entities.find(e => e.id === keepId);
+    const drop = data.entities.find(e => e.id === dropId);
+    if (!keep0 || !drop) return;
+    const entMergeEntry = {
+      id: "cl" + Date.now(),
+      date: new Date().toISOString(),
+      author: userEmail || "Usuario",
+      changes: [{
+        field: "record",
+        type: "merge",
+        with: drop.name
+      }]
+    };
+    const entNewLog = [entMergeEntry, ...(keep0.changelog || data.changelog[keepId] || [])];
+    const merged = {
+      ...mergedData,
+      id: keepId,
+      changelog: entNewLog,
+      _localSavedAt: new Date().toISOString()
+    };
+    // Repoint personas linked to the dropped entity → the kept one.
+    const repointed = [];
+    (data.personas || []).forEach(p => {
+      if (!(p.entities || []).some(le => le && le.id === dropId)) return;
+      const ents = [];
+      (p.entities || []).forEach(le => {
+        const nid = le.id === dropId ? keepId : le.id;
+        if (!ents.some(x => x.id === nid)) ents.push({
+          ...le,
+          id: nid
+        });
+      });
+      repointed.push({
+        ...p,
+        entities: ents,
+        _localSavedAt: new Date().toISOString()
+      });
+    });
+    const repointMap = Object.fromEntries(repointed.map(p => [p.id, p]));
+    setData(d => ({
+      ...d,
+      entities: d.entities.map(e => e.id === keepId ? merged : e).filter(e => e.id !== dropId),
+      personas: d.personas.map(p => repointMap[p.id] || p),
+      changelog: {
+        ...d.changelog,
+        [keepId]: entNewLog
+      }
+    }));
+    setEntityDupPairs(ps => ps.map(p => p.idA === keepId && p.idB === dropId || p.idA === dropId && p.idB === keepId ? {
+      ...p,
+      dismissed: true
+    } : p).filter(p => p.idA !== dropId && p.idB !== dropId));
+    if (route.name === "entity" && route.id === dropId) setRoute({
+      name: "entity",
+      id: keepId
+    });
+    window.AIRTABLE.saveEntity(merged, data.entities).catch(console.warn);
+    repointed.forEach(p => window.AIRTABLE.savePersona(p, data.entities).catch(console.warn));
+    const cfg = window.AIRTABLE.getConfig();
+    if (cfg.pat && cfg.baseId) window.AIRTABLE.deleteRecord(cfg.entidadesTable || "ENTIDADES PROMEZA CRM", dropId).catch(console.warn);
+    logAction("merge", `Fusionó medio "${drop.name}" → "${merged.name}"`);
+  };
   const handleDismissEntityDup = pair => {
     setEntityDupPairs(ps => ps.map(p => p.idA === pair.idA && p.idB === pair.idB ? {
       ...p,
@@ -23127,6 +23617,7 @@ const App = () => {
         onMerge: handleMergePersonas,
         onMergeWithData: handleMergeWithData,
         onMergeEntity: handleMergeEntities,
+        onMergeEntityWithData: handleMergeEntitiesWithData,
         onDismiss: handleDismissDup,
         onUndismiss: handleUndismissDup,
         onDismissEntity: handleDismissEntityDup,
