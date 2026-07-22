@@ -8488,7 +8488,14 @@ const EntityProfile = ({
   changelog,
   attachments,
   onAddAttachment,
-  onDeleteAttachment
+  onDeleteAttachment,
+  tasks,
+  onAddTask,
+  onToggleTask,
+  onDeleteTask,
+  onResolveDuplicate,
+  users,
+  currentUser
 }) => {
   const e = data.entities.find(x => x.id === id);
   const [tab, setTab] = React.useState("details");
@@ -8530,12 +8537,26 @@ const EntityProfile = ({
       entities: (target.entities || []).filter(le => le.id !== e.id)
     });
   };
+
+  // Does this entity have a duplicate? (another entity with same name, email or phone)
+  const hasDupRaw = React.useMemo(() => {
+    const nm = (e.name || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/\s+/g, " ").trim();
+    const em = (e.email || "").toLowerCase().trim();
+    const ph = (e.phone || "").replace(/\D/g, "");
+    if (!nm && !em && ph.length < 7) return false;
+    return (data.entities || []).some(o => o.id !== e.id && (nm && (o.name || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/\s+/g, " ").trim() === nm || em && (o.email || "").toLowerCase().trim() === em || ph.length >= 7 && (o.phone || "").replace(/\D/g, "") === ph));
+  }, [e.id, e.name, e.email, e.phone, data.entities]);
+  const hasDup = hasDupRaw && !e.dupResolved;
+  const pendingTasks = (tasks || []).filter(tk => !tk.done).length + (hasDup ? 1 : 0);
   const tabs = [{
     id: "details",
     label: t.common.details
   }, {
     id: "people",
     label: t.common.relatedPersonas + " (" + linkedPeople.length + ")"
+  }, {
+    id: "tasks",
+    label: (lang === "es" ? "Tareas" : "Tasks") + (pendingTasks > 0 ? " (" + pendingTasks + ")" : "")
   }, {
     id: "comments",
     label: t.common.comments + " (" + (data.comments[e.id] || []).length + ")"
@@ -9119,7 +9140,19 @@ const EntityProfile = ({
     onClick: () => doUnlinkPerson(p.id)
   }, /*#__PURE__*/React.createElement(Icon, {
     name: "x"
-  }))))))), tab === "comments" && /*#__PURE__*/React.createElement("div", {
+  }))))))), tab === "tasks" && /*#__PURE__*/React.createElement(TasksTab, {
+    personId: e.id,
+    tasks: tasks,
+    onAddTask: onAddTask,
+    onToggleTask: onToggleTask,
+    onDeleteTask: onDeleteTask,
+    lang: lang,
+    users: users,
+    currentUser: currentUser,
+    hasDuplicate: hasDup,
+    go: go,
+    onResolveDuplicate: onResolveDuplicate
+  }), tab === "comments" && /*#__PURE__*/React.createElement("div", {
     className: "section"
   }, /*#__PURE__*/React.createElement("h3", null, t.common.comments), /*#__PURE__*/React.createElement("div", {
     className: "section-body"
@@ -23016,6 +23049,20 @@ const App = () => {
     }));
     window.AIRTABLE.savePersona(updated, data.entities).catch(console.warn);
   };
+  const handleResolveEntityDuplicate = (entityId, resolved = true) => {
+    const cur = data.entities.find(e => e.id === entityId);
+    if (!cur) return;
+    const updated = {
+      ...cur,
+      dupResolved: resolved,
+      _localSavedAt: new Date().toISOString()
+    };
+    setData(d => ({
+      ...d,
+      entities: d.entities.map(e => e.id === entityId ? updated : e)
+    }));
+    window.AIRTABLE.saveEntity(updated, data.entities).catch(console.warn);
+  };
   const handleBulkAddTask = (personId, task) => {
     addTask(personId, task);
   };
@@ -23794,7 +23841,14 @@ const App = () => {
         changelog: data.changelog[route.id] || [],
         attachments: data.attachments[route.id] || [],
         onAddAttachment: att => addAttachment(route.id, att),
-        onDeleteAttachment: attId => deleteAttachment(route.id, attId)
+        onDeleteAttachment: attId => deleteAttachment(route.id, attId),
+        tasks: data.tasks[route.id] || [],
+        onAddTask: task => addTask(route.id, task),
+        onToggleTask: id => toggleTask(route.id, id),
+        onDeleteTask: id => deleteTask(route.id, id),
+        onResolveDuplicate: resolved => handleResolveEntityDuplicate(route.id, resolved),
+        users: window.PROMEZA_USERS || [],
+        currentUser: userEmail
       }));
       break;
     case "projects":

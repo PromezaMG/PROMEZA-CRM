@@ -708,7 +708,7 @@ const PersonProfile = ({ id, t, lang, data, go, goBack, addComment, onUpdatePers
 
 // ─── ENTITY PROFILE ───
 
-const EntityProfile = ({ id, t, lang, data, go, goBack, addComment, onUpdateEntity, onUpdatePerson, onEditEntity, onDeleteEntity, changelog, attachments, onAddAttachment, onDeleteAttachment }) => {
+const EntityProfile = ({ id, t, lang, data, go, goBack, addComment, onUpdateEntity, onUpdatePerson, onEditEntity, onDeleteEntity, changelog, attachments, onAddAttachment, onDeleteAttachment, tasks, onAddTask, onToggleTask, onDeleteTask, onResolveDuplicate, users, currentUser }) => {
   const e = data.entities.find(x => x.id === id);
   const [tab, setTab] = React.useState("details");
   const [linking, setLinking] = React.useState(false);
@@ -747,9 +747,24 @@ const EntityProfile = ({ id, t, lang, data, go, goBack, addComment, onUpdateEnti
     });
   };
 
+  // Does this entity have a duplicate? (another entity with same name, email or phone)
+  const hasDupRaw = React.useMemo(() => {
+    const nm = (e.name || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/\s+/g, " ").trim();
+    const em = (e.email || "").toLowerCase().trim();
+    const ph = (e.phone || "").replace(/\D/g, "");
+    if (!nm && !em && ph.length < 7) return false;
+    return (data.entities || []).some(o => o.id !== e.id && (
+      (nm && (o.name || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/\s+/g, " ").trim() === nm) ||
+      (em && (o.email || "").toLowerCase().trim() === em) ||
+      (ph.length >= 7 && (o.phone || "").replace(/\D/g, "") === ph)
+    ));
+  }, [e.id, e.name, e.email, e.phone, data.entities]);
+  const hasDup = hasDupRaw && !e.dupResolved;
+  const pendingTasks = (tasks || []).filter(tk => !tk.done).length + (hasDup ? 1 : 0);
   const tabs = [
     { id: "details", label: t.common.details },
     { id: "people", label: t.common.relatedPersonas + " (" + linkedPeople.length + ")" },
+    { id: "tasks", label: (lang === "es" ? "Tareas" : "Tasks") + (pendingTasks > 0 ? " (" + pendingTasks + ")" : "") },
     { id: "comments", label: t.common.comments + " (" + (data.comments[e.id] || []).length + ")" },
     { id: "files", label: (lang === "es" ? "Archivos" : "Files") + ((attachments || []).length > 0 ? " (" + (attachments || []).length + ")" : "") },
     { id: "history", label: lang === "es" ? "Cambios" : "Changes" },
@@ -1029,6 +1044,22 @@ const EntityProfile = ({ id, t, lang, data, go, goBack, addComment, onUpdateEnti
             </div>
           </div>
         </div>
+      )}
+
+      {tab === "tasks" && (
+        <TasksTab
+          personId={e.id}
+          tasks={tasks}
+          onAddTask={onAddTask}
+          onToggleTask={onToggleTask}
+          onDeleteTask={onDeleteTask}
+          lang={lang}
+          users={users}
+          currentUser={currentUser}
+          hasDuplicate={hasDup}
+          go={go}
+          onResolveDuplicate={onResolveDuplicate}
+        />
       )}
 
       {tab === "comments" && (

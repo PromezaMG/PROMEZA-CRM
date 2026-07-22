@@ -1968,6 +1968,13 @@ const App = () => {
     setData(d => ({ ...d, personas: d.personas.map(p => p.id === personId ? updated : p) }));
     window.AIRTABLE.savePersona(updated, data.entities).catch(console.warn);
   };
+  const handleResolveEntityDuplicate = (entityId, resolved = true) => {
+    const cur = data.entities.find(e => e.id === entityId);
+    if (!cur) return;
+    const updated = { ...cur, dupResolved: resolved, _localSavedAt: new Date().toISOString() };
+    setData(d => ({ ...d, entities: d.entities.map(e => e.id === entityId ? updated : e) }));
+    window.AIRTABLE.saveEntity(updated, data.entities).catch(console.warn);
+  };
 
   const handleBulkAddTask = (personId, task) => {
     addTask(personId, task);
@@ -2434,7 +2441,7 @@ const App = () => {
       tasks={data.tasks} onToggleTask={toggleTask} onDeleteTask={deleteTask}
       currentUser={userEmail} users={window.PROMEZA_USERS || []}
     />; break;
-    case "entity": view = <ViewErrorBoundary key={"entity-" + route.id}><EntityProfile id={route.id} t={t} lang={lang} data={data} go={go} goBack={goBack} addComment={addComment} onUpdateEntity={handleUpdateEntity} onUpdatePerson={handleUpdatePerson} onEditEntity={handleEditEntity} onDeleteEntity={handleDeleteEntity} changelog={data.changelog[route.id] || []} attachments={data.attachments[route.id] || []} onAddAttachment={(att) => addAttachment(route.id, att)} onDeleteAttachment={(attId) => deleteAttachment(route.id, attId)} /></ViewErrorBoundary>; break;
+    case "entity": view = <ViewErrorBoundary key={"entity-" + route.id}><EntityProfile id={route.id} t={t} lang={lang} data={data} go={go} goBack={goBack} addComment={addComment} onUpdateEntity={handleUpdateEntity} onUpdatePerson={handleUpdatePerson} onEditEntity={handleEditEntity} onDeleteEntity={handleDeleteEntity} changelog={data.changelog[route.id] || []} attachments={data.attachments[route.id] || []} onAddAttachment={(att) => addAttachment(route.id, att)} onDeleteAttachment={(attId) => deleteAttachment(route.id, attId)} tasks={data.tasks[route.id] || []} onAddTask={(task) => addTask(route.id, task)} onToggleTask={(id) => toggleTask(route.id, id)} onDeleteTask={(id) => deleteTask(route.id, id)} onResolveDuplicate={(resolved) => handleResolveEntityDuplicate(route.id, resolved)} users={window.PROMEZA_USERS || []} currentUser={userEmail} /></ViewErrorBoundary>; break;
     case "projects": view = <ProjectsListView lang={lang} data={data} go={go} onAddProject={addProject} />; break;
     case "project": view = <ProjectDetailView id={route.id} lang={lang} data={data} go={go} onUpdateProject={updateProject} onDeleteProject={deleteProject} onAddMember={addProjectMember} onRemoveMember={removeProjectMember} comments={data.comments[route.id] || []} onAddComment={(projectId, text) => addComment(projectId, text)} attachments={data.attachments[route.id] || []} onAddAttachment={(att) => addAttachment(route.id, att)} onDeleteAttachment={(attId) => deleteAttachment(route.id, attId)} />; break;
     case "campaigns": view = <CampaignsView lang={lang} data={data} go={go} onSaveCampaign={saveCampaign} />; break;
