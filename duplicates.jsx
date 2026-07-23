@@ -539,7 +539,7 @@ const DuplicateReviewModal = ({ pairs, data, onMerge, onDismiss, onClose, t, lan
 
 // ─── Duplicates Page ───
 
-const DuplicatesPage = ({ pairs, entityPairs = [], data, onMerge, onMergeWithData, onMergeEntity, onMergeEntityWithData, onDismiss, onUndismiss, onDismissEntity, onUndismissEntity, onScanAll, onCreateDemo, onCreateManual, onCreateManualEntity, onOpenHistory, t, lang }) => {
+const DuplicatesPage = ({ pairs, entityPairs = [], data, onMerge, onMergeWithData, onMergeEntity, onMergeEntityWithData, onDismiss, onUndismiss, onDismissEntity, onUndismissEntity, onScanAll, onCreateDemo, onCreateManual, onCreateManualEntity, onOpenHistory, initialSearch = "", initialTab = "", t, lang }) => {
   const [expanded, setExpanded] = React.useState(null);
   const [mergingPair, setMergingPair] = React.useState(null);
   const [mergingEntPair, setMergingEntPair] = React.useState(null);
@@ -549,14 +549,20 @@ const DuplicatesPage = ({ pairs, entityPairs = [], data, onMerge, onMergeWithDat
   const [manEB, setManEB] = React.useState(null);
   const [qEA, setQEA] = React.useState("");
   const [qEB, setQEB] = React.useState("");
-  const [dupTab, setDupTab] = React.useState("personas"); // "personas" | "entidades"
+  const [dupTab, setDupTab] = React.useState(initialTab || "personas"); // "personas" | "entidades"
   const [manA, setManA] = React.useState(null);   // selected persona A
   const [manB, setManB] = React.useState(null);   // selected persona B
   const [qA, setQA] = React.useState("");
   const [qB, setQB] = React.useState("");
   const [visP, setVisP] = React.useState(40);  // # of active contact pairs rendered (paginate — 2000 cards froze the page)
   const [visE, setVisE] = React.useState(40);  // # of active entity pairs rendered
-  const [dupSearch, setDupSearch] = React.useState("");
+  const [dupSearch, setDupSearch] = React.useState(initialSearch || "");
+  // When navigated here from a profile's "Ver" (with a record id/tab), jump to that
+  // record's pair instead of showing the whole list.
+  React.useEffect(() => {
+    if (initialSearch) setDupSearch(initialSearch);
+    if (initialTab) setDupTab(initialTab);
+  }, [initialSearch, initialTab]);
   const es = lang === "es";
   // Index records by id ONCE. Was: data.personas.find() per pair × 2 × ~18k records
   // = tens of millions of scans every render → the Duplicates page crawled.

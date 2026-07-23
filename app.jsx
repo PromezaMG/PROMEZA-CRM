@@ -2455,7 +2455,7 @@ const App = () => {
     case "goals": view = <GoalsView lang={lang} data={data} go={go} onAddGoal={addGoal} onUpdateGoal={updateGoal} onDeleteGoal={deleteGoal} />; break;
     case "county": view = <CountyView t={t} lang={lang} data={data} go={go} />; break;
     case "map": view = <MapPage t={t} lang={lang} data={data} go={go} />; break;
-    case "duplicates": view = <DuplicatesPage pairs={dupPairs} entityPairs={entityDupPairs} data={data} onMerge={handleMergePersonas} onMergeWithData={handleMergeWithData} onMergeEntity={handleMergeEntities} onMergeEntityWithData={handleMergeEntitiesWithData} onDismiss={handleDismissDup} onUndismiss={handleUndismissDup} onDismissEntity={handleDismissEntityDup} onUndismissEntity={handleUndismissEntityDup} onScanAll={handleScanAll} onCreateDemo={handleCreateDemo} onCreateManual={handleCreateManualDup} onCreateManualEntity={handleCreateManualEntityDup} onOpenHistory={openHistory} t={t} lang={lang} />; break;
+    case "duplicates": view = <DuplicatesPage pairs={dupPairs} entityPairs={entityDupPairs} data={data} onMerge={handleMergePersonas} onMergeWithData={handleMergeWithData} onMergeEntity={handleMergeEntities} onMergeEntityWithData={handleMergeEntitiesWithData} onDismiss={handleDismissDup} onUndismiss={handleUndismissDup} onDismissEntity={handleDismissEntityDup} onUndismissEntity={handleUndismissEntityDup} onScanAll={handleScanAll} onCreateDemo={handleCreateDemo} onCreateManual={handleCreateManualDup} onCreateManualEntity={handleCreateManualEntityDup} onOpenHistory={openHistory} initialSearch={route.q || ""} initialTab={route.tab || ""} t={t} lang={lang} />; break;
     default: view = <Home t={t} lang={lang} data={data} go={go} />;
   }
 

@@ -518,7 +518,7 @@ const GlobalTasksView = ({ t, lang, data, go, tasks, onAddTask, onToggleTask, on
                       <button
                         className="btn btn-ghost btn-sm"
                         style={{ padding: "1px 8px", fontSize: 11, color: "#7c3aed", borderColor: "#ede9fe", background: "#ede9fe", height: "auto" }}
-                        onClick={() => go({ name: "duplicates" })}>
+                        onClick={() => go(task._isDup && task._goRoute ? { name: "duplicates", q: task._goRoute.id, tab: task._isEnt ? "entidades" : "personas" } : { name: "duplicates" })}>
                         <Icon name="users" size={11} /> {lang === "es" ? "Revisar duplicados →" : "Review duplicates →"}
                       </button>
                     )}

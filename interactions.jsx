@@ -152,7 +152,7 @@ const InteractionsTab = ({ personId, interactions, onAdd, onDelete, lang }) => {
   );
 };
 
-const TasksTab = ({ personId, tasks, onAddTask, onToggleTask, onDeleteTask, lang, users, currentUser, hasDuplicate, go, onResolveDuplicate }) => {
+const TasksTab = ({ personId, tasks, onAddTask, onToggleTask, onDeleteTask, lang, users, currentUser, hasDuplicate, go, onResolveDuplicate, dupTab }) => {
   const [text, setText] = React.useState("");
   const [due, setDue] = React.useState("");
   const [assignedTo, setAssignedTo] = React.useState(currentUser || "");
@@ -246,7 +246,7 @@ const TasksTab = ({ personId, tasks, onAddTask, onToggleTask, onDeleteTask, lang
                 {lang === "es" ? "Comparte correo o teléfono con otro registro. Al fusionarlo o marcarlo como resuelto, esta tarea desaparece." : "Shares email/phone with another record."}
               </div>
             </div>
-            <button className="btn btn-sm" style={{ flexShrink: 0 }} onClick={() => go && go({ name: "duplicates" })}>
+            <button className="btn btn-sm" style={{ flexShrink: 0 }} onClick={() => go && go({ name: "duplicates", q: personId, tab: dupTab || "personas" })}>
               {lang === "es" ? "Ver" : "View"}
             </button>
           </div>

@@ -670,6 +670,7 @@ const PersonProfile = ({ id, t, lang, data, go, goBack, addComment, onUpdatePers
           hasDuplicate={hasDup}
           go={go}
           onResolveDuplicate={onResolveDuplicate}
+          dupTab="personas"
         />
       )}
 
@@ -1060,6 +1061,7 @@ const EntityProfile = ({ id, t, lang, data, go, goBack, addComment, onUpdateEnti
           hasDuplicate={hasDup}
           go={go}
           onResolveDuplicate={onResolveDuplicate}
+          dupTab="entidades"
         />
       )}
 

@@ -8436,7 +8436,8 @@ const PersonProfile = ({
     currentUser: currentUser,
     hasDuplicate: hasDup,
     go: go,
-    onResolveDuplicate: onResolveDuplicate
+    onResolveDuplicate: onResolveDuplicate,
+    dupTab: "personas"
   }), tab === "comments" && /*#__PURE__*/React.createElement("div", {
     className: "section"
   }, /*#__PURE__*/React.createElement("h3", null, t.common.comments), /*#__PURE__*/React.createElement("div", {
@@ -9154,7 +9155,8 @@ const EntityProfile = ({
     currentUser: currentUser,
     hasDuplicate: hasDup,
     go: go,
-    onResolveDuplicate: onResolveDuplicate
+    onResolveDuplicate: onResolveDuplicate,
+    dupTab: "entidades"
   }), tab === "comments" && /*#__PURE__*/React.createElement("div", {
     className: "section"
   }, /*#__PURE__*/React.createElement("h3", null, t.common.comments), /*#__PURE__*/React.createElement("div", {
@@ -11756,6 +11758,8 @@ const DuplicatesPage = ({
   onCreateManual,
   onCreateManualEntity,
   onOpenHistory,
+  initialSearch = "",
+  initialTab = "",
   t,
   lang
 }) => {
@@ -11768,14 +11772,20 @@ const DuplicatesPage = ({
   const [manEB, setManEB] = React.useState(null);
   const [qEA, setQEA] = React.useState("");
   const [qEB, setQEB] = React.useState("");
-  const [dupTab, setDupTab] = React.useState("personas"); // "personas" | "entidades"
+  const [dupTab, setDupTab] = React.useState(initialTab || "personas"); // "personas" | "entidades"
   const [manA, setManA] = React.useState(null); // selected persona A
   const [manB, setManB] = React.useState(null); // selected persona B
   const [qA, setQA] = React.useState("");
   const [qB, setQB] = React.useState("");
   const [visP, setVisP] = React.useState(40); // # of active contact pairs rendered (paginate — 2000 cards froze the page)
   const [visE, setVisE] = React.useState(40); // # of active entity pairs rendered
-  const [dupSearch, setDupSearch] = React.useState("");
+  const [dupSearch, setDupSearch] = React.useState(initialSearch || "");
+  // When navigated here from a profile's "Ver" (with a record id/tab), jump to that
+  // record's pair instead of showing the whole list.
+  React.useEffect(() => {
+    if (initialSearch) setDupSearch(initialSearch);
+    if (initialTab) setDupTab(initialTab);
+  }, [initialSearch, initialTab]);
   const es = lang === "es";
   // Index records by id ONCE. Was: data.personas.find() per pair × 2 × ~18k records
   // = tens of millions of scans every render → the Duplicates page crawled.
@@ -13225,7 +13235,8 @@ const TasksTab = ({
   currentUser,
   hasDuplicate,
   go,
-  onResolveDuplicate
+  onResolveDuplicate,
+  dupTab
 }) => {
   const [text, setText] = React.useState("");
   const [due, setDue] = React.useState("");
@@ -13385,7 +13396,9 @@ const TasksTab = ({
       flexShrink: 0
     },
     onClick: () => go && go({
-      name: "duplicates"
+      name: "duplicates",
+      q: personId,
+      tab: dupTab || "personas"
     })
   }, lang === "es" ? "Ver" : "View")), pending.map(task => /*#__PURE__*/React.createElement("div", {
     key: task.id,
@@ -14485,7 +14498,11 @@ const GlobalTasksView = ({
         background: "#ede9fe",
         height: "auto"
       },
-      onClick: () => go({
+      onClick: () => go(task._isDup && task._goRoute ? {
+        name: "duplicates",
+        q: task._goRoute.id,
+        tab: task._isEnt ? "entidades" : "personas"
+      } : {
         name: "duplicates"
       })
     }, /*#__PURE__*/React.createElement(Icon, {
@@ -24035,6 +24052,8 @@ const App = () => {
         onCreateManual: handleCreateManualDup,
         onCreateManualEntity: handleCreateManualEntityDup,
         onOpenHistory: openHistory,
+        initialSearch: route.q || "",
+        initialTab: route.tab || "",
         t: t,
         lang: lang
       });
