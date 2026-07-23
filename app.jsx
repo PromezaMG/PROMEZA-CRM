@@ -843,6 +843,7 @@ const App = () => {
   const savingRef = useRef(false);    // a save is in flight (avoid overlapping heavy saves)
   const lastVisSyncRef = useRef(0);   // throttle sync-on-tab-focus
   const syncInFlightRef = useRef(false); // a full Airtable pull is running (never overlap — each pull is ~160 paged HTTP calls at 16k records)
+  const deletedIdsRef = useRef(new Set()); // ids deleted on any device (shared tombstones) — filter local ghosts
   const lastSyncTimeRef = useRef(localStorage.getItem("promeza_delta_since") || ""); // ISO of last successful sync — delta syncs pull only records changed after this
 
   const mergeFromAirtable = (atData, prev, prevLastLoad = "") => {
@@ -970,8 +971,13 @@ const App = () => {
       emails: e.emails || [],
     }));
 
-    const finalPersonas = [...mergedPersonas, ...remoteOnlyPersonas];
-    const finalEntities = [...mergedEntities, ...remoteOnlyEntities];
+    // Drop records that were deleted (merged away / removed) on ANY device — Airtable
+    // has no "deleted" signal in a delta sync, so we track deletions in a shared
+    // tombstone list. Without this, a record deleted elsewhere lingers as a local
+    // "ghost" and shows up twice in search.
+    const _del = deletedIdsRef.current || new Set();
+    const finalPersonas = [...mergedPersonas, ...remoteOnlyPersonas].filter(p => !_del.has(p.id));
+    const finalEntities = [...mergedEntities, ...remoteOnlyEntities].filter(e => !_del.has(e.id));
     // Keep the changelog map fresh from records' own (persisted) history — take
     // whichever copy has more entries so a sync never loses history.
     const changelog = { ...prev.changelog };
@@ -995,7 +1001,7 @@ const App = () => {
     setAtSyncing(true);
     const prevLastLoad = window.AIRTABLE.getLastLoad() || "";
     const nowIso = new Date().toISOString();
-    window.AIRTABLE.loadData().then(atData => {
+    window.AIRTABLE.loadData().then(async atData => {
       if (atData && (atData.personas.length > 0 || atData.entities.length > 0)) {
         // A full pull succeeded — advance the delta baseline so later background syncs
         // only fetch what changes from here on.
@@ -1008,6 +1014,8 @@ const App = () => {
           return;
         }
         lastSyncSigRef.current = sig;
+        // Refresh the shared tombstone list so deletions from other devices are applied.
+        try { const ids = await window.AIRTABLE.loadAppState("deletedIds"); if (Array.isArray(ids)) ids.forEach(id => deletedIdsRef.current.add(id)); } catch (e) {}
         setData(prev => mergeFromAirtable(atData, prev, prevLastLoad));
         setAtSyncMsg({ type: "ok", text: "â†“ Airtable: " + atData.personas.length + " personas Â· " + atData.entities.length + " entidades" });
       } else if (atData) {
@@ -1090,14 +1098,14 @@ const App = () => {
       // The database was rebuilt clean from the source spreadsheet. Load ONLY from
       // Airtable (ignore the old local cache AND the bundled data.js seed) so every
       // device shows the clean base. Runs once per browser.
-      if (!localStorage.getItem('promeza_cleanslate_v189')) {
+      if (!localStorage.getItem('promeza_cleanslate_v190')) {
         try {
           const at = await window.AIRTABLE.loadData();
           if (at && ((at.personas || []).length > 200)) {
             const fresh = processLoadedData({ personas: at.personas, entities: at.entities, tasks: {}, interactions: {}, projects: [], campaigns: [], calendarEvents: [], comments: {}, attachments: {}, changelog: {}, goals: [], segments: [] });
             try { delete window.PROMEZA_DATA; } catch (e) {}
             try { delete window.PROMEZA_CHURCHES; } catch (e) {}
-            localStorage.setItem('promeza_cleanslate_v189', '1');
+            localStorage.setItem('promeza_cleanslate_v190', '1');
             try { const bytes = await window.CryptoUtils.encryptBytes(JSON.stringify(fresh), key); await idbSet('promeza_data_bytes', bytes); } catch (e) {}
             setData(fresh); setDataReady(true);
             console.log('PROMEZA: clean-slate loaded ' + fresh.personas.length + ' contacts from Airtable');
@@ -1604,6 +1612,27 @@ const App = () => {
     return () => { cancelled = true; };
   }, [dataReady]);
 
+  // Load the shared tombstone list (deleted ids) and purge any local "ghost" records
+  // that were deleted on another device (merges/deletes that didn't propagate here).
+  useEffect(() => {
+    if (!dataReady) return;
+    let cancelled = false;
+    (async () => {
+      let ids = null;
+      try { ids = await window.AIRTABLE.loadAppState("deletedIds"); } catch (e) {}
+      if (cancelled || !Array.isArray(ids) || ids.length === 0) return;
+      ids.forEach(id => deletedIdsRef.current.add(id));
+      setData(d => {
+        if (!d) return d;
+        const pn = d.personas.filter(p => !deletedIdsRef.current.has(p.id));
+        const en = d.entities.filter(e => !deletedIdsRef.current.has(e.id));
+        if (pn.length === d.personas.length && en.length === d.entities.length) return d;
+        return { ...d, personas: pn, entities: en };
+      });
+    })();
+    return () => { cancelled = true; };
+  }, [dataReady]);
+
   // Persist duplicate-review state on change (after the initial load). Saves to
   // localStorage immediately and to Airtable (debounced) so all devices share it.
   useEffect(() => {
@@ -1909,7 +1938,7 @@ const App = () => {
   const handleDeletePerson = (id) => {
     if (!confirm(lang === "es" ? "Â¿Eliminar esta persona? Esta acciÃ³n no se puede deshacer." : "Delete this person? This cannot be undone.")) return;
     const cfg = window.AIRTABLE.getConfig();
-    if (cfg.pat && cfg.baseId) window.AIRTABLE.deleteRecord(cfg.personasTable || "PERSONAS PROMEZA CRM", id).catch(console.warn);
+    if (cfg.pat && cfg.baseId) window.AIRTABLE.deleteRecord(cfg.personasTable || "PERSONAS PROMEZA CRM", id).catch(console.warn); recordDeletion(id);
     setData(d => ({ ...d, personas: d.personas.filter(p => p.id !== id) }));
     setRoute({ name: "personas" });
   };
@@ -1924,7 +1953,7 @@ const App = () => {
   const handleDeleteEntity = (id) => {
     if (!confirm(lang === "es" ? "Â¿Eliminar esta entidad? Esta acciÃ³n no se puede deshacer." : "Delete this entity? This cannot be undone.")) return;
     const cfg = window.AIRTABLE.getConfig();
-    if (cfg.pat && cfg.baseId) window.AIRTABLE.deleteRecord(cfg.entidadesTable || "ENTIDADES PROMEZA CRM", id).catch(console.warn);
+    if (cfg.pat && cfg.baseId) window.AIRTABLE.deleteRecord(cfg.entidadesTable || "ENTIDADES PROMEZA CRM", id).catch(console.warn); recordDeletion(id);
     setData(d => ({ ...d, entities: d.entities.filter(e => e.id !== id) }));
     setRoute({ name: "entities" });
   };
@@ -2081,6 +2110,17 @@ const App = () => {
       await window.AIRTABLE.saveAppState("actionLog", cur);
     } catch (e) { console.warn("logAction", e); }
   };
+  // Record a deletion in the shared tombstone list so it propagates to every device.
+  const recordDeletion = (id) => {
+    if (!id) return;
+    try { deletedIdsRef.current.add(id); } catch (e) {}
+    (async () => {
+      try {
+        const cur = (await window.AIRTABLE.loadAppState("deletedIds")) || [];
+        if (!cur.includes(id)) { cur.unshift(id); if (cur.length > 8000) cur.length = 8000; await window.AIRTABLE.saveAppState("deletedIds", cur); }
+      } catch (e) { console.warn("recordDeletion", e); }
+    })();
+  };
   const openHistory = async () => {
     setHistoryOpen(true); setHistoryLog(null);
     try { setHistoryLog((await window.AIRTABLE.loadAppState("actionLog")) || []); }
@@ -2121,7 +2161,7 @@ const App = () => {
     // record (it still exists in Airtable) and reverts the keeper → "queda todo igual".
     window.AIRTABLE.savePersona(mergedKeep, data.entities).catch(console.warn);
     const cfg = window.AIRTABLE.getConfig();
-    if (cfg.pat && cfg.baseId) window.AIRTABLE.deleteRecord(cfg.personasTable || "PERSONAS PROMEZA CRM", dropId).catch(console.warn);
+    if (cfg.pat && cfg.baseId) window.AIRTABLE.deleteRecord(cfg.personasTable || "PERSONAS PROMEZA CRM", dropId).catch(console.warn); recordDeletion(dropId);
     const _dw = data.personas.find(p => p.id === dropId) || {};
     logAction("merge", `Fusionó contacto "${((_dw.first || "") + " " + (_dw.last || "")).trim()}" → "${((mergedData.first || "") + " " + (mergedData.last || "")).trim()}"`);
   };
@@ -2183,7 +2223,7 @@ const App = () => {
     // the dropped record and reverts the keeper → the user saw "queda todo igual").
     window.AIRTABLE.savePersona(merged, data.entities).catch(console.warn);
     const cfg = window.AIRTABLE.getConfig();
-    if (cfg.pat && cfg.baseId) window.AIRTABLE.deleteRecord(cfg.personasTable || "PERSONAS PROMEZA CRM", idB).catch(console.warn);
+    if (cfg.pat && cfg.baseId) window.AIRTABLE.deleteRecord(cfg.personasTable || "PERSONAS PROMEZA CRM", idB).catch(console.warn); recordDeletion(idB);
     logAction("merge", `Fusionó contacto "${dropName.trim()}" → "${((keep0.first || "") + " " + (keep0.last || "")).trim()}"`);
   };
 
@@ -2256,7 +2296,7 @@ const App = () => {
     window.AIRTABLE.saveEntity(merged, data.entities).catch(console.warn);
     repointed.forEach(p => window.AIRTABLE.savePersona(p, data.entities).catch(console.warn));
     const cfg = window.AIRTABLE.getConfig();
-    if (cfg.pat && cfg.baseId) window.AIRTABLE.deleteRecord(cfg.entidadesTable || "ENTIDADES PROMEZA CRM", idB).catch(console.warn);
+    if (cfg.pat && cfg.baseId) window.AIRTABLE.deleteRecord(cfg.entidadesTable || "ENTIDADES PROMEZA CRM", idB).catch(console.warn); recordDeletion(idB);
     logAction("merge", `Fusionó medio "${drop.name}" → "${keep0.name}"`);
   };
 
@@ -2292,7 +2332,7 @@ const App = () => {
     window.AIRTABLE.saveEntity(merged, data.entities).catch(console.warn);
     repointed.forEach(p => window.AIRTABLE.savePersona(p, data.entities).catch(console.warn));
     const cfg = window.AIRTABLE.getConfig();
-    if (cfg.pat && cfg.baseId) window.AIRTABLE.deleteRecord(cfg.entidadesTable || "ENTIDADES PROMEZA CRM", dropId).catch(console.warn);
+    if (cfg.pat && cfg.baseId) window.AIRTABLE.deleteRecord(cfg.entidadesTable || "ENTIDADES PROMEZA CRM", dropId).catch(console.warn); recordDeletion(dropId);
     logAction("merge", `Fusionó medio "${drop.name}" → "${merged.name}"`);
   };
   const handleDismissEntityDup = (pair) => {
