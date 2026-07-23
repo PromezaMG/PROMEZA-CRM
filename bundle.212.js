@@ -21545,11 +21545,22 @@ const App = () => {
   const deletedIdsRef = useRef(new Set()); // ids deleted on any device (shared tombstones) — filter local ghosts
   const lastSyncTimeRef = useRef(localStorage.getItem("promeza_delta_since") || ""); // ISO of last successful sync — delta syncs pull only records changed after this
 
-  const mergeFromAirtable = (atData, prev, prevLastLoad = "") => {
+  const mergeFromAirtable = (atData, prev, prevLastLoad = "", isFullPull = false) => {
     if (!atData || !prev) return prev;
     // prevLastLoad = BEFORE this fetch started â€” edits after that moment are "newer than Airtable"
     const atPersonaMap = new Map((atData.personas || []).map(p => [p.id, p]));
     const atEntityMap = new Map((atData.entities || []).map(e => [e.id, e]));
+
+    // GHOST REMOVAL (root fix for "record shows twice"): on a FULL pull, a local record
+    // that was previously in Airtable (_atId set) but is now absent was deleted/merged
+    // on another device → drop it. Guards: only when the pull is trustworthy (got most
+    // of the dataset, not a partial/failed pull) and the record wasn't just saved locally
+    // (Airtable may not have indexed a brand-new save yet). Records never saved (no _atId)
+    // are always kept (unsaved local creations).
+    const ghostCutoff = new Date(Date.now() - 180000).toISOString();
+    const trustPersonas = isFullPull && (atData.personas || []).length >= prev.personas.length * 0.85;
+    const trustEntities = isFullPull && (atData.entities || []).length >= prev.entities.length * 0.85;
+    const isGhost = (local, trust) => trust && local._atId && !(local._localSavedAt && local._localSavedAt > ghostCutoff);
 
     // data.js is the authoritative source for p5xxx identity fields.
     // Airtable was seeded from a corrupted CRM export, so its first/last/titulo
@@ -21612,7 +21623,7 @@ const App = () => {
     };
     const mergedPersonas = prev.personas.map(local => {
       const remote = atPersonaMap.get(local.id);
-      if (!remote) return local;
+      if (!remote) return isGhost(local, trustPersonas) ? null : local;
       if (local._localSavedAt && local._localSavedAt > prevLastLoad) {
         // Local was edited after the last Airtable load â†’ keep local, update _atId
         return {
@@ -21661,12 +21672,12 @@ const App = () => {
         })) : pick(remote.emails, local.emails),
         addressLabel: remote.addressLabel || local.addressLabel || "domicilio"
       };
-    });
+    }).filter(Boolean);
     const localPersonaIds = new Set(prev.personas.map(p => p.id));
     const remoteOnlyPersonas = atData.personas.filter(p => !localPersonaIds.has(p.id));
     const mergedEntities = prev.entities.map(local => {
       const remote = atEntityMap.get(local.id);
-      if (!remote) return local;
+      if (!remote) return isGhost(local, trustEntities) ? null : local;
       if (local._localSavedAt && local._localSavedAt > prevLastLoad) {
         // Local was edited after last Airtable load â†’ keep local edits, but recover
         // complex fields (schedule/phones/emails) from remote if local lacks them
@@ -21688,7 +21699,7 @@ const App = () => {
         phones: pick(remote.phones, local.phones),
         emails: pick(remote.emails, local.emails)
       });
-    });
+    }).filter(Boolean);
     const localEntityIds = new Set(prev.entities.map(e => e.id));
     const remoteOnlyEntities = atData.entities.filter(e => !localEntityIds.has(e.id)).map(e => fixEntityName({
       ...e,
@@ -21736,6 +21747,27 @@ const App = () => {
         try {
           localStorage.setItem("promeza_delta_since", nowIso);
         } catch (e) {}
+        // ── Ghost purge (runs on EVERY full pull, even if Airtable content is unchanged,
+        // because a ghost is a LOCAL discrepancy) ── remove local records that were in
+        // Airtable before (_atId) but are now absent = deleted/merged elsewhere. Guarded:
+        // only when the pull is trustworthy (got ≥85% of the local count, not a partial
+        // failure) and the record wasn't just saved (<3 min, Airtable may not have indexed).
+        const _pIds = new Set(atData.personas.map(p => p.id));
+        const _eIds = new Set(atData.entities.map(e => e.id));
+        const _cut = new Date(Date.now() - 180000).toISOString();
+        setData(d => {
+          if (!d) return d;
+          const trustP = atData.personas.length >= d.personas.length * 0.85;
+          const trustE = atData.entities.length >= d.entities.length * 0.85;
+          const pn = trustP ? d.personas.filter(p => _pIds.has(p.id) || !p._atId || p._localSavedAt && p._localSavedAt > _cut) : d.personas;
+          const en = trustE ? d.entities.filter(e => _eIds.has(e.id) || !e._atId || e._localSavedAt && e._localSavedAt > _cut) : d.entities;
+          if (pn.length === d.personas.length && en.length === d.entities.length) return d;
+          return {
+            ...d,
+            personas: pn,
+            entities: en
+          };
+        });
         const sig = atSignature(atData);
         if (sig === lastSyncSigRef.current) {
           // Airtable unchanged since last sync â€” skip the heavy merge/re-render/
@@ -21748,7 +21780,7 @@ const App = () => {
           const ids = await window.AIRTABLE.loadAppState("deletedIds");
           if (Array.isArray(ids)) ids.forEach(id => deletedIdsRef.current.add(id));
         } catch (e) {}
-        setData(prev => mergeFromAirtable(atData, prev, prevLastLoad));
+        setData(prev => mergeFromAirtable(atData, prev, prevLastLoad, true));
         setAtSyncMsg({
           type: "ok",
           text: "â†“ Airtable: " + atData.personas.length + " personas Â· " + atData.entities.length + " entidades"
