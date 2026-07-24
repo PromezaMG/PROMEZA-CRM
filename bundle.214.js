@@ -23131,7 +23131,9 @@ const App = () => {
         id: le.id,
         role: le.role,
         roleOther: le.roleOther
-      }))
+      })),
+      email: (form.emails || [])[0]?.value || "",
+      phone: (form.phones || [])[0]?.value || ""
     };
     handleUpdatePerson(editingId, updates);
     setModal(null);
@@ -23159,7 +23161,9 @@ const App = () => {
     handleUpdateEntity(editingId, {
       ...form,
       tags,
-      size: form.size ? parseInt(form.size) : null
+      size: form.size ? parseInt(form.size) : null,
+      email: (form.emails || [])[0]?.value || "",
+      phone: (form.phones || [])[0]?.value || ""
     });
     setModal(null);
     setEditingId(null);

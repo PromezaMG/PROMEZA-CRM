@@ -1963,7 +1963,7 @@ const App = () => {
   const handleSaveEditPerson = (form) => {
     const tags = form.tags ? form.tags.split(",").map(s => s.trim()).filter(Boolean) : [];
     const status = form.stage === "inactivo" ? "inactivo" : "activo";
-    const updates = { ...form, tags, status, entities: form.entities.map(le => ({ id: le.id, role: le.role, roleOther: le.roleOther })) };
+    const updates = { ...form, tags, status, entities: form.entities.map(le => ({ id: le.id, role: le.role, roleOther: le.roleOther })), email: (form.emails || [])[0]?.value || "", phone: (form.phones || [])[0]?.value || "" };
     handleUpdatePerson(editingId, updates);
     setModal(null);
     setEditingId(null);
@@ -1979,7 +1979,7 @@ const App = () => {
   const handleEditEntity = (id) => { setEditingId(id); setModal("edit-entity"); };
   const handleSaveEditEntity = (form) => {
     const tags = form.tags ? form.tags.split(",").map(s => s.trim()).filter(Boolean) : [];
-    handleUpdateEntity(editingId, { ...form, tags, size: form.size ? parseInt(form.size) : null });
+    handleUpdateEntity(editingId, { ...form, tags, size: form.size ? parseInt(form.size) : null, email: (form.emails || [])[0]?.value || "", phone: (form.phones || [])[0]?.value || "" });
     setModal(null);
     setEditingId(null);
   };
