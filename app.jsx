@@ -1605,7 +1605,12 @@ const App = () => {
     const runFull = () => { if (document.visibilityState === "visible") { lastVisSyncRef.current = Date.now(); syncFromAirtable(); } };
     const runDelta = () => { if (document.visibilityState === "visible") { lastVisSyncRef.current = Date.now(); deltaSyncFromAirtable(); } };
     const first = setTimeout(runFull, 3000);
-    const interval = setInterval(runDelta, 240000);
+    // Every 2 min: usually a cheap DELTA pull, but every 4th tick (~8 min) a FULL pull.
+    // The full pull is the SAFETY NET — it catches changes the delta missed (e.g. a bulk
+    // edit that didn't bump "Ultima modificacion", or a delta baseline gap) AND runs the
+    // ghost purge. This is what guarantees everything eventually shows on every device.
+    let _tick = 0;
+    const interval = setInterval(() => { _tick++; if (_tick % 4 === 0) runFull(); else runDelta(); }, 120000);
     // Sync when the tab regains focus, throttled to once/2min. (A full pull is ~160
     // paged HTTP calls at 16k records — doing it on every focus, as an earlier 20s
     // throttle did, made the whole app crawl.) On-open + this + the 4-min timer keep

@@ -392,7 +392,7 @@ const NewPersonForm = ({ t, lang, data, onClose, onSave, initialData, editMode, 
         </div>
         <div className="modal-foot">
           <button className="btn" onClick={onClose}>{t.common.cancel}</button>
-          <button className="btn btn-primary" onClick={() => onSave(form)} disabled={!form.first || !form.last}>
+          <button className="btn btn-primary" onClick={() => onSave(form)} disabled={!form.first && !form.last}>
             {editMode ? <><Icon name="check" /> {lang === "es" ? "Guardar cambios" : "Save changes"}</> : <><Icon name="plus" /> {t.forms.saveCreate}</>}
           </button>
         </div>
