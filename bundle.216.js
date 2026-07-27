@@ -22586,7 +22586,13 @@ const App = () => {
         deltaSyncFromAirtable();
       }
     };
-    const first = setTimeout(runFull, 3000);
+    // OPEN SPEED: the first sync is now a LIGHT delta (only records changed since the
+    // baseline) so opening feels fast. The heavy FULL pull (~230 paged HTTP calls +
+    // merge of every record, which briefly hitches the UI) is deferred to 40s — after
+    // the app has settled and the user is already working — instead of firing at 3s and
+    // competing with the fresh open.
+    const first = setTimeout(runDelta, 4000);
+    const firstFull = setTimeout(runFull, 40000);
     // Every 2 min: usually a cheap DELTA pull, but every 4th tick (~8 min) a FULL pull.
     // The full pull is the SAFETY NET — it catches changes the delta missed (e.g. a bulk
     // edit that didn't bump "Ultima modificacion", or a delta baseline gap) AND runs the
@@ -22606,6 +22612,7 @@ const App = () => {
     document.addEventListener("visibilitychange", onVis);
     return () => {
       clearTimeout(first);
+      clearTimeout(firstFull);
       clearInterval(interval);
       document.removeEventListener("visibilitychange", onVis);
     };
