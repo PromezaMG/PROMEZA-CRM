@@ -143,7 +143,7 @@ const Home = ({ t, lang, data, go }) => {
   const stages = window.PIPELINE_STAGES || [];
 
   const KpiCard = ({ label, value, sub, color, icon, route, delay = 0 }) => (
-    <div className="kpi-card-new" style={{ animationDelay: delay + "ms", cursor: "pointer" }} onClick={() => go({ name: route })}>
+    <GoLink route={{ name: route }} className="kpi-card-new" style={{ animationDelay: delay + "ms", cursor: "pointer" }} title="Abrir · clic derecho para nueva pestaña">
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 10 }}>
         <div style={{ width: 38, height: 38, borderRadius: 10, background: color + "18", display: "grid", placeItems: "center" }}>
           <Icon name={icon} size={18} style={{ color }} />
@@ -152,7 +152,7 @@ const Home = ({ t, lang, data, go }) => {
       </div>
       <div style={{ fontSize: 32, fontWeight: 800, color, letterSpacing: "-.02em", lineHeight: 1 }}>{typeof value === "number" ? value.toLocaleString() : value}</div>
       <div style={{ fontSize: 12, color: "var(--ink-3)", marginTop: 5, fontWeight: 500 }}>{sub}</div>
-    </div>
+    </GoLink>
   );
 
   return (
@@ -197,7 +197,7 @@ const Home = ({ t, lang, data, go }) => {
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
             <Icon name="alert" size={16} style={{ color: "#ef4444" }} />
             <span style={{ fontWeight: 700, fontSize: 13.5, color: "#991b1b" }}>{overdueTasksList.length} {lang === "en" ? "overdue task" + (overdueTasksList.length !== 1 ? "s" : "") : "tarea" + (overdueTasksList.length !== 1 ? "s" : "") + " vencida" + (overdueTasksList.length !== 1 ? "s" : "")}</span>
-            <button className="btn btn-sm" style={{ marginLeft: "auto", fontSize: 11, background: "#fef2f2", borderColor: "#fecaca", color: "#b91c1c" }} onClick={() => go({ name: "tasks" })}>{lang === "en" ? "View all" : "Ver todas"}</button>
+            <GoLink route={{ name: "tasks" }} className="btn btn-sm" style={{ marginLeft: "auto", fontSize: 11, background: "#fef2f2", borderColor: "#fecaca", color: "#b91c1c" }}>{lang === "en" ? "View all" : "Ver todas"}</GoLink>
           </div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
             {overdueTasksList.map(tk => (
@@ -219,7 +219,7 @@ const Home = ({ t, lang, data, go }) => {
         <div className="card" style={{ animation: "slideUp .35s ease-out" }}>
           <div className="card-head">
             <div className="card-title">{lang === "en" ? "Contact stages" : "Etapas de contacto"}</div>
-            <button className="btn btn-sm btn-ghost" style={{ fontSize: 11 }} onClick={() => go({ name: "pipeline" })}>Pipeline →</button>
+            <GoLink route={{ name: "pipeline" }} className="btn btn-sm btn-ghost" style={{ fontSize: 11 }}>Pipeline →</GoLink>
           </div>
           <div style={{ padding: "12px 16px 16px", display: "flex", alignItems: "center", gap: 16 }}>
             <DonutChart segments={[
@@ -250,7 +250,7 @@ const Home = ({ t, lang, data, go }) => {
         <div className="card" style={{ animation: "slideUp .35s ease-out .05s both" }}>
           <div className="card-head">
             <div className="card-title">{lang === "en" ? "Entity types" : "Tipos de entidad"}</div>
-            <button className="btn btn-sm btn-ghost" style={{ fontSize: 11 }} onClick={() => go({ name: "entities" })}>{lang === "en" ? "View →" : "Ver →"}</button>
+            <GoLink route={{ name: "entities" }} className="btn btn-sm btn-ghost" style={{ fontSize: 11 }}>{lang === "en" ? "View →" : "Ver →"}</GoLink>
           </div>
           <div style={{ padding: "10px 16px 14px" }}>
             {topEntityTypes.map(([type, count]) => (
@@ -263,14 +263,14 @@ const Home = ({ t, lang, data, go }) => {
               </div>
             ))}
             {topEntityTypes.length === 0 && <div style={{ fontSize: 12, color: "var(--ink-4)", textAlign: "center", padding: "24px 0" }}>{lang === "en" ? "No entities" : "Sin entidades"}</div>}
-            <div onClick={() => go({ name: "entities", preset: "inactivas" })}
+            <GoLink route={{ name: "entities", preset: "inactivas" }}
               title={lang === "en" ? "Show inactive entities" : "Ver entidades inactivas"}
               style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 8, paddingTop: 10, borderTop: "1px solid var(--line)", cursor: "pointer", fontSize: 12 }}>
               <span style={{ width: 9, height: 9, borderRadius: 3, background: "#94a3b8", flexShrink: 0 }} />
               <span style={{ flex: 1, color: "var(--ink-3)", fontWeight: 600 }}>{lang === "en" ? "No longer broadcasting / inactive" : "Ya no transmiten / inactivas"}</span>
               <span style={{ fontSize: 14, fontWeight: 800, color: entInactivas > 0 ? "#64748b" : "var(--good)" }}>{entInactivas}</span>
               <span style={{ color: "var(--ink-4)" }}>›</span>
-            </div>
+            </GoLink>
           </div>
         </div>
 
@@ -278,7 +278,7 @@ const Home = ({ t, lang, data, go }) => {
         <div className="card" style={{ animation: "slideUp .35s ease-out .1s both" }}>
           <div className="card-head">
             <div className="card-title">{lang === "en" ? "Top entities" : "Top entidades"}</div>
-            <button className="btn btn-sm btn-ghost" style={{ fontSize: 11 }} onClick={() => go({ name: "entities" })}>{lang === "en" ? "View all →" : "Ver todas →"}</button>
+            <GoLink route={{ name: "entities" }} className="btn btn-sm btn-ghost" style={{ fontSize: 11 }}>{lang === "en" ? "View all →" : "Ver todas →"}</GoLink>
           </div>
           <div>
             {topEntitiesByCount.length === 0
@@ -307,7 +307,7 @@ const Home = ({ t, lang, data, go }) => {
         <div className="card" style={{ animation: "slideUp .35s ease-out .15s both" }}>
           <div className="card-head">
             <div className="card-title">{lang === "en" ? "Contact status" : "Estado de contactos"}</div>
-            <button className="btn btn-sm btn-ghost" style={{ fontSize: 11 }} onClick={() => go({ name: "personas" })}>{lang === "en" ? "View list →" : "Ver lista →"}</button>
+            <GoLink route={{ name: "personas" }} className="btn btn-sm btn-ghost" style={{ fontSize: 11 }}>{lang === "en" ? "View list →" : "Ver lista →"}</GoLink>
           </div>
           <div style={{ padding: "8px 12px 12px" }}>
             {[
@@ -315,7 +315,7 @@ const Home = ({ t, lang, data, go }) => {
               { label: lang === "en" ? "Disabled" : "Inhabilitados", sub: lang === "en" ? "Archived or inactive" : "Archivados o inactivos", value: inhabilitados, color: "var(--ink-4)", icon: "shield", preset: "inhabilitados" },
               { label: lang === "en" ? "Under review" : "Por revisar", sub: lang === "en" ? "Information with issues" : "Información con problemas", value: porRevisar, color: porRevisar > 0 ? "#f59e0b" : "var(--good)", icon: "alert", preset: "revisar" },
             ].map((row, i) => (
-              <div key={row.label} className="status-row-card" style={{ animationDelay: (i * 60) + "ms" }} onClick={() => go({ name: "personas", preset: row.preset })}>
+              <GoLink key={row.label} route={{ name: "personas", preset: row.preset }} className="status-row-card" style={{ animationDelay: (i * 60) + "ms" }}>
                 <div style={{ width: 36, height: 36, borderRadius: 9, background: row.color + "15", display: "grid", placeItems: "center", flexShrink: 0 }}>
                   <Icon name={row.icon} size={16} />
                 </div>
@@ -324,7 +324,7 @@ const Home = ({ t, lang, data, go }) => {
                   <div style={{ fontSize: 11, color: "var(--ink-4)", marginTop: 1 }}>{row.sub}</div>
                 </div>
                 <div style={{ fontSize: 26, fontWeight: 800, color: row.color, minWidth: 40, textAlign: "right", letterSpacing: "-.02em" }}>{row.value.toLocaleString()}</div>
-              </div>
+              </GoLink>
             ))}
           </div>
         </div>
@@ -354,8 +354,7 @@ const Home = ({ t, lang, data, go }) => {
             <div style={{ fontSize: 10.5, fontWeight: 700, color: "var(--ink-4)", textTransform: "uppercase", letterSpacing: ".06em", marginBottom: 7 }}>{lang === "en" ? "Recently added" : "Recién registrados"}</div>
             <div style={{ display: "flex", flexDirection: "column", gap: 4, marginBottom: 12 }}>
               {recentlyAdded.map(({ type, item }, i) => (
-                <div key={item.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "4px 0", cursor: "pointer", animation: "slideUp .3s ease-out both", animationDelay: (100 + i * 40) + "ms" }}
-                  onClick={() => go({ name: type === "persona" ? "person" : "entity", id: item.id })}>
+                <GoLink key={item.id} route={{ name: type === "persona" ? "person" : "entity", id: item.id }} style={{ display: "flex", alignItems: "center", gap: 8, padding: "4px 0", cursor: "pointer", animation: "slideUp .3s ease-out both", animationDelay: (100 + i * 40) + "ms" }}>
                   {type === "persona"
                     ? <div className="av-circle" style={{ background: item.color, width: 26, height: 26, fontSize: 9, flexShrink: 0 }}>{initials(fullName(item))}</div>
                     : <div style={{ width: 26, height: 26, borderRadius: 7, background: "var(--accent-50)", display: "grid", placeItems: "center", flexShrink: 0 }}><Icon name="building" size={12} /></div>
@@ -366,7 +365,7 @@ const Home = ({ t, lang, data, go }) => {
                   <span style={{ fontFamily: "var(--font-mono)", fontSize: 10.5, color: "var(--accent)", background: "var(--accent-50)", padding: "1px 6px", borderRadius: 5, flexShrink: 0, fontWeight: 700 }}>
                     #{window.getUID ? window.getUID(item.id) : item.id}
                   </span>
-                </div>
+                </GoLink>
               ))}
             </div>
             <div style={{ fontSize: 10.5, fontWeight: 700, color: "var(--ink-4)", textTransform: "uppercase", letterSpacing: ".06em", marginBottom: 9 }}>{lang === "en" ? "Top cities" : "Top ciudades"}</div>
@@ -398,7 +397,7 @@ const Home = ({ t, lang, data, go }) => {
         <div className="card" style={{ animation: "slideUp .35s ease-out .3s both" }}>
           <div className="card-head">
             <div className="card-title">{lang === "en" ? "Next 30 days" : "Próximos 30 días"}</div>
-            <button className="btn btn-sm btn-ghost" style={{ fontSize: 11 }} onClick={() => go({ name: "calendar" })}>{lang === "en" ? "Calendar →" : "Calendario →"}</button>
+            <GoLink route={{ name: "calendar" }} className="btn btn-sm btn-ghost" style={{ fontSize: 11 }}>{lang === "en" ? "Calendar →" : "Calendario →"}</GoLink>
           </div>
           {upcomingProjects.length === 0 && upcomingTasks.length === 0
             ? <div className="empty" style={{ padding: "32px 0", fontSize: 12 }}>{lang === "en" ? "No upcoming events" : "Sin eventos próximos"}</div>
@@ -407,14 +406,14 @@ const Home = ({ t, lang, data, go }) => {
                 const pt = getProjType(pr.type);
                 const daysUntil = Math.round((new Date(pr.dateStart + "T12:00:00") - new Date(today + "T12:00:00")) / 86400000);
                 return (
-                  <div key={pr.id} className="hover-row" style={{ animationDelay: (i * 50) + "ms" }} onClick={() => go({ name: "project", id: pr.id })}>
+                  <GoLink key={pr.id} route={{ name: "project", id: pr.id }} className="hover-row" style={{ animationDelay: (i * 50) + "ms" }}>
                     <div style={{ width: 30, height: 30, borderRadius: 8, background: pt.color + "18", display: "grid", placeItems: "center", fontSize: 15, flexShrink: 0 }}>{pt.emoji}</div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontWeight: 600, fontSize: 12.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{pr.name}</div>
                       <div style={{ fontSize: 11, color: "var(--ink-3)" }}>{fmtDate(pr.dateStart, lang)}</div>
                     </div>
                     <span className="day-badge" style={{ background: pt.color + "15", color: pt.color }}>{daysUntil === 0 ? (lang === "en" ? "Today" : "Hoy") : "+" + daysUntil + "d"}</span>
-                  </div>
+                  </GoLink>
                 );
               })}
               {upcomingTasks.map((tk, i) => {
@@ -467,7 +466,7 @@ const Home = ({ t, lang, data, go }) => {
         <div className="card" style={{ animation: "slideUp .35s ease-out .4s both" }}>
           <div className="card-head">
             <div className="card-title">{lang === "en" ? "Recent contacts" : "Contactos recientes"}</div>
-            <button className="btn btn-sm btn-ghost" style={{ fontSize: 11 }} onClick={() => go({ name: "personas" })}>{lang === "en" ? "View all →" : "Ver todos →"}</button>
+            <GoLink route={{ name: "personas" }} className="btn btn-sm btn-ghost" style={{ fontSize: 11 }}>{lang === "en" ? "View all →" : "Ver todos →"}</GoLink>
           </div>
           <div>
             {recentPersonas.map((p, i) => {

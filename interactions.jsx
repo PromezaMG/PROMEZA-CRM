@@ -246,9 +246,9 @@ const TasksTab = ({ personId, tasks, onAddTask, onToggleTask, onDeleteTask, lang
                 {lang === "es" ? "Comparte correo o teléfono con otro registro. Al fusionarlo o marcarlo como resuelto, esta tarea desaparece." : "Shares email/phone with another record."}
               </div>
             </div>
-            <button className="btn btn-sm" style={{ flexShrink: 0 }} onClick={() => go && go({ name: "duplicates", q: personId, tab: dupTab || "personas" })}>
+            <GoLink route={{ name: "duplicates", q: personId, tab: dupTab || "personas" }} className="btn btn-sm" style={{ flexShrink: 0 }}>
               {lang === "es" ? "Ver" : "View"}
-            </button>
+            </GoLink>
           </div>
         )}
 

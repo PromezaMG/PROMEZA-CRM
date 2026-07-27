@@ -230,7 +230,7 @@ const CalendarView = ({ lang, data, go, onAddCalendarEvent, onDeleteCalendarEven
                       {evt.sub && <div style={{ fontSize: 10.5, color: "var(--ink-4)" }}>{evt.sub}</div>}
                     </div>
                     {evt.kind === "project" && (
-                      <button className="btn btn-sm btn-ghost" style={{ padding: "1px 6px", fontSize: 10.5 }} onClick={() => go({ name: "project", id: evt.id })}>Ver →</button>
+                      <GoLink route={{ name: "project", id: evt.id }} className="btn btn-sm btn-ghost" style={{ padding: "1px 6px", fontSize: 10.5 }} title="Abrir · clic derecho para nueva pestaña">Ver →</GoLink>
                     )}
                     {evt.kind === "task" && (
                       <GoLink route={{ name: "person", id: evt.ownerId }} className="btn btn-sm btn-ghost" style={{ padding: "1px 6px", fontSize: 10.5 }} title="Abrir · clic derecho para nueva pestaña">Ver →</GoLink>

@@ -322,12 +322,12 @@ const GlobalTasksView = ({ t, lang, data, go, tasks, onAddTask, onToggleTask, on
               {lang === "es" ? "Revisa y fusiona los registros repetidos." : "Review and merge duplicate records."}
             </div>
           </div>
-          <button
+          <GoLink
+            route={{ name: "duplicates" }}
             className="btn btn-sm"
-            style={{ background: "#7c3aed", color: "#fff", borderColor: "#7c3aed", flexShrink: 0 }}
-            onClick={() => go({ name: "duplicates" })}>
+            style={{ background: "#7c3aed", color: "#fff", borderColor: "#7c3aed", flexShrink: 0 }}>
             <Icon name="users" size={12} /> {lang === "es" ? "Revisar duplicados →" : "Review duplicates →"}
-          </button>
+          </GoLink>
         </div>
       )}
 

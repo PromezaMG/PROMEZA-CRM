@@ -668,7 +668,7 @@ const PersonProfile = ({ id, t, lang, data, go, goBack, addComment, onEditCommen
         <div className="section">
           <h3 style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             {lang === "es" ? "Proyectos" : "Projects"}
-            <button className="btn btn-sm" onClick={() => go({ name: "projects" })}>{lang === "es" ? "Ver todos →" : "View all →"}</button>
+            <GoLink route={{ name: "projects" }} className="btn btn-sm">{lang === "es" ? "Ver todos →" : "View all →"}</GoLink>
           </h3>
           <PersonProjectsTab personId={p.id} lang={lang} data={data} go={go} />
         </div>

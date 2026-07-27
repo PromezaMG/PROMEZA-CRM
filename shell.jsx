@@ -29,15 +29,17 @@ const Sidebar = ({ route, go, t, counts, mobileOpen, onClose }) => {
       <div className="nav-group">
         <div className="nav-label">CRM</div>
         {items.map(it => (
-          <div
+          <GoLink
             key={it.id}
+            route={{ name: it.id }}
             className={"nav-item " + (route.name === it.id ? "active" : "")}
-            onClick={() => handleNav(it.id)}
+            onClick={() => { if (onClose) onClose(); }}
+            title={"Abrir · " + it.label + " (clic derecho: nueva pestaña)"}
           >
             <span className="dot"><Icon name={it.icon} /></span>
             <span>{it.label}</span>
             {it.count != null && it.count > 0 && <span className="badge" style={it.countStyle || {}}>{it.count}</span>}
-          </div>
+          </GoLink>
         ))}
       </div>
       <div className="nav-group">
@@ -53,16 +55,18 @@ const Sidebar = ({ route, go, t, counts, mobileOpen, onClose }) => {
       </div>
       <div className="nav-group">
         <div className="nav-label">Calidad</div>
-        <div
+        <GoLink
+          route={{ name: "duplicates" }}
           className={"nav-item " + (route.name === "duplicates" ? "active" : "")}
-          onClick={() => handleNav("duplicates")}
+          onClick={() => { if (onClose) onClose(); }}
+          title="Abrir · Duplicados (clic derecho: nueva pestaña)"
         >
           <span className="dot"><Icon name="copy" /></span>
           <span>Duplicados</span>
           {counts.dups > 0 && (
             <span className="badge" style={{ background: "#f59e0b", color: "#fff" }}>{counts.dups}</span>
           )}
-        </div>
+        </GoLink>
       </div>
       <div className="side-cta">
         <div style={{ fontSize: 11, color: "var(--ink-3)", padding: "0 4px 4px" }}>
@@ -135,8 +139,7 @@ const NotificationsPanel = ({ data, lang, go, onClose, dupCount = 0 }) => {
             <div style={{ padding: "8px 16px 4px", fontSize: 10.5, fontWeight: 700, color: "#7c3aed", textTransform: "uppercase", letterSpacing: ".06em" }}>
               Posibles duplicados
             </div>
-            <div style={{ padding: "10px 16px", borderBottom: "1px solid var(--line)", display: "flex", alignItems: "center", gap: 10, cursor: "pointer", background: "#faf5ff" }}
-              onClick={() => { go({ name: "duplicates" }); onClose(); }}>
+            <GoLink route={{ name: "duplicates" }} onClick={onClose} style={{ padding: "10px 16px", borderBottom: "1px solid var(--line)", display: "flex", alignItems: "center", gap: 10, cursor: "pointer", background: "#faf5ff" }}>
               <div style={{ width: 32, height: 32, borderRadius: 8, background: "#ede9fe", display: "grid", placeItems: "center", flexShrink: 0 }}>
                 <Icon name="users" size={15} style={{ color: "#7c3aed" }} />
               </div>
@@ -149,7 +152,7 @@ const NotificationsPanel = ({ data, lang, go, onClose, dupCount = 0 }) => {
                 </div>
               </div>
               <span style={{ fontSize: 18, fontWeight: 800, color: "#7c3aed" }}>{dupCount}</span>
-            </div>
+            </GoLink>
           </div>
         )}
 
@@ -161,15 +164,14 @@ const NotificationsPanel = ({ data, lang, go, onClose, dupCount = 0 }) => {
               const pt = types.find(t => t.id === pr.type) || { emoji: "📂", color: "#6366f1" };
               const daysUntil = Math.round((new Date(pr.dateStart + "T12:00:00") - new Date(today + "T12:00:00")) / 86400000);
               return (
-                <div key={pr.id} style={{ padding: "10px 16px", borderBottom: "1px solid var(--line)", display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}
-                  onClick={() => { go({ name: "project", id: pr.id }); onClose(); }}>
+                <GoLink key={pr.id} route={{ name: "project", id: pr.id }} onClick={onClose} style={{ padding: "10px 16px", borderBottom: "1px solid var(--line)", display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}>
                   <div style={{ width: 32, height: 32, borderRadius: 8, background: pt.color + "18", display: "grid", placeItems: "center", fontSize: 16, flexShrink: 0 }}>{pt.emoji}</div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontWeight: 600, fontSize: 13, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{pr.name}</div>
                     <div style={{ fontSize: 11.5, color: "var(--ink-3)" }}>{fmtDate(pr.dateStart, lang)}</div>
                   </div>
                   <span style={{ fontSize: 11, fontWeight: 700, color: pt.color, flexShrink: 0 }}>{daysUntil === 0 ? "Hoy" : "+" + daysUntil + "d"}</span>
-                </div>
+                </GoLink>
               );
             })}
           </div>
@@ -244,21 +246,20 @@ const NotificationsPanel = ({ data, lang, go, onClose, dupCount = 0 }) => {
               );
             })}
             {overdueItems.length > 5 && (
-              <div style={{ padding: "8px 16px", fontSize: 12, color: "var(--ink-3)", textAlign: "center", cursor: "pointer" }}
-                onClick={() => { go({ name: "tasks" }); onClose(); }}>
+              <GoLink route={{ name: "tasks" }} onClick={onClose} style={{ padding: "8px 16px", fontSize: 12, color: "var(--ink-3)", textAlign: "center", cursor: "pointer" }}>
                 +{overdueItems.length - 5} más → Ver tareas
-              </div>
+              </GoLink>
             )}
           </div>
         )}
       </div>
       <div style={{ padding: "10px 16px", borderTop: "1px solid var(--line)", display: "flex", gap: 8 }}>
-        <button className="btn btn-sm" style={{ flex: 1 }} onClick={() => { go({ name: "projects" }); onClose(); }}>
+        <GoLink route={{ name: "projects" }} onClick={onClose} className="btn btn-sm" style={{ flex: 1 }}>
           <Icon name="folder" size={13} /> Proyectos
-        </button>
-        <button className="btn btn-sm" style={{ flex: 1 }} onClick={() => { go({ name: "tasks" }); onClose(); }}>
+        </GoLink>
+        <GoLink route={{ name: "tasks" }} onClick={onClose} className="btn btn-sm" style={{ flex: 1 }}>
           <Icon name="check" size={13} /> Tareas
-        </button>
+        </GoLink>
       </div>
     </div>
   );

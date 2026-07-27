@@ -604,7 +604,7 @@ const RemindersModal = ({ lang, data, onClose, go }) => {
                 ðŸŽ‚ {lang === "es" ? "CumpleaÃ±os hoy" : "Birthdays today"}
               </div>
               {birthdaysToday.map(p => (
-                <div key={p.id} className="hover-row" onClick={() => { go({ name: "person", id: p.id }); onClose(); }}
+                <GoLink key={p.id} route={{ name: "person", id: p.id }} onClick={onClose} className="hover-row"
                   style={{ borderRadius: 8 }}>
                   <div className="av-circle" style={{ background: p.color, width: 32, height: 32, fontSize: 11, flexShrink: 0 }}>
                     {((p.first || "")[0] || "") + (p.last ? (p.last[0] || "") : "")}
@@ -614,7 +614,7 @@ const RemindersModal = ({ lang, data, onClose, go }) => {
                     <div style={{ fontSize: 11.5, color: "var(--ink-3)" }}>{p.role}</div>
                   </div>
                   <span style={{ fontSize: 18 }}>ðŸŽ‚</span>
-                </div>
+                </GoLink>
               ))}
             </div>
           )}
@@ -635,9 +635,9 @@ const RemindersModal = ({ lang, data, onClose, go }) => {
             </div>
           )}
           <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", paddingTop: 4 }}>
-            <button className="btn" onClick={() => { go({ name: "tasks" }); onClose(); }}>
+            <GoLink route={{ name: "tasks" }} onClick={onClose} className="btn">
               <Icon name="check" /> {lang === "es" ? "Ver tareas" : "View tasks"}
-            </button>
+            </GoLink>
             <button className="btn btn-primary" onClick={onClose}>
               {lang === "es" ? "Entendido" : "Got it"}
             </button>

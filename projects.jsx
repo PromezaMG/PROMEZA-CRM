@@ -267,7 +267,7 @@ const ProjectDetailView = ({ id, lang, data, go, onUpdateProject, onDeleteProjec
   if (!pr) return (
     <div className="empty">
       <div>Proyecto no encontrado</div>
-      <button className="btn btn-sm" style={{ marginTop: 10 }} onClick={() => go({ name: "projects" })}>← Volver</button>
+      <GoLink route={{ name: "projects" }} className="btn btn-sm" style={{ marginTop: 10 }}>← Volver</GoLink>
     </div>
   );
 
@@ -306,7 +306,7 @@ const ProjectDetailView = ({ id, lang, data, go, onUpdateProject, onDeleteProjec
   return (
     <div style={{ animation: "fadeIn .2s ease-out" }}>
       <div style={{ marginBottom: 10 }}>
-        <button className="btn btn-ghost btn-sm" onClick={() => go({ name: "projects" })}>← Proyectos</button>
+        <GoLink route={{ name: "projects" }} className="btn btn-ghost btn-sm">← Proyectos</GoLink>
       </div>
 
       {/* Project header */}
@@ -528,7 +528,7 @@ const PersonProjectsTab = ({ personId, lang, data, go }) => {
     <div className="empty" style={{ padding: "40px 0" }}>
       <div style={{ fontSize: 32, marginBottom: 8 }}>📂</div>
       <div>Esta persona no ha participado en ningún proyecto aún.</div>
-      <button className="btn btn-sm" style={{ marginTop: 12 }} onClick={() => go({ name: "projects" })}>Ver proyectos →</button>
+      <GoLink route={{ name: "projects" }} className="btn btn-sm" style={{ marginTop: 12 }}>Ver proyectos →</GoLink>
     </div>
   );
   return (

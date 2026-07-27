@@ -1297,10 +1297,16 @@ const Sidebar = ({
     className: "nav-group"
   }, /*#__PURE__*/React.createElement("div", {
     className: "nav-label"
-  }, "CRM"), items.map(it => /*#__PURE__*/React.createElement("div", {
+  }, "CRM"), items.map(it => /*#__PURE__*/React.createElement(GoLink, {
     key: it.id,
+    route: {
+      name: it.id
+    },
     className: "nav-item " + (route.name === it.id ? "active" : ""),
-    onClick: () => handleNav(it.id)
+    onClick: () => {
+      if (onClose) onClose();
+    },
+    title: "Abrir · " + it.label + " (clic derecho: nueva pestaña)"
   }, /*#__PURE__*/React.createElement("span", {
     className: "dot"
   }, /*#__PURE__*/React.createElement(Icon, {
@@ -1340,9 +1346,15 @@ const Sidebar = ({
     className: "nav-group"
   }, /*#__PURE__*/React.createElement("div", {
     className: "nav-label"
-  }, "Calidad"), /*#__PURE__*/React.createElement("div", {
+  }, "Calidad"), /*#__PURE__*/React.createElement(GoLink, {
+    route: {
+      name: "duplicates"
+    },
     className: "nav-item " + (route.name === "duplicates" ? "active" : ""),
-    onClick: () => handleNav("duplicates")
+    onClick: () => {
+      if (onClose) onClose();
+    },
+    title: "Abrir \xB7 Duplicados (clic derecho: nueva pesta\xF1a)"
   }, /*#__PURE__*/React.createElement("span", {
     className: "dot"
   }, /*#__PURE__*/React.createElement(Icon, {
@@ -1476,7 +1488,11 @@ const NotificationsPanel = ({
       textTransform: "uppercase",
       letterSpacing: ".06em"
     }
-  }, "Posibles duplicados"), /*#__PURE__*/React.createElement("div", {
+  }, "Posibles duplicados"), /*#__PURE__*/React.createElement(GoLink, {
+    route: {
+      name: "duplicates"
+    },
+    onClick: onClose,
     style: {
       padding: "10px 16px",
       borderBottom: "1px solid var(--line)",
@@ -1485,12 +1501,6 @@ const NotificationsPanel = ({
       gap: 10,
       cursor: "pointer",
       background: "#faf5ff"
-    },
-    onClick: () => {
-      go({
-        name: "duplicates"
-      });
-      onClose();
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -1545,8 +1555,13 @@ const NotificationsPanel = ({
       color: "#6366f1"
     };
     const daysUntil = Math.round((new Date(pr.dateStart + "T12:00:00") - new Date(today + "T12:00:00")) / 86400000);
-    return /*#__PURE__*/React.createElement("div", {
+    return /*#__PURE__*/React.createElement(GoLink, {
       key: pr.id,
+      route: {
+        name: "project",
+        id: pr.id
+      },
+      onClick: onClose,
       style: {
         padding: "10px 16px",
         borderBottom: "1px solid var(--line)",
@@ -1554,13 +1569,6 @@ const NotificationsPanel = ({
         alignItems: "center",
         gap: 10,
         cursor: "pointer"
-      },
-      onClick: () => {
-        go({
-          name: "project",
-          id: pr.id
-        });
-        onClose();
       }
     }, /*#__PURE__*/React.createElement("div", {
       style: {
@@ -1794,19 +1802,17 @@ const NotificationsPanel = ({
         flexShrink: 0
       }
     }, "-", daysOver, "d"));
-  }), overdueItems.length > 5 && /*#__PURE__*/React.createElement("div", {
+  }), overdueItems.length > 5 && /*#__PURE__*/React.createElement(GoLink, {
+    route: {
+      name: "tasks"
+    },
+    onClick: onClose,
     style: {
       padding: "8px 16px",
       fontSize: 12,
       color: "var(--ink-3)",
       textAlign: "center",
       cursor: "pointer"
-    },
-    onClick: () => {
-      go({
-        name: "tasks"
-      });
-      onClose();
     }
   }, "+", overdueItems.length - 5, " m\xE1s \u2192 Ver tareas"))), /*#__PURE__*/React.createElement("div", {
     style: {
@@ -1815,30 +1821,26 @@ const NotificationsPanel = ({
       display: "flex",
       gap: 8
     }
-  }, /*#__PURE__*/React.createElement("button", {
+  }, /*#__PURE__*/React.createElement(GoLink, {
+    route: {
+      name: "projects"
+    },
+    onClick: onClose,
     className: "btn btn-sm",
     style: {
       flex: 1
-    },
-    onClick: () => {
-      go({
-        name: "projects"
-      });
-      onClose();
     }
   }, /*#__PURE__*/React.createElement(Icon, {
     name: "folder",
     size: 13
-  }), " Proyectos"), /*#__PURE__*/React.createElement("button", {
+  }), " Proyectos"), /*#__PURE__*/React.createElement(GoLink, {
+    route: {
+      name: "tasks"
+    },
+    onClick: onClose,
     className: "btn btn-sm",
     style: {
       flex: 1
-    },
-    onClick: () => {
-      go({
-        name: "tasks"
-      });
-      onClose();
     }
   }, /*#__PURE__*/React.createElement(Icon, {
     name: "check",
@@ -3491,15 +3493,16 @@ const Home = ({
     icon,
     route,
     delay = 0
-  }) => /*#__PURE__*/React.createElement("div", {
+  }) => /*#__PURE__*/React.createElement(GoLink, {
+    route: {
+      name: route
+    },
     className: "kpi-card-new",
     style: {
       animationDelay: delay + "ms",
       cursor: "pointer"
     },
-    onClick: () => go({
-      name: route
-    })
+    title: "Abrir \xB7 clic derecho para nueva pesta\xF1a"
   }, /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
@@ -3750,7 +3753,10 @@ const Home = ({
       fontSize: 13.5,
       color: "#991b1b"
     }
-  }, overdueTasksList.length, " ", lang === "en" ? "overdue task" + (overdueTasksList.length !== 1 ? "s" : "") : "tarea" + (overdueTasksList.length !== 1 ? "s" : "") + " vencida" + (overdueTasksList.length !== 1 ? "s" : "")), /*#__PURE__*/React.createElement("button", {
+  }, overdueTasksList.length, " ", lang === "en" ? "overdue task" + (overdueTasksList.length !== 1 ? "s" : "") : "tarea" + (overdueTasksList.length !== 1 ? "s" : "") + " vencida" + (overdueTasksList.length !== 1 ? "s" : "")), /*#__PURE__*/React.createElement(GoLink, {
+    route: {
+      name: "tasks"
+    },
     className: "btn btn-sm",
     style: {
       marginLeft: "auto",
@@ -3758,10 +3764,7 @@ const Home = ({
       background: "#fef2f2",
       borderColor: "#fecaca",
       color: "#b91c1c"
-    },
-    onClick: () => go({
-      name: "tasks"
-    })
+    }
   }, lang === "en" ? "View all" : "Ver todas")), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
@@ -3819,14 +3822,14 @@ const Home = ({
     className: "card-head"
   }, /*#__PURE__*/React.createElement("div", {
     className: "card-title"
-  }, lang === "en" ? "Contact stages" : "Etapas de contacto"), /*#__PURE__*/React.createElement("button", {
+  }, lang === "en" ? "Contact stages" : "Etapas de contacto"), /*#__PURE__*/React.createElement(GoLink, {
+    route: {
+      name: "pipeline"
+    },
     className: "btn btn-sm btn-ghost",
     style: {
       fontSize: 11
-    },
-    onClick: () => go({
-      name: "pipeline"
-    })
+    }
   }, "Pipeline \u2192")), /*#__PURE__*/React.createElement("div", {
     style: {
       padding: "12px 16px 16px",
@@ -3908,14 +3911,14 @@ const Home = ({
     className: "card-head"
   }, /*#__PURE__*/React.createElement("div", {
     className: "card-title"
-  }, lang === "en" ? "Entity types" : "Tipos de entidad"), /*#__PURE__*/React.createElement("button", {
+  }, lang === "en" ? "Entity types" : "Tipos de entidad"), /*#__PURE__*/React.createElement(GoLink, {
+    route: {
+      name: "entities"
+    },
     className: "btn btn-sm btn-ghost",
     style: {
       fontSize: 11
-    },
-    onClick: () => go({
-      name: "entities"
-    })
+    }
   }, lang === "en" ? "View →" : "Ver →")), /*#__PURE__*/React.createElement("div", {
     style: {
       padding: "10px 16px 14px"
@@ -3967,11 +3970,11 @@ const Home = ({
       textAlign: "center",
       padding: "24px 0"
     }
-  }, lang === "en" ? "No entities" : "Sin entidades"), /*#__PURE__*/React.createElement("div", {
-    onClick: () => go({
+  }, lang === "en" ? "No entities" : "Sin entidades"), /*#__PURE__*/React.createElement(GoLink, {
+    route: {
       name: "entities",
       preset: "inactivas"
-    }),
+    },
     title: lang === "en" ? "Show inactive entities" : "Ver entidades inactivas",
     style: {
       display: "flex",
@@ -4016,14 +4019,14 @@ const Home = ({
     className: "card-head"
   }, /*#__PURE__*/React.createElement("div", {
     className: "card-title"
-  }, lang === "en" ? "Top entities" : "Top entidades"), /*#__PURE__*/React.createElement("button", {
+  }, lang === "en" ? "Top entities" : "Top entidades"), /*#__PURE__*/React.createElement(GoLink, {
+    route: {
+      name: "entities"
+    },
     className: "btn btn-sm btn-ghost",
     style: {
       fontSize: 11
-    },
-    onClick: () => go({
-      name: "entities"
-    })
+    }
   }, lang === "en" ? "View all →" : "Ver todas →")), /*#__PURE__*/React.createElement("div", null, topEntitiesByCount.length === 0 ? /*#__PURE__*/React.createElement("div", {
     className: "empty",
     style: {
@@ -4107,14 +4110,14 @@ const Home = ({
     className: "card-head"
   }, /*#__PURE__*/React.createElement("div", {
     className: "card-title"
-  }, lang === "en" ? "Contact status" : "Estado de contactos"), /*#__PURE__*/React.createElement("button", {
+  }, lang === "en" ? "Contact status" : "Estado de contactos"), /*#__PURE__*/React.createElement(GoLink, {
+    route: {
+      name: "personas"
+    },
     className: "btn btn-sm btn-ghost",
     style: {
       fontSize: 11
-    },
-    onClick: () => go({
-      name: "personas"
-    })
+    }
   }, lang === "en" ? "View list →" : "Ver lista →")), /*#__PURE__*/React.createElement("div", {
     style: {
       padding: "8px 12px 12px"
@@ -4140,16 +4143,16 @@ const Home = ({
     color: porRevisar > 0 ? "#f59e0b" : "var(--good)",
     icon: "alert",
     preset: "revisar"
-  }].map((row, i) => /*#__PURE__*/React.createElement("div", {
+  }].map((row, i) => /*#__PURE__*/React.createElement(GoLink, {
     key: row.label,
+    route: {
+      name: "personas",
+      preset: row.preset
+    },
     className: "status-row-card",
     style: {
       animationDelay: i * 60 + "ms"
-    },
-    onClick: () => go({
-      name: "personas",
-      preset: row.preset
-    })
+    }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
       width: 36,
@@ -4272,8 +4275,12 @@ const Home = ({
   }, recentlyAdded.map(({
     type,
     item
-  }, i) => /*#__PURE__*/React.createElement("div", {
+  }, i) => /*#__PURE__*/React.createElement(GoLink, {
     key: item.id,
+    route: {
+      name: type === "persona" ? "person" : "entity",
+      id: item.id
+    },
     style: {
       display: "flex",
       alignItems: "center",
@@ -4282,11 +4289,7 @@ const Home = ({
       cursor: "pointer",
       animation: "slideUp .3s ease-out both",
       animationDelay: 100 + i * 40 + "ms"
-    },
-    onClick: () => go({
-      name: type === "persona" ? "person" : "entity",
-      id: item.id
-    })
+    }
   }, type === "persona" ? /*#__PURE__*/React.createElement("div", {
     className: "av-circle",
     style: {
@@ -4410,14 +4413,14 @@ const Home = ({
     className: "card-head"
   }, /*#__PURE__*/React.createElement("div", {
     className: "card-title"
-  }, lang === "en" ? "Next 30 days" : "Próximos 30 días"), /*#__PURE__*/React.createElement("button", {
+  }, lang === "en" ? "Next 30 days" : "Próximos 30 días"), /*#__PURE__*/React.createElement(GoLink, {
+    route: {
+      name: "calendar"
+    },
     className: "btn btn-sm btn-ghost",
     style: {
       fontSize: 11
-    },
-    onClick: () => go({
-      name: "calendar"
-    })
+    }
   }, lang === "en" ? "Calendar →" : "Calendario →")), upcomingProjects.length === 0 && upcomingTasks.length === 0 ? /*#__PURE__*/React.createElement("div", {
     className: "empty",
     style: {
@@ -4427,16 +4430,16 @@ const Home = ({
   }, lang === "en" ? "No upcoming events" : "Sin eventos próximos") : /*#__PURE__*/React.createElement("div", null, upcomingProjects.map((pr, i) => {
     const pt = getProjType(pr.type);
     const daysUntil = Math.round((new Date(pr.dateStart + "T12:00:00") - new Date(today + "T12:00:00")) / 86400000);
-    return /*#__PURE__*/React.createElement("div", {
+    return /*#__PURE__*/React.createElement(GoLink, {
       key: pr.id,
+      route: {
+        name: "project",
+        id: pr.id
+      },
       className: "hover-row",
       style: {
         animationDelay: i * 50 + "ms"
-      },
-      onClick: () => go({
-        name: "project",
-        id: pr.id
-      })
+      }
     }, /*#__PURE__*/React.createElement("div", {
       style: {
         width: 30,
@@ -4604,14 +4607,14 @@ const Home = ({
     className: "card-head"
   }, /*#__PURE__*/React.createElement("div", {
     className: "card-title"
-  }, lang === "en" ? "Recent contacts" : "Contactos recientes"), /*#__PURE__*/React.createElement("button", {
+  }, lang === "en" ? "Recent contacts" : "Contactos recientes"), /*#__PURE__*/React.createElement(GoLink, {
+    route: {
+      name: "personas"
+    },
     className: "btn btn-sm btn-ghost",
     style: {
       fontSize: 11
-    },
-    onClick: () => go({
-      name: "personas"
-    })
+    }
   }, lang === "en" ? "View all →" : "Ver todos →")), /*#__PURE__*/React.createElement("div", null, recentPersonas.map((p, i) => {
     const stage = stages.find(s => s.id === stageOf(p));
     return /*#__PURE__*/React.createElement(GoLink, {
@@ -8513,11 +8516,11 @@ const PersonProfile = ({
       alignItems: "center",
       justifyContent: "space-between"
     }
-  }, lang === "es" ? "Proyectos" : "Projects", /*#__PURE__*/React.createElement("button", {
-    className: "btn btn-sm",
-    onClick: () => go({
+  }, lang === "es" ? "Proyectos" : "Projects", /*#__PURE__*/React.createElement(GoLink, {
+    route: {
       name: "projects"
-    })
+    },
+    className: "btn btn-sm"
   }, lang === "es" ? "Ver todos →" : "View all →")), /*#__PURE__*/React.createElement(PersonProjectsTab, {
     personId: p.id,
     lang: lang,
@@ -13563,16 +13566,16 @@ const TasksTab = ({
       color: "#b45309",
       marginTop: 2
     }
-  }, lang === "es" ? "Comparte correo o teléfono con otro registro. Al fusionarlo o marcarlo como resuelto, esta tarea desaparece." : "Shares email/phone with another record.")), /*#__PURE__*/React.createElement("button", {
-    className: "btn btn-sm",
-    style: {
-      flexShrink: 0
-    },
-    onClick: () => go && go({
+  }, lang === "es" ? "Comparte correo o teléfono con otro registro. Al fusionarlo o marcarlo como resuelto, esta tarea desaparece." : "Shares email/phone with another record.")), /*#__PURE__*/React.createElement(GoLink, {
+    route: {
       name: "duplicates",
       q: personId,
       tab: dupTab || "personas"
-    })
+    },
+    className: "btn btn-sm",
+    style: {
+      flexShrink: 0
+    }
   }, lang === "es" ? "Ver" : "View")), pending.map(task => /*#__PURE__*/React.createElement("div", {
     key: task.id,
     style: {
@@ -14286,17 +14289,17 @@ const GlobalTasksView = ({
       fontSize: 12,
       color: "var(--ink-3)"
     }
-  }, lang === "es" ? "Revisa y fusiona los registros repetidos." : "Review and merge duplicate records.")), /*#__PURE__*/React.createElement("button", {
+  }, lang === "es" ? "Revisa y fusiona los registros repetidos." : "Review and merge duplicate records.")), /*#__PURE__*/React.createElement(GoLink, {
+    route: {
+      name: "duplicates"
+    },
     className: "btn btn-sm",
     style: {
       background: "#7c3aed",
       color: "#fff",
       borderColor: "#7c3aed",
       flexShrink: 0
-    },
-    onClick: () => go({
-      name: "duplicates"
-    })
+    }
   }, /*#__PURE__*/React.createElement(Icon, {
     name: "users",
     size: 12
@@ -16362,14 +16365,14 @@ const ProjectDetailView = ({
   const today = new Date().toISOString().slice(0, 10);
   if (!pr) return /*#__PURE__*/React.createElement("div", {
     className: "empty"
-  }, /*#__PURE__*/React.createElement("div", null, "Proyecto no encontrado"), /*#__PURE__*/React.createElement("button", {
+  }, /*#__PURE__*/React.createElement("div", null, "Proyecto no encontrado"), /*#__PURE__*/React.createElement(GoLink, {
+    route: {
+      name: "projects"
+    },
     className: "btn btn-sm",
     style: {
       marginTop: 10
-    },
-    onClick: () => go({
-      name: "projects"
-    })
+    }
   }, "\u2190 Volver"));
   const pt = getProjType(pr.type);
   const ps = getProjStatus(pr.status);
@@ -16416,11 +16419,11 @@ const ProjectDetailView = ({
     style: {
       marginBottom: 10
     }
-  }, /*#__PURE__*/React.createElement("button", {
-    className: "btn btn-ghost btn-sm",
-    onClick: () => go({
+  }, /*#__PURE__*/React.createElement(GoLink, {
+    route: {
       name: "projects"
-    })
+    },
+    className: "btn btn-ghost btn-sm"
   }, "\u2190 Proyectos")), /*#__PURE__*/React.createElement("div", {
     style: {
       background: "var(--bg)",
@@ -16993,14 +16996,14 @@ const PersonProjectsTab = ({
       fontSize: 32,
       marginBottom: 8
     }
-  }, "\uD83D\uDCC2"), /*#__PURE__*/React.createElement("div", null, "Esta persona no ha participado en ning\xFAn proyecto a\xFAn."), /*#__PURE__*/React.createElement("button", {
+  }, "\uD83D\uDCC2"), /*#__PURE__*/React.createElement("div", null, "Esta persona no ha participado en ning\xFAn proyecto a\xFAn."), /*#__PURE__*/React.createElement(GoLink, {
+    route: {
+      name: "projects"
+    },
     className: "btn btn-sm",
     style: {
       marginTop: 12
-    },
-    onClick: () => go({
-      name: "projects"
-    })
+    }
   }, "Ver proyectos \u2192"));
   return /*#__PURE__*/React.createElement("div", {
     className: "section-body",
@@ -18634,16 +18637,17 @@ const CalendarView = ({
       fontSize: 10.5,
       color: "var(--ink-4)"
     }
-  }, evt.sub)), evt.kind === "project" && /*#__PURE__*/React.createElement("button", {
+  }, evt.sub)), evt.kind === "project" && /*#__PURE__*/React.createElement(GoLink, {
+    route: {
+      name: "project",
+      id: evt.id
+    },
     className: "btn btn-sm btn-ghost",
     style: {
       padding: "1px 6px",
       fontSize: 10.5
     },
-    onClick: () => go({
-      name: "project",
-      id: evt.id
-    })
+    title: "Abrir \xB7 clic derecho para nueva pesta\xF1a"
   }, "Ver \u2192"), evt.kind === "task" && /*#__PURE__*/React.createElement(GoLink, {
     route: {
       name: "person",
@@ -21336,16 +21340,14 @@ const RemindersModal = ({
       alignItems: "center",
       gap: 6
     }
-  }, "\xF0\u0178\u017D\u201A ", lang === "es" ? "CumpleaÃ±os hoy" : "Birthdays today"), birthdaysToday.map(p => /*#__PURE__*/React.createElement("div", {
+  }, "\xF0\u0178\u017D\u201A ", lang === "es" ? "CumpleaÃ±os hoy" : "Birthdays today"), birthdaysToday.map(p => /*#__PURE__*/React.createElement(GoLink, {
     key: p.id,
-    className: "hover-row",
-    onClick: () => {
-      go({
-        name: "person",
-        id: p.id
-      });
-      onClose();
+    route: {
+      name: "person",
+      id: p.id
     },
+    onClick: onClose,
+    className: "hover-row",
     style: {
       borderRadius: 8
     }
@@ -21437,14 +21439,12 @@ const RemindersModal = ({
       justifyContent: "flex-end",
       paddingTop: 4
     }
-  }, /*#__PURE__*/React.createElement("button", {
-    className: "btn",
-    onClick: () => {
-      go({
-        name: "tasks"
-      });
-      onClose();
-    }
+  }, /*#__PURE__*/React.createElement(GoLink, {
+    route: {
+      name: "tasks"
+    },
+    onClick: onClose,
+    className: "btn"
   }, /*#__PURE__*/React.createElement(Icon, {
     name: "check"
   }), " ", lang === "es" ? "Ver tareas" : "View tasks"), /*#__PURE__*/React.createElement("button", {
