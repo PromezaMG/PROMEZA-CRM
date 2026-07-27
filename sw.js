@@ -1,4 +1,4 @@
-﻿const CACHE = "promeza-v225";
+﻿const CACHE = "promeza-v226";
 const ASSETS = [
   "./styles.css",
   "./i18n.js", "./airtable.js",
@@ -11,10 +11,15 @@ self.addEventListener("install", e => {
 });
 
 self.addEventListener("activate", e => {
-  // Delete old caches only. Do NOT claim clients or auto-reload — that risked a
-  // reload loop during CDN propagation. Code is network-first (below), so new
-  // deployments are picked up on the next normal reload while online.
-  e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))));
+  // Delete old caches AND take control of open pages immediately. Combined with the
+  // one-shot, sessionStorage-guarded reload in index.html, a freshly deployed version
+  // now applies itself automatically (no manual reinstall) — the guard prevents the
+  // reload loop that an unguarded claim risked during CDN propagation.
+  e.waitUntil(
+    caches.keys()
+      .then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))))
+      .then(() => self.clients.claim())
+  );
 });
 
 self.addEventListener("fetch", e => {
