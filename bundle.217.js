@@ -23346,6 +23346,9 @@ const App = () => {
 
   // Mark the "possible duplicate" task as resolved (reviewed). `resolved=false` re-opens
   // it. The flag lives on the record (_data) so it persists and syncs across devices.
+  // Strip any "Revisar duplicado(s)" / "Revisar posible duplicado" tag left over from
+  // the bulk tagging script, so resolving a duplicate also clears the tag chip.
+  const stripDupTag = tags => (tags || []).filter(tg => !/revisar.*duplicad/i.test(String(tg || "")));
   const handleResolveDuplicate = (personId, resolved = true) => {
     const cur = data.personas.find(p => p.id === personId);
     if (!cur) return;
@@ -23354,6 +23357,7 @@ const App = () => {
       dupResolved: resolved,
       _localSavedAt: new Date().toISOString()
     };
+    if (resolved) updated.tags = stripDupTag(cur.tags);
     setData(d => ({
       ...d,
       personas: d.personas.map(p => p.id === personId ? updated : p)
@@ -23368,6 +23372,7 @@ const App = () => {
       dupResolved: resolved,
       _localSavedAt: new Date().toISOString()
     };
+    if (resolved) updated.tags = stripDupTag(cur.tags);
     setData(d => ({
       ...d,
       entities: d.entities.map(e => e.id === entityId ? updated : e)
