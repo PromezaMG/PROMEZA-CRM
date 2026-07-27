@@ -42,11 +42,11 @@
 </script>
 
 <!-- MSAL.js for Microsoft Entra ID login (hosted locally) -->
-<script src="msal-browser.min.js?v=221"
+<script src="msal-browser.min.js?v=222"
   onload="console.log('MSAL loaded OK, window.msal=', typeof window.msal)"
   onerror="console.error('MSAL LOCAL FILE FAILED TO LOAD')"></script>
 
-<link rel="stylesheet" href="styles.css?v=221" />
+<link rel="stylesheet" href="styles.css?v=222" />
 <link rel="manifest" href="manifest.json" />
 <meta name="theme-color" content="#4f46e5" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -55,21 +55,38 @@
 <link rel="apple-touch-icon" href="icon-192.png" />
 </head>
 <body>
-<div id="root"></div>
+<style>
+  @keyframes promezaSplashSpin { to { transform: rotate(360deg); } }
+  #promeza-splash { position: fixed; inset: 0; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 16px; background: #f7f8fa;
+    font-family: 'Inter', system-ui, sans-serif; z-index: 9999; }
+  @media (prefers-color-scheme: dark) { #promeza-splash { background: #0f1424; } }
+  #promeza-splash .ps-ring { width: 40px; height: 40px; border: 4px solid rgba(79,70,229,.2);
+    border-top-color: #4f46e5; border-radius: 50%; animation: promezaSplashSpin .7s linear infinite; }
+  #promeza-splash .ps-name { font-size: 20px; font-weight: 700; letter-spacing: .12em; color: #4f46e5; }
+  #promeza-splash .ps-sub { font-size: 12.5px; color: #7a8194; }
+</style>
+<div id="root">
+  <div id="promeza-splash">
+    <div class="ps-name">PROMEZA</div>
+    <div class="ps-ring"></div>
+    <div class="ps-sub">Cargando…</div>
+  </div>
+</div>
 
 <!-- React (production build — faster, smaller than the dev build) -->
 <script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js" crossorigin="anonymous"></script>
 
 <!-- Data + utilities -->
-<script src="data.js?v=221"></script>
-<script src="data_churches.js?v=221"></script>
-<script src="i18n.js?v=221"></script>
-<script src="airtable.js?v=221"></script>
+<script src="data.js?v=222"></script>
+<script src="data_churches.js?v=222"></script>
+<script src="i18n.js?v=222"></script>
+<script src="airtable.js?v=222"></script>
 
 <!-- Precompiled app: all .jsx files transpiled to plain JS at build time.
      No in-browser Babel (removed) — this is the main load-speed win. -->
-<script src="bundle.217.js"></script>
+<script src="bundle.218.js"></script>
 
 <script>
   if ('serviceWorker' in navigator) {
@@ -77,7 +94,7 @@
     // so a new deployment is picked up on the next reload while online — no
     // auto-reload (that risked a reload loop during CDN propagation).
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('./sw.js?v=221')
+      navigator.serviceWorker.register('./sw.js?v=222')
         .then(r => { console.log('SW v123 registered'); r.update(); })
         .catch(e => console.warn('SW failed:', e));
     });

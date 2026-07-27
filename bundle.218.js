@@ -21481,7 +21481,7 @@ const App = () => {
       calendarEvents: []
     };
   };
-  const processLoadedData = parsed => {
+  const processLoadedData = (parsed, fast = false) => {
     // Normalize fields only â€” do NOT merge PROMEZA_DATA into existing data.
     // PROMEZA_DATA is only used as a fallback when localStorage has no real data.
     const hasDigit = v => /\d/.test(String(v || ""));
@@ -21549,7 +21549,21 @@ const App = () => {
         city: c
       };
     };
+
+    // FAST PATH (cache load): data restored from the encrypted local cache was already
+    // normalized when it was saved, so re-running the per-record phone/email/zip rebuild
+    // over ~24k records on every open is wasted work that keeps the app blank longer.
+    // When `fast` is set, records that already look normalized (have phones[]/emails[]
+    // arrays) are passed through untouched. Fresh Airtable loads / imports still get the
+    // full normalization (fast=false).
     const outPersonas = withUIDs(parsed.personas || []).map(p => {
+      if (fast && Array.isArray(p.phones) && Array.isArray(p.emails)) {
+        return {
+          ...p,
+          entities: p.entities || [],
+          tags: p.tags || []
+        };
+      }
       const {
         zip,
         city
@@ -21566,6 +21580,13 @@ const App = () => {
       };
     });
     const outEntities = withUIDs(parsed.entities || []).map(e => {
+      if (fast && Array.isArray(e.phones) && Array.isArray(e.emails)) {
+        return {
+          ...e,
+          schedule: e.schedule || [],
+          tags: e.tags || []
+        };
+      }
       const {
         zip,
         city
@@ -22016,7 +22037,7 @@ const App = () => {
       try {
         const json = await loadDecrypted(key);
         if (json) {
-          const loaded = processLoadedData(JSON.parse(json));
+          const loaded = processLoadedData(JSON.parse(json), true);
           // â”€â”€ Self-heal stale pre-rebuild data â”€â”€
           // A device that never ran the clean-slate rebuild can keep the OLD contacts
           // (ids p#### / e####) ALONGSIDE the new clean ones (pc#### / ec####), which
@@ -23606,6 +23627,7 @@ const App = () => {
     // the merged version; carry the changelog INSIDE the record so it persists.
     const mergedKeep = {
       ...mergedData,
+      tags: stripDupTag(mergedData.tags),
       changelog: newLog,
       _localSavedAt: new Date().toISOString()
     };
@@ -23662,7 +23684,7 @@ const App = () => {
       website: keep0.website || drop.website || "",
       birthday: keep0.birthday || drop.birthday || "",
       lastContact: (keep0.lastContact || "") >= (drop.lastContact || "") ? keep0.lastContact : drop.lastContact,
-      tags: [...new Set([...(keep0.tags || []), ...(drop.tags || [])])],
+      tags: stripDupTag([...new Set([...(keep0.tags || []), ...(drop.tags || [])])]),
       entities: [...(keep0.entities || []), ...(drop.entities || []).filter(de => !(keep0.entities || []).some(ke => ke.id === de.id))],
       social: {
         ig: keep0.social?.ig || drop.social?.ig || "",
@@ -23748,7 +23770,7 @@ const App = () => {
       website: keep0.website || drop.website || "",
       denominacion: keep0.denominacion || drop.denominacion || "",
       type: keep0.type && keep0.type !== "otro" ? keep0.type : drop.type || keep0.type || "otro",
-      tags: [...new Set([...(keep0.tags || []), ...(drop.tags || [])])],
+      tags: stripDupTag([...new Set([...(keep0.tags || []), ...(drop.tags || [])])]),
       social: {
         ig: keep0.social?.ig || drop.social?.ig || "",
         fb: keep0.social?.fb || drop.social?.fb || "",
@@ -23835,6 +23857,7 @@ const App = () => {
     const merged = {
       ...mergedData,
       id: keepId,
+      tags: stripDupTag(mergedData.tags),
       changelog: entNewLog,
       _localSavedAt: new Date().toISOString()
     };
