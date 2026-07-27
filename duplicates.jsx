@@ -787,7 +787,9 @@ const DuplicatesPage = ({ pairs, entityPairs = [], data, onMerge, onMergeWithDat
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontWeight: 600, fontSize: 13 }}>
-                      {fullName(pA)} <span style={{ color: "var(--ink-4)", fontWeight: 400 }}>vs</span> {fullName(pB)}
+                      <GoLink route={{ name: "person", id: pA.id }} title={lang === "es" ? "Abrir perfil (clic derecho: nueva pestaña)" : "Open profile"} style={{ color: "var(--accent)" }}>{fullName(pA)}</GoLink>
+                      <span style={{ color: "var(--ink-4)", fontWeight: 400 }}> vs </span>
+                      <GoLink route={{ name: "person", id: pB.id }} title={lang === "es" ? "Abrir perfil (clic derecho: nueva pestaña)" : "Open profile"} style={{ color: "var(--accent)" }}>{fullName(pB)}</GoLink>
                     </div>
                     <div style={{ marginTop: 3 }}>
                       <ScoreBadge score={pair.score} />
@@ -816,20 +818,20 @@ const DuplicatesPage = ({ pairs, entityPairs = [], data, onMerge, onMergeWithDat
                     {/* Column headers */}
                     <div style={{ display: "grid", gridTemplateColumns: "90px 1fr 1fr", gap: 10, marginBottom: 8 }}>
                       <div />
-                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <GoLink route={{ name: "person", id: pA.id }} title={lang === "es" ? "Abrir perfil (clic derecho: nueva pestaña)" : "Open profile"} style={{ display: "flex", alignItems: "center", gap: 8 }}>
                         <div className="av-circle" style={{ background: pA.color, flexShrink: 0 }}>{initials(fullName(pA))}</div>
                         <div>
-                          <div style={{ fontWeight: 700, fontSize: 14 }}>{fullName(pA)}</div>
+                          <div style={{ fontWeight: 700, fontSize: 14, color: "var(--accent)" }}>{fullName(pA)}</div>
                           <div style={{ fontSize: 10, color: "var(--ink-4)", fontFamily: "var(--font-mono)" }}>ID {pA.id}</div>
                         </div>
-                      </div>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      </GoLink>
+                      <GoLink route={{ name: "person", id: pB.id }} title={lang === "es" ? "Abrir perfil (clic derecho: nueva pestaña)" : "Open profile"} style={{ display: "flex", alignItems: "center", gap: 8 }}>
                         <div className="av-circle" style={{ background: pB.color, flexShrink: 0 }}>{initials(fullName(pB))}</div>
                         <div>
-                          <div style={{ fontWeight: 700, fontSize: 14 }}>{fullName(pB)}</div>
+                          <div style={{ fontWeight: 700, fontSize: 14, color: "var(--accent)" }}>{fullName(pB)}</div>
                           <div style={{ fontSize: 10, color: "var(--ink-4)", fontFamily: "var(--font-mono)" }}>ID {pB.id}</div>
                         </div>
-                      </div>
+                      </GoLink>
                     </div>
 
                     <DupField label={lang === "es" ? "Nombre" : "Name"} a={fullName(pA)} b={fullName(pB)} />
@@ -978,7 +980,7 @@ const DuplicatesPage = ({ pairs, entityPairs = [], data, onMerge, onMergeWithDat
                 <div key={pair.idA + pair.idB} className="card" style={{ overflow: "hidden" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", cursor: "pointer", flexWrap: "wrap" }} onClick={() => toggle(ekey)}>
                     <div style={{ flex: 1, minWidth: 200 }}>
-                      <div style={{ fontWeight: 700, fontSize: 13 }}>{eA.name} <span style={{ color: "var(--ink-4)", fontWeight: 400 }}>vs</span> {eB.name}</div>
+                      <div style={{ fontWeight: 700, fontSize: 13 }}><GoLink route={{ name: "entity", id: eA.id }} title={es ? "Abrir perfil (clic derecho: nueva pestaña)" : "Open profile"} style={{ color: "var(--accent)" }}>{eA.name}</GoLink> <span style={{ color: "var(--ink-4)", fontWeight: 400 }}>vs</span> <GoLink route={{ name: "entity", id: eB.id }} title={es ? "Abrir perfil (clic derecho: nueva pestaña)" : "Open profile"} style={{ color: "var(--accent)" }}>{eB.name}</GoLink></div>
                       <div style={{ fontSize: 11.5, color: "var(--ink-3)", marginTop: 3 }}>
                         {[typeLabel(eA), eA.city, eA.email, eA.phone].filter(Boolean).join(" · ") || "—"}{"  ·  "}{[typeLabel(eB), eB.city, eB.email, eB.phone].filter(Boolean).join(" · ") || "—"}
                       </div>
@@ -997,8 +999,8 @@ const DuplicatesPage = ({ pairs, entityPairs = [], data, onMerge, onMergeWithDat
                     <div style={{ borderTop: "1px solid var(--line)", padding: 16 }}>
                       <div style={{ display: "grid", gridTemplateColumns: "90px 1fr 1fr", gap: 10, marginBottom: 8 }}>
                         <div />
-                        <div><div style={{ fontWeight: 700, fontSize: 13.5 }}>{eA.name}</div><div style={{ fontSize: 10, color: "var(--ink-4)", fontFamily: "var(--font-mono)" }}>ID {eA.id}</div></div>
-                        <div><div style={{ fontWeight: 700, fontSize: 13.5 }}>{eB.name}</div><div style={{ fontSize: 10, color: "var(--ink-4)", fontFamily: "var(--font-mono)" }}>ID {eB.id}</div></div>
+                        <GoLink route={{ name: "entity", id: eA.id }} title={es ? "Abrir perfil (clic derecho: nueva pestaña)" : "Open profile"}><div style={{ fontWeight: 700, fontSize: 13.5, color: "var(--accent)" }}>{eA.name}</div><div style={{ fontSize: 10, color: "var(--ink-4)", fontFamily: "var(--font-mono)" }}>ID {eA.id}</div></GoLink>
+                        <GoLink route={{ name: "entity", id: eB.id }} title={es ? "Abrir perfil (clic derecho: nueva pestaña)" : "Open profile"}><div style={{ fontWeight: 700, fontSize: 13.5, color: "var(--accent)" }}>{eB.name}</div><div style={{ fontSize: 10, color: "var(--ink-4)", fontFamily: "var(--font-mono)" }}>ID {eB.id}</div></GoLink>
                       </div>
                       <DupField label={es ? "Nombre" : "Name"} a={eA.name} b={eB.name} />
                       <DupField label={es ? "Tipo" : "Type"} a={typeLabel(eA)} b={typeLabel(eB)} />

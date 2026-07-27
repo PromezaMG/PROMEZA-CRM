@@ -644,13 +644,13 @@ const MyTasksView = ({ t, lang, data, go, tasks, onToggleTask, onDeleteTask, cur
                       </div>
                       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
                         {persona && (
-                          <button
+                          <GoLink route={{ name: "person", id: task.personaId }}
                             className="btn btn-ghost btn-sm"
                             style={{ height: "auto", padding: "1px 7px", fontSize: 11.5, color: "var(--accent)", fontWeight: 600 }}
-                            onClick={() => go({ name: "person", id: task.personaId })}>
+                            title="Abrir · clic derecho para nueva pestaña">
                             <Icon name="users" size={11} /> {persona.first} {persona.last}
                             {persona.city && <span style={{ color: "var(--ink-3)", fontWeight: 400 }}> · {persona.city}</span>}
-                          </button>
+                          </GoLink>
                         )}
                         {task.due && (
                           <span style={{ fontSize: 11.5, color: isOverdue ? "var(--bad)" : "var(--ink-3)", fontWeight: isOverdue ? 600 : 400, display: "flex", alignItems: "center", gap: 4 }}>

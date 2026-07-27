@@ -564,14 +564,14 @@ const PersonProfile = ({ id, t, lang, data, go, goBack, addComment, onEditCommen
               <div className="section-body">
                 {linkedEntities.length === 0 && <div className="muted" style={{ fontSize: 13 }}>{lang === "es" ? "Sin entidad vinculada" : "No linked entity"}</div>}
                 {linkedEntities.map(({ link, entity }) => (
-                  <div key={link.id} className="link-row" onClick={() => go({ name: "entity", id: entity.id })} style={{ cursor: "pointer" }}>
+                  <GoLink key={link.id} route={{ name: "entity", id: entity.id }} className="link-row" style={{ cursor: "pointer" }} title={lang === "es" ? "Abrir (clic derecho: nueva pestaña)" : "Open"}>
                     <div className="ent-icon"><Icon name="building" /></div>
                     <div className="grow">
                       <div className="title">{entity.name}</div>
                       <div className="row-sub">{t.types[entity.type]} · {entity.city}</div>
                     </div>
                     <span className="role-pill">{link.role === "otro" ? (link.roleOther || t.roles.otro) : t.roles[link.role]}</span>
-                  </div>
+                  </GoLink>
                 ))}
               </div>
             </div>
@@ -649,11 +649,11 @@ const PersonProfile = ({ id, t, lang, data, go, goBack, addComment, onEditCommen
             {linkedEntities.length === 0 && !linking && <div className="empty">{t.common.none}</div>}
             {linkedEntities.map(({ link, entity }) => (
               <div key={link.id} className="link-row">
-                <div className="ent-icon" style={{ cursor: "pointer" }} onClick={() => go({ name: "entity", id: entity.id })}><Icon name="building" /></div>
-                <div className="grow" style={{ cursor: "pointer" }} onClick={() => go({ name: "entity", id: entity.id })}>
+                <GoLink route={{ name: "entity", id: entity.id }} className="ent-icon" title={lang === "es" ? "Abrir (clic derecho: nueva pestaña)" : "Open"}><Icon name="building" /></GoLink>
+                <GoLink route={{ name: "entity", id: entity.id }} className="grow" title={lang === "es" ? "Abrir (clic derecho: nueva pestaña)" : "Open"}>
                   <div className="title">{entity.name}</div>
                   <div className="row-sub">{t.types[entity.type]} · {entity.city}, {entity.country}</div>
-                </div>
+                </GoLink>
                 <span className="role-pill">{link.role === "otro" ? (link.roleOther || t.roles.otro) : t.roles[link.role]}</span>
                 <button className="btn btn-sm btn-ghost" style={{ color: "var(--bad)" }} onClick={() => doUnlinkEntity(entity.id)}>
                   <Icon name="x" />
@@ -905,7 +905,7 @@ const EntityProfile = ({ id, t, lang, data, go, goBack, addComment, onEditCommen
                   {e.idioma && <><dt>{lang === "es" ? "Idioma" : "Language"}</dt><dd>{{ hispana: "Hispana / Español", ingles: "Inglés", bilingue: "Bilingüe", otro: "Otro" }[e.idioma] || e.idioma}</dd></>}
                   <dt>{t.common.size}</dt><dd>{e.size ? e.size.toLocaleString() + " " + t.common.members : <span className="muted">—</span>}</dd>
                   <dt>{t.common.founded}</dt><dd>{e.founded || <span className="muted">—</span>}</dd>
-                  <dt>{t.common.parent}</dt><dd>{parent ? <a href="#" onClick={ev => { ev.preventDefault(); go({ name: "entity", id: parent.id }); }}>{parent.name}</a> : <span className="muted">—</span>}</dd>
+                  <dt>{t.common.parent}</dt><dd>{parent ? <GoLink route={{ name: "entity", id: parent.id }} style={{ color: "var(--accent)" }} title={lang === "es" ? "Abrir (clic derecho: nueva pestaña)" : "Open"}>{parent.name}</GoLink> : <span className="muted">—</span>}</dd>
                   <dt>{t.common.tags}</dt><dd>{e.tags && e.tags.length > 0 ? (
                     <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
                       {e.tags.map(tg => <span key={tg} className="tag-chip">{tg}</span>)}
@@ -958,14 +958,14 @@ const EntityProfile = ({ id, t, lang, data, go, goBack, addComment, onEditCommen
                 {linkedPeople.length === 0 && <div className="muted" style={{ fontSize: 13 }}>{t.common.none}</div>}
                 <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                   {linkedPeople.slice(0, 8).map(({ p, link }) => (
-                    <div key={p.id} className="link-row" onClick={() => go({ name: "person", id: p.id })} style={{ cursor: "pointer" }}>
+                    <GoLink key={p.id} route={{ name: "person", id: p.id }} className="link-row" style={{ cursor: "pointer" }} title={lang === "es" ? "Abrir (clic derecho: nueva pestaña)" : "Open"}>
                       <div className="av-circle" style={{ background: p.color }}>{initials(fullName(p))}</div>
                       <div className="grow">
                         <div className="title">{fullName(p)}</div>
                         <div className="row-sub">{p.email}</div>
                       </div>
                       <span className="role-pill">{link.role === "otro" ? (link.roleOther || t.roles.otro) : t.roles[link.role]}</span>
-                    </div>
+                    </GoLink>
                   ))}
                   {linkedPeople.length > 8 && (
                     <button className="btn btn-sm btn-ghost" onClick={() => setTab("people")}>
@@ -982,18 +982,18 @@ const EntityProfile = ({ id, t, lang, data, go, goBack, addComment, onEditCommen
                 <div className="section-body">
                   <div className="tree">
                     {parent && (
-                      <div className="tree-node" style={{ cursor: "pointer" }} onClick={() => go({ name: "entity", id: parent.id })}>
+                      <GoLink route={{ name: "entity", id: parent.id }} className="tree-node" style={{ cursor: "pointer" }} title={lang === "es" ? "Abrir (clic derecho: nueva pestaña)" : "Open"}>
                         <Icon name="building" /> {parent.name}
-                      </div>
+                      </GoLink>
                     )}
                     <div className={parent ? "tree-children" : ""}>
                       <div className="tree-node cur"><Icon name="building" /> {e.name}</div>
                       {children.length > 0 && (
                         <div className="tree-children">
                           {children.map(c => (
-                            <div key={c.id} className="tree-node" style={{ cursor: "pointer" }} onClick={() => go({ name: "entity", id: c.id })}>
+                            <GoLink key={c.id} route={{ name: "entity", id: c.id }} className="tree-node" style={{ cursor: "pointer" }} title={lang === "es" ? "Abrir (clic derecho: nueva pestaña)" : "Open"}>
                               <Icon name="building" /> {c.name}
-                            </div>
+                            </GoLink>
                           ))}
                         </div>
                       )}
@@ -1059,11 +1059,11 @@ const EntityProfile = ({ id, t, lang, data, go, goBack, addComment, onEditCommen
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {linkedPeople.map(({ p, link }) => (
                 <div key={p.id} className="link-row">
-                  <div className="av-circle" style={{ background: p.color, cursor: "pointer" }} onClick={() => go({ name: "person", id: p.id })}>{initials(fullName(p))}</div>
-                  <div className="grow" style={{ cursor: "pointer" }} onClick={() => go({ name: "person", id: p.id })}>
+                  <GoLink route={{ name: "person", id: p.id }} className="av-circle" style={{ background: p.color }} title={lang === "es" ? "Abrir (clic derecho: nueva pestaña)" : "Open"}>{initials(fullName(p))}</GoLink>
+                  <GoLink route={{ name: "person", id: p.id }} className="grow" title={lang === "es" ? "Abrir (clic derecho: nueva pestaña)" : "Open"}>
                     <div className="title">{fullName(p)}</div>
                     <div className="row-sub">{p.email} · {p.city}</div>
-                  </div>
+                  </GoLink>
                   <span className="role-pill">{link.role === "otro" ? (link.roleOther || t.roles.otro) : t.roles[link.role]}</span>
                   <button className="btn btn-sm btn-ghost" style={{ color: "var(--bad)" }} onClick={() => doUnlinkPerson(p.id)}>
                     <Icon name="x" />

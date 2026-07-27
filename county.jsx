@@ -88,8 +88,7 @@ const CountyView = ({ t, lang, data, go }) => {
               const stageId = stageOf(p);
               const st = stages.find(s => s.id === stageId);
               return (
-                <div key={p.id} className="hover-row" style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 16px", cursor: "pointer", borderBottom: i < personas.length - 1 ? "1px solid var(--line)" : "none", animation: "slideUp .2s ease-out both", animationDelay: (i * 20) + "ms" }}
-                  onClick={() => go({ name: "person", id: p.id })}>
+                <GoLink key={p.id} route={{ name: "person", id: p.id }} className="hover-row" style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 16px", cursor: "pointer", borderBottom: i < personas.length - 1 ? "1px solid var(--line)" : "none", animation: "slideUp .2s ease-out both", animationDelay: (i * 20) + "ms" }}>
                   <div className="av-circle" style={{ background: p.color, flexShrink: 0 }}>{initials(fullName(p))}</div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontWeight: 600, fontSize: 13.5 }}>{fullName(p)}</div>
@@ -103,7 +102,7 @@ const CountyView = ({ t, lang, data, go }) => {
                     {p.email && <span style={{ fontSize: 11, color: "var(--ink-4)" }}>{p.email}</span>}
                   </div>
                   <Icon name="chevron-right" size={14} style={{ color: "var(--ink-4)", flexShrink: 0 }} />
-                </div>
+                </GoLink>
               );
             })}
           </div>
@@ -113,8 +112,7 @@ const CountyView = ({ t, lang, data, go }) => {
           <div className="card">
             {entities.length === 0 && <div className="empty" style={{ padding: 24 }}>{es ? "Sin entidades en este condado" : "No entities in this county"}</div>}
             {entities.map((e, i) => (
-              <div key={e.id} className="hover-row" style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 16px", cursor: "pointer", borderBottom: i < entities.length - 1 ? "1px solid var(--line)" : "none", animation: "slideUp .2s ease-out both", animationDelay: (i * 20) + "ms" }}
-                onClick={() => go({ name: "entity", id: e.id })}>
+              <GoLink key={e.id} route={{ name: "entity", id: e.id }} className="hover-row" style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 16px", cursor: "pointer", borderBottom: i < entities.length - 1 ? "1px solid var(--line)" : "none", animation: "slideUp .2s ease-out both", animationDelay: (i * 20) + "ms" }}>
                 <div style={{ width: 36, height: 36, borderRadius: 9, background: "#0ea5e918", display: "grid", placeItems: "center", flexShrink: 0 }}>
                   <Icon name="building" size={16} style={{ color: "#0ea5e9" }} />
                 </div>
@@ -127,7 +125,7 @@ const CountyView = ({ t, lang, data, go }) => {
                 </div>
                 {e.phone && <span style={{ fontSize: 11.5, color: "var(--ink-3)" }}>{e.phone}</span>}
                 <Icon name="chevron-right" size={14} style={{ color: "var(--ink-4)", flexShrink: 0 }} />
-              </div>
+              </GoLink>
             ))}
           </div>
         )}

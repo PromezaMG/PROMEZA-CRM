@@ -198,3 +198,29 @@ window.exportCSV = (filename, headers, rows) => {
     window.AIRTABLE.logAccess(session.email, "Descarga CSV", filename);
   }
 };
+
+// ─── GoLink: a REAL anchor for in-app navigation ───
+// Renders <a href="#route"> so every clickable record supports the browser's native
+// "Open link in new tab" (right-click, Ctrl/⌘+click, middle-click). A plain left-click
+// is intercepted and handled by the SPA router (window.PROMEZA_GO) for instant nav.
+// Use anywhere you'd otherwise write onClick={() => go({name:"person", id})}.
+const GoLink = ({ route, children, className, style, title, onClick, block, stop = true, ...rest }) => {
+  const href = (window.PROMEZA_HASH && route ? window.PROMEZA_HASH(route) : "") || "#";
+  const handle = (e) => {
+    if (onClick) onClick(e);
+    if (e.defaultPrevented) return;
+    // Let the browser open a new tab on modifier / middle click.
+    if (e.button === 1 || e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) return;
+    e.preventDefault();
+    if (stop) e.stopPropagation();
+    if (window.PROMEZA_GO && route) window.PROMEZA_GO(route);
+  };
+  return (
+    <a href={href} className={className} title={title}
+      style={{ color: "inherit", textDecoration: "none", cursor: "pointer", ...(block ? { display: "block" } : {}), ...style }}
+      onClick={handle} onAuxClick={(e) => stop && e.stopPropagation()} {...rest}>
+      {children}
+    </a>
+  );
+};
+window.GoLink = GoLink;

@@ -284,7 +284,7 @@ const Home = ({ t, lang, data, go }) => {
             {topEntitiesByCount.length === 0
               ? <div className="empty" style={{ padding: "28px 0", fontSize: 12 }}>{lang === "en" ? "No data" : "Sin datos"}</div>
               : topEntitiesByCount.map((e, i) => (
-                <div key={e.id} className="hover-row" style={{ animationDelay: (i * 40) + "ms" }} onClick={() => go({ name: "entity", id: e.id })}>
+                <GoLink key={e.id} route={{ name: "entity", id: e.id }} className="hover-row" style={{ animationDelay: (i * 40) + "ms" }}>
                   <div style={{ width: 28, height: 28, borderRadius: 7, background: "var(--accent-50)", display: "grid", placeItems: "center", flexShrink: 0 }}>
                     <Icon name="building" size={13} />
                   </div>
@@ -295,7 +295,7 @@ const Home = ({ t, lang, data, go }) => {
                     </div>
                   </div>
                   <span style={{ fontSize: 15, fontWeight: 800, color: "var(--accent)", minWidth: 24, textAlign: "right" }}>{e.count}</span>
-                </div>
+                </GoLink>
               ))
             }
           </div>
@@ -447,7 +447,7 @@ const Home = ({ t, lang, data, go }) => {
           {bdays.length === 0
             ? <div className="empty" style={{ padding: "32px 0", fontSize: 12 }}>{lang === "en" ? "No birthdays registered" : "Sin cumpleaños registrados"}</div>
             : bdays.map(({ p, dt, diff }, i) => (
-              <div key={p.id} className="hover-row" style={{ animationDelay: (i * 60) + "ms" }} onClick={() => go({ name: "person", id: p.id })}>
+              <GoLink key={p.id} route={{ name: "person", id: p.id }} className="hover-row" style={{ animationDelay: (i * 60) + "ms" }}>
                 <div className="av-circle" style={{ background: p.color, flexShrink: 0 }}>{initials(fullName(p))}</div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontWeight: 600, fontSize: 13, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{fullName(p)}</div>
@@ -456,7 +456,7 @@ const Home = ({ t, lang, data, go }) => {
                 <span className="day-badge" style={{ background: diff === 0 ? "#ef444415" : diff <= 7 ? "#f59e0b15" : "var(--bg-soft)", color: diff === 0 ? "var(--bad)" : diff <= 7 ? "#f59e0b" : "var(--ink-3)" }}>
                   {diff === 0 ? (lang === "en" ? "Today" : "Hoy") : "+" + diff + "d"}
                 </span>
-              </div>
+              </GoLink>
             ))
           }
         </div>
@@ -473,7 +473,7 @@ const Home = ({ t, lang, data, go }) => {
             {recentPersonas.map((p, i) => {
               const stage = stages.find(s => s.id === stageOf(p));
               return (
-                <div key={p.id} className="hover-row" style={{ animationDelay: (i * 40) + "ms" }} onClick={() => go({ name: "person", id: p.id })}>
+                <GoLink key={p.id} route={{ name: "person", id: p.id }} className="hover-row" style={{ animationDelay: (i * 40) + "ms" }}>
                   <div className="av-circle" style={{ background: p.color, flexShrink: 0 }}>{initials(fullName(p))}</div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontWeight: 600, fontSize: 13 }}>{fullName(p)}</div>
@@ -481,7 +481,7 @@ const Home = ({ t, lang, data, go }) => {
                   </div>
                   {stage && <span style={{ fontSize: 10.5, fontWeight: 700, padding: "2px 7px", borderRadius: 5, background: stage.color + "14", color: stage.color, whiteSpace: "nowrap", flexShrink: 0 }}>{window.stageLabel ? window.stageLabel(stage.id, lang) : stage.label}</span>}
                   <div className="mono" style={{ fontSize: 10.5, color: "var(--ink-4)", flexShrink: 0, minWidth: 60, textAlign: "right" }}>{fmtDate(p.lastContact, lang)}</div>
-                </div>
+                </GoLink>
               );
             })}
           </div>

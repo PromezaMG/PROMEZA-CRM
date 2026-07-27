@@ -1787,6 +1787,9 @@ const App = () => {
     setHash(r);
     window.scrollTo({ top: 0 });
   };
+  // Expose the router so the global <GoLink> anchor (ui.jsx) can drive SPA navigation
+  // on a normal click while still being a real <a href> for "open in new tab".
+  window.PROMEZA_GO = go;
 
   // ── URL / deep-linking ──
   // Each view/profile gets a hash URL (#person/ID, #entity/ID, #personas, …) so it

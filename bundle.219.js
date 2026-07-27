@@ -1,5 +1,6 @@
 
 ;/* ===== ui.jsx ===== */
+function _extends() { return _extends = Object.assign ? Object.assign.bind() : function (n) { for (var e = 1; e < arguments.length; e++) { var t = arguments[e]; for (var r in t) ({}).hasOwnProperty.call(t, r) && (n[r] = t[r]); } return n; }, _extends.apply(null, arguments); }
 // PROMEZA CRM — Icons + small UI helpers
 
 const Icon = ({
@@ -581,6 +582,51 @@ window.exportCSV = (filename, headers, rows) => {
     window.AIRTABLE.logAccess(session.email, "Descarga CSV", filename);
   }
 };
+
+// ─── GoLink: a REAL anchor for in-app navigation ───
+// Renders <a href="#route"> so every clickable record supports the browser's native
+// "Open link in new tab" (right-click, Ctrl/⌘+click, middle-click). A plain left-click
+// is intercepted and handled by the SPA router (window.PROMEZA_GO) for instant nav.
+// Use anywhere you'd otherwise write onClick={() => go({name:"person", id})}.
+const GoLink = ({
+  route,
+  children,
+  className,
+  style,
+  title,
+  onClick,
+  block,
+  stop = true,
+  ...rest
+}) => {
+  const href = (window.PROMEZA_HASH && route ? window.PROMEZA_HASH(route) : "") || "#";
+  const handle = e => {
+    if (onClick) onClick(e);
+    if (e.defaultPrevented) return;
+    // Let the browser open a new tab on modifier / middle click.
+    if (e.button === 1 || e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) return;
+    e.preventDefault();
+    if (stop) e.stopPropagation();
+    if (window.PROMEZA_GO && route) window.PROMEZA_GO(route);
+  };
+  return /*#__PURE__*/React.createElement("a", _extends({
+    href: href,
+    className: className,
+    title: title,
+    style: {
+      color: "inherit",
+      textDecoration: "none",
+      cursor: "pointer",
+      ...(block ? {
+        display: "block"
+      } : {}),
+      ...style
+    },
+    onClick: handle,
+    onAuxClick: e => stop && e.stopPropagation()
+  }, rest), children);
+};
+window.GoLink = GoLink;
 
 ;/* ===== auth.jsx ===== */
 // PROMEZA CRM — Authentication via Microsoft Entra ID (Azure AD)
@@ -1565,8 +1611,13 @@ const NotificationsPanel = ({
   }, "Cumplea\xF1os"), birthdayAlerts.map(({
     p,
     diff
-  }) => /*#__PURE__*/React.createElement("div", {
+  }) => /*#__PURE__*/React.createElement(GoLink, {
     key: p.id,
+    route: {
+      name: "person",
+      id: p.id
+    },
+    onClick: onClose,
     style: {
       padding: "10px 16px",
       borderBottom: "1px solid var(--line)",
@@ -1574,13 +1625,6 @@ const NotificationsPanel = ({
       alignItems: "center",
       gap: 10,
       cursor: "pointer"
-    },
-    onClick: () => {
-      go({
-        name: "person",
-        id: p.id
-      });
-      onClose();
     }
   }, /*#__PURE__*/React.createElement("div", {
     className: "av-circle",
@@ -1627,8 +1671,13 @@ const NotificationsPanel = ({
       if (p.emailStatus === "bad") issues.push("Email no funciona");
       if (p.phoneStatus === "bad") issues.push("Teléfono no funciona");
     }
-    return /*#__PURE__*/React.createElement("div", {
+    return /*#__PURE__*/React.createElement(GoLink, {
       key: p.id,
+      route: {
+        name: "person",
+        id: p.id
+      },
+      onClick: onClose,
       style: {
         padding: "9px 16px",
         borderBottom: "1px solid var(--line)",
@@ -1636,13 +1685,6 @@ const NotificationsPanel = ({
         alignItems: "center",
         gap: 10,
         cursor: "pointer"
-      },
-      onClick: () => {
-        go({
-          name: "person",
-          id: p.id
-        });
-        onClose();
       }
     }, /*#__PURE__*/React.createElement("div", {
       className: "av-circle",
@@ -1698,8 +1740,13 @@ const NotificationsPanel = ({
     person
   }) => {
     const daysOver = Math.round((new Date(today) - new Date(task.due)) / 86400000);
-    return /*#__PURE__*/React.createElement("div", {
+    return /*#__PURE__*/React.createElement(GoLink, {
       key: task.id,
+      route: {
+        name: "person",
+        id: person.id
+      },
+      onClick: onClose,
       style: {
         padding: "10px 16px",
         borderBottom: "1px solid var(--line)",
@@ -1707,13 +1754,6 @@ const NotificationsPanel = ({
         alignItems: "center",
         gap: 10,
         cursor: "pointer"
-      },
-      onClick: () => {
-        go({
-          name: "person",
-          id: person.id
-        });
-        onClose();
       }
     }, /*#__PURE__*/React.createElement("div", {
       style: {
@@ -3990,16 +4030,16 @@ const Home = ({
       padding: "28px 0",
       fontSize: 12
     }
-  }, lang === "en" ? "No data" : "Sin datos") : topEntitiesByCount.map((e, i) => /*#__PURE__*/React.createElement("div", {
+  }, lang === "en" ? "No data" : "Sin datos") : topEntitiesByCount.map((e, i) => /*#__PURE__*/React.createElement(GoLink, {
     key: e.id,
+    route: {
+      name: "entity",
+      id: e.id
+    },
     className: "hover-row",
     style: {
       animationDelay: i * 40 + "ms"
-    },
-    onClick: () => go({
-      name: "entity",
-      id: e.id
-    })
+    }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
       width: 28,
@@ -4506,16 +4546,16 @@ const Home = ({
     p,
     dt,
     diff
-  }, i) => /*#__PURE__*/React.createElement("div", {
+  }, i) => /*#__PURE__*/React.createElement(GoLink, {
     key: p.id,
+    route: {
+      name: "person",
+      id: p.id
+    },
     className: "hover-row",
     style: {
       animationDelay: i * 60 + "ms"
-    },
-    onClick: () => go({
-      name: "person",
-      id: p.id
-    })
+    }
   }, /*#__PURE__*/React.createElement("div", {
     className: "av-circle",
     style: {
@@ -4574,16 +4614,16 @@ const Home = ({
     })
   }, lang === "en" ? "View all →" : "Ver todos →")), /*#__PURE__*/React.createElement("div", null, recentPersonas.map((p, i) => {
     const stage = stages.find(s => s.id === stageOf(p));
-    return /*#__PURE__*/React.createElement("div", {
+    return /*#__PURE__*/React.createElement(GoLink, {
       key: p.id,
+      route: {
+        name: "person",
+        id: p.id
+      },
       className: "hover-row",
       style: {
         animationDelay: i * 40 + "ms"
-      },
-      onClick: () => go({
-        name: "person",
-        id: p.id
-      })
+      }
     }, /*#__PURE__*/React.createElement("div", {
       className: "av-circle",
       style: {
@@ -8246,16 +8286,17 @@ const PersonProfile = ({
   }, lang === "es" ? "Sin entidad vinculada" : "No linked entity"), linkedEntities.map(({
     link,
     entity
-  }) => /*#__PURE__*/React.createElement("div", {
+  }) => /*#__PURE__*/React.createElement(GoLink, {
     key: link.id,
-    className: "link-row",
-    onClick: () => go({
+    route: {
       name: "entity",
       id: entity.id
-    }),
+    },
+    className: "link-row",
     style: {
       cursor: "pointer"
-    }
+    },
+    title: lang === "es" ? "Abrir (clic derecho: nueva pestaña)" : "Open"
   }, /*#__PURE__*/React.createElement("div", {
     className: "ent-icon"
   }, /*#__PURE__*/React.createElement(Icon, {
@@ -8434,26 +8475,22 @@ const PersonProfile = ({
   }) => /*#__PURE__*/React.createElement("div", {
     key: link.id,
     className: "link-row"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "ent-icon",
-    style: {
-      cursor: "pointer"
-    },
-    onClick: () => go({
+  }, /*#__PURE__*/React.createElement(GoLink, {
+    route: {
       name: "entity",
       id: entity.id
-    })
+    },
+    className: "ent-icon",
+    title: lang === "es" ? "Abrir (clic derecho: nueva pestaña)" : "Open"
   }, /*#__PURE__*/React.createElement(Icon, {
     name: "building"
-  })), /*#__PURE__*/React.createElement("div", {
-    className: "grow",
-    style: {
-      cursor: "pointer"
-    },
-    onClick: () => go({
+  })), /*#__PURE__*/React.createElement(GoLink, {
+    route: {
       name: "entity",
       id: entity.id
-    })
+    },
+    className: "grow",
+    title: lang === "es" ? "Abrir (clic derecho: nueva pestaña)" : "Open"
   }, /*#__PURE__*/React.createElement("div", {
     className: "title"
   }, entity.name), /*#__PURE__*/React.createElement("div", {
@@ -8856,15 +8893,15 @@ const EntityProfile = ({
     className: "muted"
   }, "\u2014")), /*#__PURE__*/React.createElement("dt", null, t.common.founded), /*#__PURE__*/React.createElement("dd", null, e.founded || /*#__PURE__*/React.createElement("span", {
     className: "muted"
-  }, "\u2014")), /*#__PURE__*/React.createElement("dt", null, t.common.parent), /*#__PURE__*/React.createElement("dd", null, parent ? /*#__PURE__*/React.createElement("a", {
-    href: "#",
-    onClick: ev => {
-      ev.preventDefault();
-      go({
-        name: "entity",
-        id: parent.id
-      });
-    }
+  }, "\u2014")), /*#__PURE__*/React.createElement("dt", null, t.common.parent), /*#__PURE__*/React.createElement("dd", null, parent ? /*#__PURE__*/React.createElement(GoLink, {
+    route: {
+      name: "entity",
+      id: parent.id
+    },
+    style: {
+      color: "var(--accent)"
+    },
+    title: lang === "es" ? "Abrir (clic derecho: nueva pestaña)" : "Open"
   }, parent.name) : /*#__PURE__*/React.createElement("span", {
     className: "muted"
   }, "\u2014")), /*#__PURE__*/React.createElement("dt", null, t.common.tags), /*#__PURE__*/React.createElement("dd", null, e.tags && e.tags.length > 0 ? /*#__PURE__*/React.createElement("div", {
@@ -8994,16 +9031,17 @@ const EntityProfile = ({
   }, linkedPeople.slice(0, 8).map(({
     p,
     link
-  }) => /*#__PURE__*/React.createElement("div", {
+  }) => /*#__PURE__*/React.createElement(GoLink, {
     key: p.id,
-    className: "link-row",
-    onClick: () => go({
+    route: {
       name: "person",
       id: p.id
-    }),
+    },
+    className: "link-row",
     style: {
       cursor: "pointer"
-    }
+    },
+    title: lang === "es" ? "Abrir (clic derecho: nueva pestaña)" : "Open"
   }, /*#__PURE__*/React.createElement("div", {
     className: "av-circle",
     style: {
@@ -9026,15 +9064,16 @@ const EntityProfile = ({
     className: "section-body"
   }, /*#__PURE__*/React.createElement("div", {
     className: "tree"
-  }, parent && /*#__PURE__*/React.createElement("div", {
+  }, parent && /*#__PURE__*/React.createElement(GoLink, {
+    route: {
+      name: "entity",
+      id: parent.id
+    },
     className: "tree-node",
     style: {
       cursor: "pointer"
     },
-    onClick: () => go({
-      name: "entity",
-      id: parent.id
-    })
+    title: lang === "es" ? "Abrir (clic derecho: nueva pestaña)" : "Open"
   }, /*#__PURE__*/React.createElement(Icon, {
     name: "building"
   }), " ", parent.name), /*#__PURE__*/React.createElement("div", {
@@ -9045,16 +9084,17 @@ const EntityProfile = ({
     name: "building"
   }), " ", e.name), children.length > 0 && /*#__PURE__*/React.createElement("div", {
     className: "tree-children"
-  }, children.map(c => /*#__PURE__*/React.createElement("div", {
+  }, children.map(c => /*#__PURE__*/React.createElement(GoLink, {
     key: c.id,
+    route: {
+      name: "entity",
+      id: c.id
+    },
     className: "tree-node",
     style: {
       cursor: "pointer"
     },
-    onClick: () => go({
-      name: "entity",
-      id: c.id
-    })
+    title: lang === "es" ? "Abrir (clic derecho: nueva pestaña)" : "Open"
   }, /*#__PURE__*/React.createElement(Icon, {
     name: "building"
   }), " ", c.name))))))), /*#__PURE__*/React.createElement("div", {
@@ -9182,25 +9222,23 @@ const EntityProfile = ({
   }) => /*#__PURE__*/React.createElement("div", {
     key: p.id,
     className: "link-row"
-  }, /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement(GoLink, {
+    route: {
+      name: "person",
+      id: p.id
+    },
     className: "av-circle",
     style: {
-      background: p.color,
-      cursor: "pointer"
+      background: p.color
     },
-    onClick: () => go({
+    title: lang === "es" ? "Abrir (clic derecho: nueva pestaña)" : "Open"
+  }, initials(fullName(p))), /*#__PURE__*/React.createElement(GoLink, {
+    route: {
       name: "person",
       id: p.id
-    })
-  }, initials(fullName(p))), /*#__PURE__*/React.createElement("div", {
+    },
     className: "grow",
-    style: {
-      cursor: "pointer"
-    },
-    onClick: () => go({
-      name: "person",
-      id: p.id
-    })
+    title: lang === "es" ? "Abrir (clic derecho: nueva pestaña)" : "Open"
   }, /*#__PURE__*/React.createElement("div", {
     className: "title"
   }, fullName(p)), /*#__PURE__*/React.createElement("div", {
@@ -12304,12 +12342,30 @@ const DuplicatesPage = ({
         fontWeight: 600,
         fontSize: 13
       }
-    }, fullName(pA), " ", /*#__PURE__*/React.createElement("span", {
+    }, /*#__PURE__*/React.createElement(GoLink, {
+      route: {
+        name: "person",
+        id: pA.id
+      },
+      title: lang === "es" ? "Abrir perfil (clic derecho: nueva pestaña)" : "Open profile",
+      style: {
+        color: "var(--accent)"
+      }
+    }, fullName(pA)), /*#__PURE__*/React.createElement("span", {
       style: {
         color: "var(--ink-4)",
         fontWeight: 400
       }
-    }, "vs"), " ", fullName(pB)), /*#__PURE__*/React.createElement("div", {
+    }, " vs "), /*#__PURE__*/React.createElement(GoLink, {
+      route: {
+        name: "person",
+        id: pB.id
+      },
+      title: lang === "es" ? "Abrir perfil (clic derecho: nueva pestaña)" : "Open profile",
+      style: {
+        color: "var(--accent)"
+      }
+    }, fullName(pB))), /*#__PURE__*/React.createElement("div", {
       style: {
         marginTop: 3
       }
@@ -12354,7 +12410,12 @@ const DuplicatesPage = ({
         gap: 10,
         marginBottom: 8
       }
-    }, /*#__PURE__*/React.createElement("div", null), /*#__PURE__*/React.createElement("div", {
+    }, /*#__PURE__*/React.createElement("div", null), /*#__PURE__*/React.createElement(GoLink, {
+      route: {
+        name: "person",
+        id: pA.id
+      },
+      title: lang === "es" ? "Abrir perfil (clic derecho: nueva pestaña)" : "Open profile",
       style: {
         display: "flex",
         alignItems: "center",
@@ -12369,7 +12430,8 @@ const DuplicatesPage = ({
     }, initials(fullName(pA))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
       style: {
         fontWeight: 700,
-        fontSize: 14
+        fontSize: 14,
+        color: "var(--accent)"
       }
     }, fullName(pA)), /*#__PURE__*/React.createElement("div", {
       style: {
@@ -12377,7 +12439,12 @@ const DuplicatesPage = ({
         color: "var(--ink-4)",
         fontFamily: "var(--font-mono)"
       }
-    }, "ID ", pA.id))), /*#__PURE__*/React.createElement("div", {
+    }, "ID ", pA.id))), /*#__PURE__*/React.createElement(GoLink, {
+      route: {
+        name: "person",
+        id: pB.id
+      },
+      title: lang === "es" ? "Abrir perfil (clic derecho: nueva pestaña)" : "Open profile",
       style: {
         display: "flex",
         alignItems: "center",
@@ -12392,7 +12459,8 @@ const DuplicatesPage = ({
     }, initials(fullName(pB))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
       style: {
         fontWeight: 700,
-        fontSize: 14
+        fontSize: 14,
+        color: "var(--accent)"
       }
     }, fullName(pB)), /*#__PURE__*/React.createElement("div", {
       style: {
@@ -12765,12 +12833,30 @@ const DuplicatesPage = ({
         fontWeight: 700,
         fontSize: 13
       }
-    }, eA.name, " ", /*#__PURE__*/React.createElement("span", {
+    }, /*#__PURE__*/React.createElement(GoLink, {
+      route: {
+        name: "entity",
+        id: eA.id
+      },
+      title: es ? "Abrir perfil (clic derecho: nueva pestaña)" : "Open profile",
+      style: {
+        color: "var(--accent)"
+      }
+    }, eA.name), " ", /*#__PURE__*/React.createElement("span", {
       style: {
         color: "var(--ink-4)",
         fontWeight: 400
       }
-    }, "vs"), " ", eB.name), /*#__PURE__*/React.createElement("div", {
+    }, "vs"), " ", /*#__PURE__*/React.createElement(GoLink, {
+      route: {
+        name: "entity",
+        id: eB.id
+      },
+      title: es ? "Abrir perfil (clic derecho: nueva pestaña)" : "Open profile",
+      style: {
+        color: "var(--accent)"
+      }
+    }, eB.name)), /*#__PURE__*/React.createElement("div", {
       style: {
         fontSize: 11.5,
         color: "var(--ink-3)",
@@ -12812,10 +12898,17 @@ const DuplicatesPage = ({
         gap: 10,
         marginBottom: 8
       }
-    }, /*#__PURE__*/React.createElement("div", null), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    }, /*#__PURE__*/React.createElement("div", null), /*#__PURE__*/React.createElement(GoLink, {
+      route: {
+        name: "entity",
+        id: eA.id
+      },
+      title: es ? "Abrir perfil (clic derecho: nueva pestaña)" : "Open profile"
+    }, /*#__PURE__*/React.createElement("div", {
       style: {
         fontWeight: 700,
-        fontSize: 13.5
+        fontSize: 13.5,
+        color: "var(--accent)"
       }
     }, eA.name), /*#__PURE__*/React.createElement("div", {
       style: {
@@ -12823,10 +12916,17 @@ const DuplicatesPage = ({
         color: "var(--ink-4)",
         fontFamily: "var(--font-mono)"
       }
-    }, "ID ", eA.id)), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    }, "ID ", eA.id)), /*#__PURE__*/React.createElement(GoLink, {
+      route: {
+        name: "entity",
+        id: eB.id
+      },
+      title: es ? "Abrir perfil (clic derecho: nueva pestaña)" : "Open profile"
+    }, /*#__PURE__*/React.createElement("div", {
       style: {
         fontWeight: 700,
-        fontSize: 13.5
+        fontSize: 13.5,
+        color: "var(--accent)"
       }
     }, eB.name), /*#__PURE__*/React.createElement("div", {
       style: {
@@ -14791,7 +14891,11 @@ const MyTasksView = ({
         flexWrap: "wrap",
         alignItems: "center"
       }
-    }, persona && /*#__PURE__*/React.createElement("button", {
+    }, persona && /*#__PURE__*/React.createElement(GoLink, {
+      route: {
+        name: "person",
+        id: task.personaId
+      },
       className: "btn btn-ghost btn-sm",
       style: {
         height: "auto",
@@ -14800,10 +14904,7 @@ const MyTasksView = ({
         color: "var(--accent)",
         fontWeight: 600
       },
-      onClick: () => go({
-        name: "person",
-        id: task.personaId
-      })
+      title: "Abrir \xB7 clic derecho para nueva pesta\xF1a"
     }, /*#__PURE__*/React.createElement(Icon, {
       name: "users",
       size: 11
@@ -16729,29 +16830,27 @@ const ProjectDetailView = ({
   }) => /*#__PURE__*/React.createElement("div", {
     key: p.id,
     className: "link-row"
-  }, /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement(GoLink, {
+    route: {
+      name: "person",
+      id: p.id
+    },
     className: "av-circle",
     style: {
       background: p.color,
       width: 38,
       height: 38,
       fontSize: 13,
-      flexShrink: 0,
-      cursor: "pointer"
+      flexShrink: 0
     },
-    onClick: () => go({
+    title: "Abrir \xB7 clic derecho para nueva pesta\xF1a"
+  }, initials(fullName(p))), /*#__PURE__*/React.createElement(GoLink, {
+    route: {
       name: "person",
       id: p.id
-    })
-  }, initials(fullName(p))), /*#__PURE__*/React.createElement("div", {
+    },
     className: "grow",
-    style: {
-      cursor: "pointer"
-    },
-    onClick: () => go({
-      name: "person",
-      id: p.id
-    })
+    title: "Abrir \xB7 clic derecho para nueva pesta\xF1a"
   }, /*#__PURE__*/React.createElement("div", {
     className: "title",
     style: {
@@ -18545,16 +18644,17 @@ const CalendarView = ({
       name: "project",
       id: evt.id
     })
-  }, "Ver \u2192"), evt.kind === "task" && /*#__PURE__*/React.createElement("button", {
+  }, "Ver \u2192"), evt.kind === "task" && /*#__PURE__*/React.createElement(GoLink, {
+    route: {
+      name: "person",
+      id: evt.ownerId
+    },
     className: "btn btn-sm btn-ghost",
     style: {
       padding: "1px 6px",
       fontSize: 10.5
     },
-    onClick: () => go({
-      name: "person",
-      id: evt.ownerId
-    })
+    title: "Abrir \xB7 clic derecho para nueva pesta\xF1a"
   }, "Ver \u2192"), evt.kind === "cal" && /*#__PURE__*/React.createElement("button", {
     className: "icon-btn",
     style: {
@@ -19671,8 +19771,12 @@ const CountyView = ({
     }, es ? "Sin personas en este condado" : "No people in this county"), personas.map((p, i) => {
       const stageId = stageOf(p);
       const st = stages.find(s => s.id === stageId);
-      return /*#__PURE__*/React.createElement("div", {
+      return /*#__PURE__*/React.createElement(GoLink, {
         key: p.id,
+        route: {
+          name: "person",
+          id: p.id
+        },
         className: "hover-row",
         style: {
           display: "flex",
@@ -19683,11 +19787,7 @@ const CountyView = ({
           borderBottom: i < personas.length - 1 ? "1px solid var(--line)" : "none",
           animation: "slideUp .2s ease-out both",
           animationDelay: i * 20 + "ms"
-        },
-        onClick: () => go({
-          name: "person",
-          id: p.id
-        })
+        }
       }, /*#__PURE__*/React.createElement("div", {
         className: "av-circle",
         style: {
@@ -19745,8 +19845,12 @@ const CountyView = ({
       style: {
         padding: 24
       }
-    }, es ? "Sin entidades en este condado" : "No entities in this county"), entities.map((e, i) => /*#__PURE__*/React.createElement("div", {
+    }, es ? "Sin entidades en este condado" : "No entities in this county"), entities.map((e, i) => /*#__PURE__*/React.createElement(GoLink, {
       key: e.id,
+      route: {
+        name: "entity",
+        id: e.id
+      },
       className: "hover-row",
       style: {
         display: "flex",
@@ -19757,11 +19861,7 @@ const CountyView = ({
         borderBottom: i < entities.length - 1 ? "1px solid var(--line)" : "none",
         animation: "slideUp .2s ease-out both",
         animationDelay: i * 20 + "ms"
-      },
-      onClick: () => go({
-        name: "entity",
-        id: e.id
-      })
+      }
     }, /*#__PURE__*/React.createElement("div", {
       style: {
         width: 36,
@@ -22838,6 +22938,9 @@ const App = () => {
       top: 0
     });
   };
+  // Expose the router so the global <GoLink> anchor (ui.jsx) can drive SPA navigation
+  // on a normal click while still being a real <a href> for "open in new tab".
+  window.PROMEZA_GO = go;
 
   // ── URL / deep-linking ──
   // Each view/profile gets a hash URL (#person/ID, #entity/ID, #personas, …) so it

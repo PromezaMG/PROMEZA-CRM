@@ -445,11 +445,11 @@ const ProjectDetailView = ({ id, lang, data, go, onUpdateProject, onDeleteProjec
             ) : (
               members.map(({ person: p, role: mRole, addedAt }) => (
                 <div key={p.id} className="link-row">
-                  <div className="av-circle" style={{ background: p.color, width: 38, height: 38, fontSize: 13, flexShrink: 0, cursor: "pointer" }} onClick={() => go({ name: "person", id: p.id })}>{initials(fullName(p))}</div>
-                  <div className="grow" style={{ cursor: "pointer" }} onClick={() => go({ name: "person", id: p.id })}>
+                  <GoLink route={{ name: "person", id: p.id }} className="av-circle" style={{ background: p.color, width: 38, height: 38, fontSize: 13, flexShrink: 0 }} title="Abrir · clic derecho para nueva pestaña">{initials(fullName(p))}</GoLink>
+                  <GoLink route={{ name: "person", id: p.id }} className="grow" title="Abrir · clic derecho para nueva pestaña">
                     <div className="title" style={{ fontWeight: 700 }}>{fullName(p)}</div>
                     <div className="row-sub">{p.role !== "otro" ? p.role : (p.roleOther || "")}{p.city ? " · " + p.city : ""}</div>
-                  </div>
+                  </GoLink>
                   <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 3 }}>
                     <span style={{ padding: "2px 9px", borderRadius: 6, background: pt.color + "14", color: pt.color, fontSize: 11.5, fontWeight: 600 }}>{mRole}</span>
                     {addedAt && <span style={{ fontSize: 10.5, color: "var(--ink-4)" }}>{fmtDate(addedAt, lang)}</span>}

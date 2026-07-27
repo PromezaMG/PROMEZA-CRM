@@ -179,15 +179,14 @@ const NotificationsPanel = ({ data, lang, go, onClose, dupCount = 0 }) => {
           <div>
             <div style={{ padding: "8px 16px 4px", fontSize: 10.5, fontWeight: 700, color: "var(--ink-4)", textTransform: "uppercase", letterSpacing: ".06em" }}>Cumpleaños</div>
             {birthdayAlerts.map(({ p, diff }) => (
-              <div key={p.id} style={{ padding: "10px 16px", borderBottom: "1px solid var(--line)", display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}
-                onClick={() => { go({ name: "person", id: p.id }); onClose(); }}>
+              <GoLink key={p.id} route={{ name: "person", id: p.id }} onClick={onClose} style={{ padding: "10px 16px", borderBottom: "1px solid var(--line)", display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}>
                 <div className="av-circle" style={{ background: p.color, width: 32, height: 32, fontSize: 11, flexShrink: 0 }}>{initials(fullName(p))}</div>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontWeight: 600, fontSize: 13 }}>{fullName(p)}</div>
                   <div style={{ fontSize: 11.5, color: "var(--ink-3)" }}>{diff === 0 ? "Cumpleaños hoy" : "Cumpleaños en " + diff + " días"}</div>
                 </div>
                 <span style={{ fontSize: 18 }}>{diff === 0 ? "🎂" : "🎉"}</span>
-              </div>
+              </GoLink>
             ))}
           </div>
         )}
@@ -208,15 +207,14 @@ const NotificationsPanel = ({ data, lang, go, onClose, dupCount = 0 }) => {
                 if (p.phoneStatus === "bad") issues.push("Teléfono no funciona");
               }
               return (
-                <div key={p.id} style={{ padding: "9px 16px", borderBottom: "1px solid var(--line)", display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}
-                  onClick={() => { go({ name: "person", id: p.id }); onClose(); }}>
+                <GoLink key={p.id} route={{ name: "person", id: p.id }} onClick={onClose} style={{ padding: "9px 16px", borderBottom: "1px solid var(--line)", display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}>
                   <div className="av-circle" style={{ background: p.color, width: 30, height: 30, fontSize: 10, flexShrink: 0 }}>{initials(fullName(p))}</div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontWeight: 600, fontSize: 12.5 }}>{fullName(p)}</div>
                     <div style={{ fontSize: 11, color: "#f59e0b", fontWeight: 500 }}>{issues.join(" · ")}</div>
                   </div>
                   <Icon name="alert" size={13} style={{ color: "#f59e0b", flexShrink: 0 }} />
-                </div>
+                </GoLink>
               );
             })}
             {data.personas.filter(p => window.hasContactIssue && window.hasContactIssue(p)).length > 6 && (
@@ -233,8 +231,7 @@ const NotificationsPanel = ({ data, lang, go, onClose, dupCount = 0 }) => {
             {overdueItems.slice(0, 5).map(({ task, person }) => {
               const daysOver = Math.round((new Date(today) - new Date(task.due)) / 86400000);
               return (
-                <div key={task.id} style={{ padding: "10px 16px", borderBottom: "1px solid var(--line)", display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}
-                  onClick={() => { go({ name: "person", id: person.id }); onClose(); }}>
+                <GoLink key={task.id} route={{ name: "person", id: person.id }} onClick={onClose} style={{ padding: "10px 16px", borderBottom: "1px solid var(--line)", display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}>
                   <div style={{ width: 32, height: 32, borderRadius: 8, background: "#ef444414", display: "grid", placeItems: "center", flexShrink: 0 }}>
                     <Icon name="clock" size={14} />
                   </div>
@@ -243,7 +240,7 @@ const NotificationsPanel = ({ data, lang, go, onClose, dupCount = 0 }) => {
                     <div style={{ fontSize: 11.5, color: "var(--ink-3)" }}>{fullName(person)}</div>
                   </div>
                   <span style={{ fontSize: 11, fontWeight: 700, color: "var(--bad)", flexShrink: 0 }}>-{daysOver}d</span>
-                </div>
+                </GoLink>
               );
             })}
             {overdueItems.length > 5 && (
