@@ -77,6 +77,15 @@ a { color: var(--accent); text-decoration: none; }
 a:hover { text-decoration: underline; }
 button { font-family: inherit; }
 
+/* ─── GoLink reset ───
+   In-app <a> navigation links (<GoLink>) get their reset via THIS class instead of
+   inline styles, so component classes that come later in this file (.nav-item, .btn,
+   .hover-row, .link-row, .tree-node, …) keep control of their own color/decoration.
+   Placed BEFORE those classes so they win on equal specificity. An explicit inline
+   style color on a GoLink still overrides everything (e.g. accent-colored names). */
+.golink-reset, .golink-reset:visited { color: inherit; text-decoration: none; cursor: pointer; }
+.golink-reset:hover { text-decoration: none; }
+
 /* ─── App shell ─── */
 .app {
   display: grid;

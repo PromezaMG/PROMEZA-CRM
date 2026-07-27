@@ -216,8 +216,8 @@ const GoLink = ({ route, children, className, style, title, onClick, block, stop
     if (window.PROMEZA_GO && route) window.PROMEZA_GO(route);
   };
   return (
-    <a href={href} className={className} title={title}
-      style={{ color: "inherit", textDecoration: "none", cursor: "pointer", ...(block ? { display: "block" } : {}), ...style }}
+    <a href={href} className={"golink-reset" + (className ? " " + className : "")} title={title}
+      style={{ ...(block ? { display: "block" } : {}), ...style }}
       onClick={handle} onAuxClick={(e) => stop && e.stopPropagation()} {...rest}>
       {children}
     </a>

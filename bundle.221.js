@@ -611,12 +611,9 @@ const GoLink = ({
   };
   return /*#__PURE__*/React.createElement("a", _extends({
     href: href,
-    className: className,
+    className: "golink-reset" + (className ? " " + className : ""),
     title: title,
     style: {
-      color: "inherit",
-      textDecoration: "none",
-      cursor: "pointer",
       ...(block ? {
         display: "block"
       } : {}),
