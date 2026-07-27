@@ -153,6 +153,13 @@ button { font-family: inherit; }
   width: 17px; height: 17px; display: grid; place-items: center;
   color: currentColor; opacity: .85; flex-shrink: 0;
 }
+/* BULLETPROOF sidebar text color — higher specificity (.sidebar .nav-item = 0,2,0)
+   so it ALWAYS beats the GoLink reset (.golink-reset = 0,1,0), no matter the source
+   order. Without this, when nav items became <a> links their label could fall back to
+   the inherited (near-black) color at rest and only turn white on hover. */
+.sidebar .nav-item { color: var(--side-ink); }
+.sidebar .nav-item:hover { color: var(--side-ink-hi); }
+.sidebar .nav-item.active { color: #fff; }
 .nav-item .badge {
   margin-left: auto;
   background: rgba(255,255,255,.12);
