@@ -1824,7 +1824,25 @@ const App = () => {
     setData(d => {
       const next = { ...d, comments: { ...d.comments } };
       const list = next.comments[targetId] ? [...next.comments[targetId]] : [];
-      list.unshift({ author: userEmail || "Usuario", date: new Date().toISOString().slice(0, 10), text });
+      list.unshift({ id: "cm" + Date.now(), author: userEmail || "Usuario", date: new Date().toISOString().slice(0, 10), text });
+      next.comments[targetId] = list;
+      return next;
+    });
+  };
+  const editComment = (targetId, index, text) => {
+    setData(d => {
+      const next = { ...d, comments: { ...d.comments } };
+      const list = next.comments[targetId] ? [...next.comments[targetId]] : [];
+      if (list[index]) list[index] = { ...list[index], text, edited: true, editedDate: new Date().toISOString().slice(0, 10) };
+      next.comments[targetId] = list;
+      return next;
+    });
+  };
+  const deleteComment = (targetId, index) => {
+    setData(d => {
+      const next = { ...d, comments: { ...d.comments } };
+      const list = next.comments[targetId] ? [...next.comments[targetId]] : [];
+      list.splice(index, 1);
       next.comments[targetId] = list;
       return next;
     });
@@ -2494,7 +2512,7 @@ const App = () => {
     case "personas": view = <PersonasList t={t} lang={lang} data={data} go={go} route={route} onImportPersonas={handleImportPersonas} globalQ={query} onBulkDelete={handleBulkDeletePersonas} onBulkUpdateStatus={handleBulkUpdatePersonas} onBulkAddTag={handleBulkAddTagPersonas} onBulkAddTask={handleBulkAddTask} segments={data.segments || []} onAddSegment={addSegment} onDeleteSegment={deleteSegment} users={window.PROMEZA_USERS || []} currentUser={userEmail} />; break;
     case "pipeline": view = <PipelineView t={t} lang={lang} data={data} go={go} onUpdatePerson={handleUpdatePerson} />; break;
     case "entities": view = <EntitiesList t={t} lang={lang} data={data} go={go} route={route} onImportEntities={handleImportEntities} globalQ={query} />; break;
-    case "person": view = <ViewErrorBoundary key={"person-" + route.id}><PersonProfile id={route.id} t={t} lang={lang} data={data} go={go} goBack={goBack} addComment={addComment}
+    case "person": view = <ViewErrorBoundary key={"person-" + route.id}><PersonProfile id={route.id} t={t} lang={lang} data={data} go={go} goBack={goBack} addComment={addComment} onEditComment={editComment} onDeleteComment={deleteComment}
       onUpdatePerson={handleUpdatePerson} onEditPerson={handleEditPerson} onDeletePerson={handleDeletePerson}
       interactions={data.interactions[route.id] || []}
       onAddInteraction={(item) => addInteraction(route.id, item)}
@@ -2520,7 +2538,7 @@ const App = () => {
       tasks={data.tasks} onToggleTask={toggleTask} onDeleteTask={deleteTask}
       currentUser={userEmail} users={window.PROMEZA_USERS || []}
     />; break;
-    case "entity": view = <ViewErrorBoundary key={"entity-" + route.id}><EntityProfile id={route.id} t={t} lang={lang} data={data} go={go} goBack={goBack} addComment={addComment} onUpdateEntity={handleUpdateEntity} onUpdatePerson={handleUpdatePerson} onEditEntity={handleEditEntity} onDeleteEntity={handleDeleteEntity} changelog={data.changelog[route.id] || []} attachments={data.attachments[route.id] || []} onAddAttachment={(att) => addAttachment(route.id, att)} onDeleteAttachment={(attId) => deleteAttachment(route.id, attId)} tasks={data.tasks[route.id] || []} onAddTask={(task) => addTask(route.id, task)} onToggleTask={(id) => toggleTask(route.id, id)} onDeleteTask={(id) => deleteTask(route.id, id)} onResolveDuplicate={(resolved) => handleResolveEntityDuplicate(route.id, resolved)} inDupPair={dupEntityIds.has(route.id)} users={window.PROMEZA_USERS || []} currentUser={userEmail} /></ViewErrorBoundary>; break;
+    case "entity": view = <ViewErrorBoundary key={"entity-" + route.id}><EntityProfile id={route.id} t={t} lang={lang} data={data} go={go} goBack={goBack} addComment={addComment} onEditComment={editComment} onDeleteComment={deleteComment} onUpdateEntity={handleUpdateEntity} onUpdatePerson={handleUpdatePerson} onEditEntity={handleEditEntity} onDeleteEntity={handleDeleteEntity} changelog={data.changelog[route.id] || []} attachments={data.attachments[route.id] || []} onAddAttachment={(att) => addAttachment(route.id, att)} onDeleteAttachment={(attId) => deleteAttachment(route.id, attId)} tasks={data.tasks[route.id] || []} onAddTask={(task) => addTask(route.id, task)} onToggleTask={(id) => toggleTask(route.id, id)} onDeleteTask={(id) => deleteTask(route.id, id)} onResolveDuplicate={(resolved) => handleResolveEntityDuplicate(route.id, resolved)} inDupPair={dupEntityIds.has(route.id)} users={window.PROMEZA_USERS || []} currentUser={userEmail} /></ViewErrorBoundary>; break;
     case "projects": view = <ProjectsListView lang={lang} data={data} go={go} onAddProject={addProject} />; break;
     case "project": view = <ProjectDetailView id={route.id} lang={lang} data={data} go={go} onUpdateProject={updateProject} onDeleteProject={deleteProject} onAddMember={addProjectMember} onRemoveMember={removeProjectMember} comments={data.comments[route.id] || []} onAddComment={(projectId, text) => addComment(projectId, text)} attachments={data.attachments[route.id] || []} onAddAttachment={(att) => addAttachment(route.id, att)} onDeleteAttachment={(attId) => deleteAttachment(route.id, attId)} />; break;
     case "campaigns": view = <CampaignsView lang={lang} data={data} go={go} onSaveCampaign={saveCampaign} />; break;

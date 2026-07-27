@@ -72,8 +72,15 @@ const SocialRow = ({ social }) => {
   );
 };
 
-const Comments = ({ items, t, lang, onAdd }) => {
+const Comments = ({ items, t, lang, onAdd, onEdit, onDelete }) => {
   const [val, setVal] = React.useState("");
+  const [editIdx, setEditIdx] = React.useState(-1);
+  const [editVal, setEditVal] = React.useState("");
+  const startEdit = (i, text) => { setEditIdx(i); setEditVal(text); };
+  const saveEdit = () => {
+    if (editVal.trim() && onEdit) onEdit(editIdx, editVal.trim());
+    setEditIdx(-1); setEditVal("");
+  };
   return (
     <div>
       <div className="comment-form">
@@ -94,14 +101,34 @@ const Comments = ({ items, t, lang, onAdd }) => {
       <div className="timeline">
         {items.length === 0 && <div className="empty">{t.common.noComments}</div>}
         {items.map((c, i) => (
-          <div key={i} className="comment">
+          <div key={c.id || i} className="comment">
             <div className="av-circle" style={{ background: "#0f1530" }}>{initials(c.author)}</div>
             <div className="body">
               <div className="head">
                 <span className="who">{c.author}</span>
-                <span className="when">{fmtDate(c.date, lang)}</span>
+                <span className="when">{fmtDate(c.date, lang)}{c.edited ? (lang === "es" ? " · editado" : " · edited") : ""}</span>
+                {editIdx !== i && (
+                  <span style={{ marginLeft: "auto", display: "flex", gap: 4 }}>
+                    <button className="icon-btn" title={lang === "es" ? "Editar" : "Edit"} style={{ padding: 3 }}
+                      onClick={() => startEdit(i, c.text)}><Icon name="edit" size={13} /></button>
+                    <button className="icon-btn" title={lang === "es" ? "Borrar" : "Delete"} style={{ padding: 3, color: "var(--bad)" }}
+                      onClick={() => { if (window.confirm(lang === "es" ? "¿Borrar este comentario?" : "Delete this comment?")) onDelete && onDelete(i); }}><Icon name="trash" size={13} /></button>
+                  </span>
+                )}
               </div>
-              <div className="text">{c.text}</div>
+              {editIdx === i ? (
+                <div className="comment-form" style={{ marginTop: 6 }}>
+                  <textarea value={editVal} onChange={e => setEditVal(e.target.value)} autoFocus />
+                  <div className="row">
+                    <button className="btn btn-sm" onClick={() => { setEditIdx(-1); setEditVal(""); }}>{t.common.cancel}</button>
+                    <button className="btn btn-sm btn-primary" disabled={!editVal.trim()} onClick={saveEdit}>
+                      <Icon name="check" /> {lang === "es" ? "Guardar" : "Save"}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="text">{c.text}</div>
+              )}
             </div>
           </div>
         ))}
@@ -164,7 +191,7 @@ const ChangelogTab = ({ changelog, lang }) => {
   );
 };
 
-const PersonProfile = ({ id, t, lang, data, go, goBack, addComment, onUpdatePerson, onEditPerson, onDeletePerson,
+const PersonProfile = ({ id, t, lang, data, go, goBack, addComment, onEditComment, onDeleteComment, onUpdatePerson, onEditPerson, onDeletePerson,
   interactions, onAddInteraction, onDeleteInteraction,
   tasks, onAddTask, onToggleTask, onDeleteTask, onResolveDuplicate, inDupPair, changelog, users, currentUser,
   attachments, onAddAttachment, onDeleteAttachment }) => {
@@ -678,7 +705,7 @@ const PersonProfile = ({ id, t, lang, data, go, goBack, addComment, onUpdatePers
         <div className="section">
           <h3>{t.common.comments}</h3>
           <div className="section-body">
-            <Comments items={data.comments[p.id] || []} t={t} lang={lang} onAdd={(text) => addComment(p.id, text)} />
+            <Comments items={data.comments[p.id] || []} t={t} lang={lang} onAdd={(text) => addComment(p.id, text)} onEdit={(i, text) => onEditComment && onEditComment(p.id, i, text)} onDelete={(i) => onDeleteComment && onDeleteComment(p.id, i)} />
           </div>
         </div>
       )}
@@ -710,7 +737,7 @@ const PersonProfile = ({ id, t, lang, data, go, goBack, addComment, onUpdatePers
 
 // ─── ENTITY PROFILE ───
 
-const EntityProfile = ({ id, t, lang, data, go, goBack, addComment, onUpdateEntity, onUpdatePerson, onEditEntity, onDeleteEntity, changelog, attachments, onAddAttachment, onDeleteAttachment, tasks, onAddTask, onToggleTask, onDeleteTask, onResolveDuplicate, inDupPair, users, currentUser }) => {
+const EntityProfile = ({ id, t, lang, data, go, goBack, addComment, onEditComment, onDeleteComment, onUpdateEntity, onUpdatePerson, onEditEntity, onDeleteEntity, changelog, attachments, onAddAttachment, onDeleteAttachment, tasks, onAddTask, onToggleTask, onDeleteTask, onResolveDuplicate, inDupPair, users, currentUser }) => {
   const e = data.entities.find(x => x.id === id);
   const [tab, setTab] = React.useState("details");
   const [linking, setLinking] = React.useState(false);
@@ -1069,7 +1096,7 @@ const EntityProfile = ({ id, t, lang, data, go, goBack, addComment, onUpdateEnti
         <div className="section">
           <h3>{t.common.comments}</h3>
           <div className="section-body">
-            <Comments items={data.comments[e.id] || []} t={t} lang={lang} onAdd={(text) => addComment(e.id, text)} />
+            <Comments items={data.comments[e.id] || []} t={t} lang={lang} onAdd={(text) => addComment(e.id, text)} onEdit={(i, text) => onEditComment && onEditComment(e.id, i, text)} onDelete={(i) => onDeleteComment && onDeleteComment(e.id, i)} />
           </div>
         </div>
       )}

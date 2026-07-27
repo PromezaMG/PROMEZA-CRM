@@ -7182,9 +7182,22 @@ const Comments = ({
   items,
   t,
   lang,
-  onAdd
+  onAdd,
+  onEdit,
+  onDelete
 }) => {
   const [val, setVal] = React.useState("");
+  const [editIdx, setEditIdx] = React.useState(-1);
+  const [editVal, setEditVal] = React.useState("");
+  const startEdit = (i, text) => {
+    setEditIdx(i);
+    setEditVal(text);
+  };
+  const saveEdit = () => {
+    if (editVal.trim() && onEdit) onEdit(editIdx, editVal.trim());
+    setEditIdx(-1);
+    setEditVal("");
+  };
   return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
     className: "comment-form"
   }, /*#__PURE__*/React.createElement("textarea", {
@@ -7216,7 +7229,7 @@ const Comments = ({
   }, items.length === 0 && /*#__PURE__*/React.createElement("div", {
     className: "empty"
   }, t.common.noComments), items.map((c, i) => /*#__PURE__*/React.createElement("div", {
-    key: i,
+    key: c.id || i,
     className: "comment"
   }, /*#__PURE__*/React.createElement("div", {
     className: "av-circle",
@@ -7231,7 +7244,59 @@ const Comments = ({
     className: "who"
   }, c.author), /*#__PURE__*/React.createElement("span", {
     className: "when"
-  }, fmtDate(c.date, lang))), /*#__PURE__*/React.createElement("div", {
+  }, fmtDate(c.date, lang), c.edited ? lang === "es" ? " · editado" : " · edited" : ""), editIdx !== i && /*#__PURE__*/React.createElement("span", {
+    style: {
+      marginLeft: "auto",
+      display: "flex",
+      gap: 4
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    className: "icon-btn",
+    title: lang === "es" ? "Editar" : "Edit",
+    style: {
+      padding: 3
+    },
+    onClick: () => startEdit(i, c.text)
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: "edit",
+    size: 13
+  })), /*#__PURE__*/React.createElement("button", {
+    className: "icon-btn",
+    title: lang === "es" ? "Borrar" : "Delete",
+    style: {
+      padding: 3,
+      color: "var(--bad)"
+    },
+    onClick: () => {
+      if (window.confirm(lang === "es" ? "¿Borrar este comentario?" : "Delete this comment?")) onDelete && onDelete(i);
+    }
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: "trash",
+    size: 13
+  })))), editIdx === i ? /*#__PURE__*/React.createElement("div", {
+    className: "comment-form",
+    style: {
+      marginTop: 6
+    }
+  }, /*#__PURE__*/React.createElement("textarea", {
+    value: editVal,
+    onChange: e => setEditVal(e.target.value),
+    autoFocus: true
+  }), /*#__PURE__*/React.createElement("div", {
+    className: "row"
+  }, /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-sm",
+    onClick: () => {
+      setEditIdx(-1);
+      setEditVal("");
+    }
+  }, t.common.cancel), /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-sm btn-primary",
+    disabled: !editVal.trim(),
+    onClick: saveEdit
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: "check"
+  }), " ", lang === "es" ? "Guardar" : "Save"))) : /*#__PURE__*/React.createElement("div", {
     className: "text"
   }, c.text))))));
 };
@@ -7343,6 +7408,8 @@ const PersonProfile = ({
   go,
   goBack,
   addComment,
+  onEditComment,
+  onDeleteComment,
   onUpdatePerson,
   onEditPerson,
   onDeletePerson,
@@ -8446,7 +8513,9 @@ const PersonProfile = ({
     items: data.comments[p.id] || [],
     t: t,
     lang: lang,
-    onAdd: text => addComment(p.id, text)
+    onAdd: text => addComment(p.id, text),
+    onEdit: (i, text) => onEditComment && onEditComment(p.id, i, text),
+    onDelete: i => onDeleteComment && onDeleteComment(p.id, i)
   }))), tab === "files" && /*#__PURE__*/React.createElement(AttachmentsTab, {
     targetId: p.id,
     attachments: attachments || [],
@@ -8484,6 +8553,8 @@ const EntityProfile = ({
   go,
   goBack,
   addComment,
+  onEditComment,
+  onDeleteComment,
   onUpdateEntity,
   onUpdatePerson,
   onEditEntity,
@@ -9165,7 +9236,9 @@ const EntityProfile = ({
     items: data.comments[e.id] || [],
     t: t,
     lang: lang,
-    onAdd: text => addComment(e.id, text)
+    onAdd: text => addComment(e.id, text),
+    onEdit: (i, text) => onEditComment && onEditComment(e.id, i, text),
+    onDelete: i => onDeleteComment && onDeleteComment(e.id, i)
   }))), tab === "files" && /*#__PURE__*/React.createElement(AttachmentsTab, {
     targetId: e.id,
     attachments: attachments || [],
@@ -22837,10 +22910,44 @@ const App = () => {
       };
       const list = next.comments[targetId] ? [...next.comments[targetId]] : [];
       list.unshift({
+        id: "cm" + Date.now(),
         author: userEmail || "Usuario",
         date: new Date().toISOString().slice(0, 10),
         text
       });
+      next.comments[targetId] = list;
+      return next;
+    });
+  };
+  const editComment = (targetId, index, text) => {
+    setData(d => {
+      const next = {
+        ...d,
+        comments: {
+          ...d.comments
+        }
+      };
+      const list = next.comments[targetId] ? [...next.comments[targetId]] : [];
+      if (list[index]) list[index] = {
+        ...list[index],
+        text,
+        edited: true,
+        editedDate: new Date().toISOString().slice(0, 10)
+      };
+      next.comments[targetId] = list;
+      return next;
+    });
+  };
+  const deleteComment = (targetId, index) => {
+    setData(d => {
+      const next = {
+        ...d,
+        comments: {
+          ...d.comments
+        }
+      };
+      const list = next.comments[targetId] ? [...next.comments[targetId]] : [];
+      list.splice(index, 1);
       next.comments[targetId] = list;
       return next;
     });
@@ -23996,6 +24103,8 @@ const App = () => {
         go: go,
         goBack: goBack,
         addComment: addComment,
+        onEditComment: editComment,
+        onDeleteComment: deleteComment,
         onUpdatePerson: handleUpdatePerson,
         onEditPerson: handleEditPerson,
         onDeletePerson: handleDeletePerson,
@@ -24057,6 +24166,8 @@ const App = () => {
         go: go,
         goBack: goBack,
         addComment: addComment,
+        onEditComment: editComment,
+        onDeleteComment: deleteComment,
         onUpdateEntity: handleUpdateEntity,
         onUpdatePerson: handleUpdatePerson,
         onEditEntity: handleEditEntity,
