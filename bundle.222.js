@@ -6285,12 +6285,20 @@ const PersonasList = ({
     style: {
       display: "flex",
       gap: 4,
-      flexWrap: "wrap"
+      flexWrap: "wrap",
+      maxWidth: 240,
+      alignItems: "center"
     }
-  }, (p.tags || []).map(tg => /*#__PURE__*/React.createElement("span", {
+  }, (p.tags || []).slice(0, 3).map(tg => /*#__PURE__*/React.createElement("span", {
     key: tg,
     className: "tag-chip"
-  }, tg)))))))), rows.length === 0 && /*#__PURE__*/React.createElement("div", {
+  }, tg)), (p.tags || []).length > 3 && /*#__PURE__*/React.createElement("span", {
+    className: "tag-chip",
+    style: {
+      opacity: .65
+    },
+    title: (p.tags || []).slice(3).join(", ")
+  }, "+", (p.tags || []).length - 3))))))), rows.length === 0 && /*#__PURE__*/React.createElement("div", {
     className: "empty"
   }, t.common.noResults), totalPages > 1 && /*#__PURE__*/React.createElement("div", {
     style: {
@@ -7033,12 +7041,20 @@ const EntitiesList = ({
     style: {
       display: "flex",
       gap: 4,
-      flexWrap: "wrap"
+      flexWrap: "wrap",
+      maxWidth: 240,
+      alignItems: "center"
     }
-  }, (e.tags || []).map(tg => /*#__PURE__*/React.createElement("span", {
+  }, (e.tags || []).slice(0, 3).map(tg => /*#__PURE__*/React.createElement("span", {
     key: tg,
     className: "tag-chip"
-  }, tg)))))))), rows.length === 0 && /*#__PURE__*/React.createElement("div", {
+  }, tg)), (e.tags || []).length > 3 && /*#__PURE__*/React.createElement("span", {
+    className: "tag-chip",
+    style: {
+      opacity: .65
+    },
+    title: (e.tags || []).slice(3).join(", ")
+  }, "+", (e.tags || []).length - 3))))))), rows.length === 0 && /*#__PURE__*/React.createElement("div", {
     className: "empty"
   }, t.common.noResults), Math.ceil(rows.length / E_PAGE_SIZE) > 1 && /*#__PURE__*/React.createElement("div", {
     style: {

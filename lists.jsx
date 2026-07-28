@@ -899,8 +899,9 @@ const PersonasList = ({ t, lang, data, go, route, onImportPersonas, globalQ = ""
                 </td>
                 <td><div style={{ fontSize: 12.5 }}>{p.city}{p.county ? <span style={{ color: "var(--accent)", marginLeft: 4, fontSize: 11, fontWeight: 600 }}>· {p.county}</span> : ""}</div><div className="muted" style={{ fontSize: 12 }}>{p.country}</div></td>
                 <td>
-                  <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
-                    {(p.tags || []).map(tg => <span key={tg} className="tag-chip">{tg}</span>)}
+                  <div style={{ display: "flex", gap: 4, flexWrap: "wrap", maxWidth: 240, alignItems: "center" }}>
+                    {(p.tags || []).slice(0, 3).map(tg => <span key={tg} className="tag-chip">{tg}</span>)}
+                    {(p.tags || []).length > 3 && <span className="tag-chip" style={{ opacity: .65 }} title={(p.tags || []).slice(3).join(", ")}>+{(p.tags || []).length - 3}</span>}
                   </div>
                 </td>
               </tr>
@@ -1280,8 +1281,9 @@ const EntitiesList = ({ t, lang, data, go, route, onImportEntities, globalQ = ""
                   </div>;
                 })()}</td>
                 <td>
-                  <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
-                    {(e.tags || []).map(tg => <span key={tg} className="tag-chip">{tg}</span>)}
+                  <div style={{ display: "flex", gap: 4, flexWrap: "wrap", maxWidth: 240, alignItems: "center" }}>
+                    {(e.tags || []).slice(0, 3).map(tg => <span key={tg} className="tag-chip">{tg}</span>)}
+                    {(e.tags || []).length > 3 && <span className="tag-chip" style={{ opacity: .65 }} title={(e.tags || []).slice(3).join(", ")}>+{(e.tags || []).length - 3}</span>}
                   </div>
                 </td>
               </tr>
