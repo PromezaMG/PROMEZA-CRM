@@ -146,9 +146,12 @@ const CalendarView = ({ lang, data, go, onAddCalendarEvent, onDeleteCalendarEven
         <div className="card">
           {/* Month nav */}
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 16px", borderBottom: "1px solid var(--line)" }}>
-            <button className="btn btn-sm btn-ghost" onClick={prevMonth} style={{ padding: "4px 10px" }}><Icon name="chevron-left" /></button>
-            <div style={{ fontWeight: 700, fontSize: 15 }}>{monthNameCap}</div>
-            <button className="btn btn-sm btn-ghost" onClick={nextMonth} style={{ padding: "4px 10px" }}><Icon name="chevron-right" /></button>
+            <button className="btn btn-sm" onClick={prevMonth} title={es ? "Mes anterior" : "Previous month"} style={{ padding: "4px 12px", fontSize: 16, lineHeight: 1 }}>‹</button>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <div style={{ fontWeight: 700, fontSize: 15 }}>{monthNameCap}</div>
+              <button className="btn btn-sm btn-ghost" onClick={goToday} style={{ padding: "3px 10px", fontSize: 12 }}>{es ? "Hoy" : "Today"}</button>
+            </div>
+            <button className="btn btn-sm" onClick={nextMonth} title={es ? "Mes siguiente" : "Next month"} style={{ padding: "4px 12px", fontSize: 16, lineHeight: 1 }}>›</button>
           </div>
 
           {/* DOW headers */}

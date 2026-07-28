@@ -148,6 +148,10 @@ const Icon = ({
       return /*#__PURE__*/React.createElement("svg", common, /*#__PURE__*/React.createElement("path", {
         d: "m9 6 6 6-6 6"
       }));
+    case "chev-left":
+      return /*#__PURE__*/React.createElement("svg", common, /*#__PURE__*/React.createElement("path", {
+        d: "m15 6-6 6 6 6"
+      }));
     case "x":
       return /*#__PURE__*/React.createElement("svg", common, /*#__PURE__*/React.createElement("path", {
         d: "M6 6l12 12M18 6 6 18"
@@ -18416,27 +18420,42 @@ const CalendarView = ({
       borderBottom: "1px solid var(--line)"
     }
   }, /*#__PURE__*/React.createElement("button", {
-    className: "btn btn-sm btn-ghost",
+    className: "btn btn-sm",
     onClick: prevMonth,
+    title: es ? "Mes anterior" : "Previous month",
     style: {
-      padding: "4px 10px"
+      padding: "4px 12px",
+      fontSize: 16,
+      lineHeight: 1
     }
-  }, /*#__PURE__*/React.createElement(Icon, {
-    name: "chevron-left"
-  })), /*#__PURE__*/React.createElement("div", {
+  }, "\u2039"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 10
+    }
+  }, /*#__PURE__*/React.createElement("div", {
     style: {
       fontWeight: 700,
       fontSize: 15
     }
   }, monthNameCap), /*#__PURE__*/React.createElement("button", {
     className: "btn btn-sm btn-ghost",
-    onClick: nextMonth,
+    onClick: goToday,
     style: {
-      padding: "4px 10px"
+      padding: "3px 10px",
+      fontSize: 12
     }
-  }, /*#__PURE__*/React.createElement(Icon, {
-    name: "chevron-right"
-  }))), /*#__PURE__*/React.createElement("div", {
+  }, es ? "Hoy" : "Today")), /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-sm",
+    onClick: nextMonth,
+    title: es ? "Mes siguiente" : "Next month",
+    style: {
+      padding: "4px 12px",
+      fontSize: 16,
+      lineHeight: 1
+    }
+  }, "\u203A")), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "grid",
       gridTemplateColumns: "repeat(7, 1fr)",
