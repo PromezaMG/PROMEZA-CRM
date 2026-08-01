@@ -14289,7 +14289,9 @@ const GlobalTasksView = ({
     }
     return out;
   }, [dataIssueTypes, filterStatus, filterAssignee, filterPersona, data.personas, data.entities]); // eslint-disable-line react-hooks/exhaustive-deps
-  const displayed = [...dupTasks, ...dataTasks, ...filtered];
+  // Data tasks FIRST so turning on a chip immediately shows results at the top (before
+  // the possibly-hundreds of duplicate tasks).
+  const displayed = [...dataTasks, ...dupTasks, ...filtered];
   const pendingCount = allTasks.filter(t => !t.done).length;
   const overdueCount = allTasks.filter(isOverdue).length;
   const userLabel = email => {
@@ -14701,7 +14703,18 @@ const GlobalTasksView = ({
     style: {
       fontSize: 11.5
     }
-  }, es ? "Quitar" : "Clear")), /*#__PURE__*/React.createElement("div", {
+  }, es ? "Quitar" : "Clear")), dataIssueTypes.size > 0 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginBottom: 14,
+      padding: "8px 14px",
+      borderRadius: 8,
+      background: dataTasks.length ? "#eff6ff" : "var(--bg-soft)",
+      border: "1px solid " + (dataTasks.length ? "#bfdbfe" : "var(--line)"),
+      fontSize: 12.5,
+      color: dataTasks.length ? "#1d4ed8" : "var(--ink-3)",
+      fontWeight: 600
+    }
+  }, dataTasks.length === 0 ? es ? "✓ No se encontraron registros con esos datos pendientes." : "✓ No records found with those missing fields." : es ? `📝 ${dataTasks.length}${dataTasks.length >= 300 ? "+" : ""} registro${dataTasks.length !== 1 ? "s" : ""} con datos pendientes (aparecen arriba de la lista)` : `📝 ${dataTasks.length}${dataTasks.length >= 300 ? "+" : ""} record(s) with missing data (shown at the top)`), /*#__PURE__*/React.createElement("div", {
     className: "section"
   }, /*#__PURE__*/React.createElement("div", {
     className: "section-body",
