@@ -14081,6 +14081,31 @@ const GlobalTasksView = ({
     due: "",
     assignedTo: currentUser || ""
   });
+  // Data-quality review: which "missing info" checks are active (off by default so the
+  // task list stays about real tasks; the user turns on the ones they want to clean up).
+  const [dataIssueTypes, setDataIssueTypes] = React.useState(() => new Set());
+  const toggleDataType = id => setDataIssueTypes(s => {
+    const n = new Set(s);
+    n.has(id) ? n.delete(id) : n.add(id);
+    return n;
+  });
+  const es = lang === "es";
+  const DATA_ISSUE_TYPES = [{
+    id: "sin-nombre",
+    label: es ? "Sin nombre" : "No name"
+  }, {
+    id: "sin-telefono",
+    label: es ? "Sin teléfono" : "No phone"
+  }, {
+    id: "sin-email",
+    label: es ? "Sin email" : "No email"
+  }, {
+    id: "sin-direccion",
+    label: es ? "Sin dirección" : "No address"
+  }, {
+    id: "ent-repetidas",
+    label: es ? "Entidades repetidas vinculadas" : "Duplicate linked entities"
+  }];
   const today = new Date().toISOString().slice(0, 10);
 
   // Flatten all tasks with personaId
@@ -14186,7 +14211,85 @@ const GlobalTasksView = ({
     }
     return out;
   }, [dupPairs, entityDupPairs, data.personas, data.entities, filterStatus, filterAssignee, filterPersona]);
-  const displayed = [...dupTasks, ...filtered];
+  // Virtual "datos pendientes" tasks — records missing key info, or contacts linked to
+  // two entities with the same name. Only for the checks the user turned on; capped so a
+  // big database doesn't flood the list. Not stored — injected like the duplicate tasks.
+  const DATA_SHOWN_CAP = 300;
+  const dataTasks = React.useMemo(() => {
+    if (filterStatus === "done" || filterAssignee !== "all" || filterPersona !== "all" || dataIssueTypes.size === 0) return [];
+    const want = dataIssueTypes;
+    const eById = Object.create(null);
+    (data.entities || []).forEach(e => {
+      eById[e.id] = e;
+    });
+    const hasPhone = r => !!(r.phone || "").trim() || (r.phones || []).some(ph => ph && ph.value);
+    const hasEmail = r => !!(r.email || "").trim() || (r.emails || []).some(e => e && e.value);
+    const hasAddr = r => !!(r.city || "").trim() || !!(r.address || "").trim();
+    const out = [];
+    for (const p of data.personas || []) {
+      if (out.length >= DATA_SHOWN_CAP) break;
+      const issues = [];
+      if (want.has("sin-nombre") && !(p.first || "").trim() && !(p.last || "").trim()) issues.push(es ? "nombre" : "name");
+      if (want.has("sin-telefono") && !hasPhone(p)) issues.push(es ? "teléfono" : "phone");
+      if (want.has("sin-email") && !hasEmail(p)) issues.push(es ? "email" : "email");
+      if (want.has("sin-direccion") && !hasAddr(p)) issues.push(es ? "dirección" : "address");
+      if (want.has("ent-repetidas") && (p.entities || []).length >= 2) {
+        const seen = Object.create(null);
+        let dupName = null;
+        for (const le of p.entities) {
+          const e = eById[le.id];
+          if (!e) continue;
+          const k = (e.name || "").trim().toLowerCase();
+          if (!k) continue;
+          if (seen[k]) {
+            dupName = e.name;
+            break;
+          }
+          seen[k] = 1;
+        }
+        if (dupName) issues.push((es ? "entidades repetidas: " : "duplicate entities: ") + dupName);
+      }
+      if (issues.length) {
+        const nm = ((p.first || "") + " " + (p.last || "")).trim() || p.id;
+        out.push({
+          id: "data-" + p.id,
+          personaId: p.id,
+          done: false,
+          _isData: true,
+          _label: nm,
+          _goRoute: {
+            name: "person",
+            id: p.id
+          },
+          text: (es ? "Falta: " : "Missing: ") + issues.join(", ")
+        });
+      }
+    }
+    for (const e of data.entities || []) {
+      if (out.length >= DATA_SHOWN_CAP) break;
+      const issues = [];
+      if (want.has("sin-telefono") && !hasPhone(e)) issues.push(es ? "teléfono" : "phone");
+      if (want.has("sin-direccion") && !hasAddr(e)) issues.push(es ? "dirección" : "address");
+      if (want.has("sin-email") && !hasEmail(e)) issues.push(es ? "email" : "email");
+      if (issues.length) {
+        out.push({
+          id: "data-" + e.id,
+          personaId: e.id,
+          done: false,
+          _isData: true,
+          _isEnt: true,
+          _label: e.name || e.id,
+          _goRoute: {
+            name: "entity",
+            id: e.id
+          },
+          text: (es ? "Falta: " : "Missing: ") + issues.join(", ")
+        });
+      }
+    }
+    return out;
+  }, [dataIssueTypes, filterStatus, filterAssignee, filterPersona, data.personas, data.entities]); // eslint-disable-line react-hooks/exhaustive-deps
+  const displayed = [...dupTasks, ...dataTasks, ...filtered];
   const pendingCount = allTasks.filter(t => !t.done).length;
   const overdueCount = allTasks.filter(isOverdue).length;
   const userLabel = email => {
@@ -14559,6 +14662,46 @@ const GlobalTasksView = ({
     name: "x",
     size: 12
   }))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 6,
+      marginBottom: 14,
+      flexWrap: "wrap",
+      alignItems: "center"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 11.5,
+      fontWeight: 700,
+      color: "var(--ink-3)",
+      textTransform: "uppercase",
+      letterSpacing: ".04em",
+      marginRight: 2
+    }
+  }, es ? "Revisar datos:" : "Review data:"), DATA_ISSUE_TYPES.map(dt => {
+    const on = dataIssueTypes.has(dt.id);
+    return /*#__PURE__*/React.createElement("button", {
+      key: dt.id,
+      onClick: () => toggleDataType(dt.id),
+      style: {
+        fontSize: 12,
+        fontWeight: 600,
+        fontFamily: "inherit",
+        cursor: "pointer",
+        padding: "4px 10px",
+        borderRadius: 14,
+        border: "1.5px solid " + (on ? "#f59e0b" : "var(--line)"),
+        background: on ? "#fffbeb" : "var(--bg)",
+        color: on ? "#b45309" : "var(--ink-3)"
+      }
+    }, on ? "✓ " : "", dt.label);
+  }), dataIssueTypes.size > 0 && /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-sm btn-ghost",
+    onClick: () => setDataIssueTypes(new Set()),
+    style: {
+      fontSize: 11.5
+    }
+  }, es ? "Quitar" : "Clear")), /*#__PURE__*/React.createElement("div", {
     className: "section"
   }, /*#__PURE__*/React.createElement("div", {
     className: "section-body",
@@ -14581,7 +14724,7 @@ const GlobalTasksView = ({
         padding: "12px 16px",
         borderBottom: "1px solid var(--line)",
         opacity: task.done ? 0.55 : 1,
-        background: task._isDup ? "#fff7ed" : overdue ? "rgba(239,68,68,.04)" : undefined
+        background: task._isData ? "#eff6ff" : task._isDup ? "#fff7ed" : overdue ? "rgba(239,68,68,.04)" : undefined
       }
     }, task._isDup ? /*#__PURE__*/React.createElement("span", {
       style: {
@@ -14590,7 +14733,14 @@ const GlobalTasksView = ({
         flexShrink: 0
       },
       title: lang === "es" ? "Duplicado por revisar" : "Duplicate to review"
-    }, "\u26A0") : /*#__PURE__*/React.createElement("input", {
+    }, "\u26A0") : task._isData ? /*#__PURE__*/React.createElement("span", {
+      style: {
+        marginTop: 1,
+        fontSize: 15,
+        flexShrink: 0
+      },
+      title: lang === "es" ? "Datos por completar" : "Data to complete"
+    }, "\uD83D\uDCDD") : /*#__PURE__*/React.createElement("input", {
       type: "checkbox",
       checked: !!task.done,
       onChange: () => onToggleTask(task.personaId, task.id),
@@ -14630,7 +14780,21 @@ const GlobalTasksView = ({
     }, /*#__PURE__*/React.createElement(Icon, {
       name: "users",
       size: 11
-    }), " DUP"), task.text), /*#__PURE__*/React.createElement("div", {
+    }), " DUP"), task._isData && /*#__PURE__*/React.createElement("span", {
+      style: {
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 4,
+        marginRight: 6,
+        background: "#dbeafe",
+        color: "#1d4ed8",
+        borderRadius: 5,
+        padding: "1px 7px",
+        fontSize: 11,
+        fontWeight: 700,
+        verticalAlign: "middle"
+      }
+    }, "\uD83D\uDCDD ", es ? "DATOS" : "DATA"), task._isData ? task._label + " — " + task.text.toLowerCase() : task.text), /*#__PURE__*/React.createElement("div", {
       style: {
         display: "flex",
         gap: 8,
@@ -14647,14 +14811,28 @@ const GlobalTasksView = ({
         fontWeight: 600,
         height: "auto"
       },
-      onClick: () => go(task._isDup ? task._goRoute : {
+      onClick: () => go(task._goRoute || {
         name: "person",
         id: task.personaId
       })
     }, /*#__PURE__*/React.createElement(Icon, {
       name: task._isEnt ? "building" : "users",
       size: 11
-    }), " ", task._isDup ? task._label : personaName(task.personaId)), task.due && /*#__PURE__*/React.createElement("span", {
+    }), " ", task._isDup || task._isData ? task._label : personaName(task.personaId)), task._isData && /*#__PURE__*/React.createElement("button", {
+      className: "btn btn-ghost btn-sm",
+      style: {
+        padding: "1px 8px",
+        fontSize: 11,
+        color: "#1d4ed8",
+        borderColor: "#dbeafe",
+        background: "#dbeafe",
+        height: "auto"
+      },
+      onClick: () => go(task._goRoute)
+    }, /*#__PURE__*/React.createElement(Icon, {
+      name: "edit",
+      size: 11
+    }), " ", es ? "Completar datos →" : "Complete data →"), task.due && /*#__PURE__*/React.createElement("span", {
       style: {
         fontSize: 11.5,
         color: overdue ? "var(--bad)" : "var(--ink-3)",
@@ -14667,7 +14845,7 @@ const GlobalTasksView = ({
       style: {
         marginLeft: 4
       }
-    }, lang === "es" ? "¡Vencida!" : "Overdue!")), !task._isDup && task.assignedTo && /*#__PURE__*/React.createElement("span", {
+    }, lang === "es" ? "¡Vencida!" : "Overdue!")), !task._isDup && !task._isData && task.assignedTo && /*#__PURE__*/React.createElement("span", {
       style: {
         fontSize: 11,
         padding: "1px 7px",
@@ -14676,7 +14854,7 @@ const GlobalTasksView = ({
         color: "var(--accent)",
         fontWeight: 500
       }
-    }, userLabel(task.assignedTo)), !task._isDup && !task.assignedTo && /*#__PURE__*/React.createElement("span", {
+    }, userLabel(task.assignedTo)), !task._isDup && !task._isData && !task.assignedTo && /*#__PURE__*/React.createElement("span", {
       style: {
         fontSize: 11,
         color: "var(--ink-4)"
@@ -14701,7 +14879,7 @@ const GlobalTasksView = ({
     }, /*#__PURE__*/React.createElement(Icon, {
       name: "users",
       size: 11
-    }), " ", lang === "es" ? "Revisar duplicados →" : "Review duplicates →"))), !task._isDup && /*#__PURE__*/React.createElement("button", {
+    }), " ", lang === "es" ? "Revisar duplicados →" : "Review duplicates →"))), !task._isDup && !task._isData && /*#__PURE__*/React.createElement("button", {
       className: "btn btn-sm btn-ghost",
       style: {
         padding: "1px 6px",

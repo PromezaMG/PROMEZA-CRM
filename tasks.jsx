@@ -182,6 +182,19 @@ const GlobalTasksView = ({ t, lang, data, go, tasks, onAddTask, onToggleTask, on
   const [showForm, setShowForm] = React.useState(false);
   const [showBatch, setShowBatch] = React.useState(false);
   const [form, setForm] = React.useState({ personaId: "", text: "", due: "", assignedTo: currentUser || "" });
+  // Data-quality review: which "missing info" checks are active (off by default so the
+  // task list stays about real tasks; the user turns on the ones they want to clean up).
+  const [dataIssueTypes, setDataIssueTypes] = React.useState(() => new Set());
+  const toggleDataType = (id) => setDataIssueTypes(s => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
+
+  const es = lang === "es";
+  const DATA_ISSUE_TYPES = [
+    { id: "sin-nombre", label: es ? "Sin nombre" : "No name" },
+    { id: "sin-telefono", label: es ? "Sin teléfono" : "No phone" },
+    { id: "sin-email", label: es ? "Sin email" : "No email" },
+    { id: "sin-direccion", label: es ? "Sin dirección" : "No address" },
+    { id: "ent-repetidas", label: es ? "Entidades repetidas vinculadas" : "Duplicate linked entities" },
+  ];
 
   const today = new Date().toISOString().slice(0, 10);
 
@@ -251,7 +264,48 @@ const GlobalTasksView = ({ t, lang, data, go, tasks, onAddTask, onToggleTask, on
     }
     return out;
   }, [dupPairs, entityDupPairs, data.personas, data.entities, filterStatus, filterAssignee, filterPersona]);
-  const displayed = [...dupTasks, ...filtered];
+  // Virtual "datos pendientes" tasks — records missing key info, or contacts linked to
+  // two entities with the same name. Only for the checks the user turned on; capped so a
+  // big database doesn't flood the list. Not stored — injected like the duplicate tasks.
+  const DATA_SHOWN_CAP = 300;
+  const dataTasks = React.useMemo(() => {
+    if (filterStatus === "done" || filterAssignee !== "all" || filterPersona !== "all" || dataIssueTypes.size === 0) return [];
+    const want = dataIssueTypes;
+    const eById = Object.create(null); (data.entities || []).forEach(e => { eById[e.id] = e; });
+    const hasPhone = (r) => !!((r.phone || "").trim()) || (r.phones || []).some(ph => ph && ph.value);
+    const hasEmail = (r) => !!((r.email || "").trim()) || (r.emails || []).some(e => e && e.value);
+    const hasAddr = (r) => !!((r.city || "").trim()) || !!((r.address || "").trim());
+    const out = [];
+    for (const p of (data.personas || [])) {
+      if (out.length >= DATA_SHOWN_CAP) break;
+      const issues = [];
+      if (want.has("sin-nombre") && !(p.first || "").trim() && !(p.last || "").trim()) issues.push(es ? "nombre" : "name");
+      if (want.has("sin-telefono") && !hasPhone(p)) issues.push(es ? "teléfono" : "phone");
+      if (want.has("sin-email") && !hasEmail(p)) issues.push(es ? "email" : "email");
+      if (want.has("sin-direccion") && !hasAddr(p)) issues.push(es ? "dirección" : "address");
+      if (want.has("ent-repetidas") && (p.entities || []).length >= 2) {
+        const seen = Object.create(null); let dupName = null;
+        for (const le of p.entities) { const e = eById[le.id]; if (!e) continue; const k = (e.name || "").trim().toLowerCase(); if (!k) continue; if (seen[k]) { dupName = e.name; break; } seen[k] = 1; }
+        if (dupName) issues.push((es ? "entidades repetidas: " : "duplicate entities: ") + dupName);
+      }
+      if (issues.length) {
+        const nm = ((p.first || "") + " " + (p.last || "")).trim() || p.id;
+        out.push({ id: "data-" + p.id, personaId: p.id, done: false, _isData: true, _label: nm, _goRoute: { name: "person", id: p.id }, text: (es ? "Falta: " : "Missing: ") + issues.join(", ") });
+      }
+    }
+    for (const e of (data.entities || [])) {
+      if (out.length >= DATA_SHOWN_CAP) break;
+      const issues = [];
+      if (want.has("sin-telefono") && !hasPhone(e)) issues.push(es ? "teléfono" : "phone");
+      if (want.has("sin-direccion") && !hasAddr(e)) issues.push(es ? "dirección" : "address");
+      if (want.has("sin-email") && !hasEmail(e)) issues.push(es ? "email" : "email");
+      if (issues.length) {
+        out.push({ id: "data-" + e.id, personaId: e.id, done: false, _isData: true, _isEnt: true, _label: e.name || e.id, _goRoute: { name: "entity", id: e.id }, text: (es ? "Falta: " : "Missing: ") + issues.join(", ") });
+      }
+    }
+    return out;
+  }, [dataIssueTypes, filterStatus, filterAssignee, filterPersona, data.personas, data.entities]); // eslint-disable-line react-hooks/exhaustive-deps
+  const displayed = [...dupTasks, ...dataTasks, ...filtered];
 
   const pendingCount = allTasks.filter(t => !t.done).length;
   const overdueCount = allTasks.filter(isOverdue).length;
@@ -447,6 +501,33 @@ const GlobalTasksView = ({ t, lang, data, go, tasks, onAddTask, onToggleTask, on
         )}
       </div>
 
+      {/* Data-quality review chips — turn on the "missing info" checks to review as tasks */}
+      <div style={{ display: "flex", gap: 6, marginBottom: 14, flexWrap: "wrap", alignItems: "center" }}>
+        <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--ink-3)", textTransform: "uppercase", letterSpacing: ".04em", marginRight: 2 }}>
+          {es ? "Revisar datos:" : "Review data:"}
+        </span>
+        {DATA_ISSUE_TYPES.map(dt => {
+          const on = dataIssueTypes.has(dt.id);
+          return (
+            <button key={dt.id} onClick={() => toggleDataType(dt.id)}
+              style={{
+                fontSize: 12, fontWeight: 600, fontFamily: "inherit", cursor: "pointer",
+                padding: "4px 10px", borderRadius: 14,
+                border: "1.5px solid " + (on ? "#f59e0b" : "var(--line)"),
+                background: on ? "#fffbeb" : "var(--bg)",
+                color: on ? "#b45309" : "var(--ink-3)",
+              }}>
+              {on ? "✓ " : ""}{dt.label}
+            </button>
+          );
+        })}
+        {dataIssueTypes.size > 0 && (
+          <button className="btn btn-sm btn-ghost" onClick={() => setDataIssueTypes(new Set())} style={{ fontSize: 11.5 }}>
+            {es ? "Quitar" : "Clear"}
+          </button>
+        )}
+      </div>
+
       {/* Task list */}
       <div className="section">
         <div className="section-body" style={{ padding: 0 }}>
@@ -462,10 +543,12 @@ const GlobalTasksView = ({ t, lang, data, go, tasks, onAddTask, onToggleTask, on
                 display: "flex", alignItems: "flex-start", gap: 12,
                 padding: "12px 16px", borderBottom: "1px solid var(--line)",
                 opacity: task.done ? 0.55 : 1,
-                background: task._isDup ? "#fff7ed" : (overdue ? "rgba(239,68,68,.04)" : undefined),
+                background: task._isData ? "#eff6ff" : task._isDup ? "#fff7ed" : (overdue ? "rgba(239,68,68,.04)" : undefined),
               }}>
                 {task._isDup ? (
                   <span style={{ marginTop: 1, fontSize: 16, flexShrink: 0 }} title={lang === "es" ? "Duplicado por revisar" : "Duplicate to review"}>⚠</span>
+                ) : task._isData ? (
+                  <span style={{ marginTop: 1, fontSize: 15, flexShrink: 0 }} title={lang === "es" ? "Datos por completar" : "Data to complete"}>📝</span>
                 ) : (
                   <input
                     type="checkbox"
@@ -485,16 +568,30 @@ const GlobalTasksView = ({ t, lang, data, go, tasks, onAddTask, onToggleTask, on
                         <Icon name="users" size={11} /> DUP
                       </span>
                     )}
-                    {task.text}
+                    {task._isData && (
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 4, marginRight: 6, background: "#dbeafe", color: "#1d4ed8", borderRadius: 5, padding: "1px 7px", fontSize: 11, fontWeight: 700, verticalAlign: "middle" }}>
+                        📝 {es ? "DATOS" : "DATA"}
+                      </span>
+                    )}
+                    {task._isData ? task._label + " — " + task.text.toLowerCase() : task.text}
                   </div>
                   <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 5, flexWrap: "wrap" }}>
                     {/* Record link (person or entity) */}
                     <button
                       className="btn btn-ghost btn-sm"
                       style={{ padding: "1px 6px", fontSize: 11.5, color: "var(--accent)", fontWeight: 600, height: "auto" }}
-                      onClick={() => go(task._isDup ? task._goRoute : { name: "person", id: task.personaId })}>
-                      <Icon name={task._isEnt ? "building" : "users"} size={11} /> {task._isDup ? task._label : personaName(task.personaId)}
+                      onClick={() => go(task._goRoute || { name: "person", id: task.personaId })}>
+                      <Icon name={task._isEnt ? "building" : "users"} size={11} /> {(task._isDup || task._isData) ? task._label : personaName(task.personaId)}
                     </button>
+                    {/* Complete-data shortcut */}
+                    {task._isData && (
+                      <button
+                        className="btn btn-ghost btn-sm"
+                        style={{ padding: "1px 8px", fontSize: 11, color: "#1d4ed8", borderColor: "#dbeafe", background: "#dbeafe", height: "auto" }}
+                        onClick={() => go(task._goRoute)}>
+                        <Icon name="edit" size={11} /> {es ? "Completar datos →" : "Complete data →"}
+                      </button>
+                    )}
                     {/* Due date */}
                     {task.due && (
                       <span style={{ fontSize: 11.5, color: overdue ? "var(--bad)" : "var(--ink-3)", fontWeight: overdue ? 600 : 400 }}>
@@ -503,12 +600,12 @@ const GlobalTasksView = ({ t, lang, data, go, tasks, onAddTask, onToggleTask, on
                       </span>
                     )}
                     {/* Assignee badge */}
-                    {!task._isDup && task.assignedTo && (
+                    {!task._isDup && !task._isData && task.assignedTo && (
                       <span style={{ fontSize: 11, padding: "1px 7px", borderRadius: 10, background: "var(--accent-50)", color: "var(--accent)", fontWeight: 500 }}>
                         {userLabel(task.assignedTo)}
                       </span>
                     )}
-                    {!task._isDup && !task.assignedTo && (
+                    {!task._isDup && !task._isData && !task.assignedTo && (
                       <span style={{ fontSize: 11, color: "var(--ink-4)" }}>
                         {lang === "es" ? "Sin asignar" : "Unassigned"}
                       </span>
@@ -524,7 +621,7 @@ const GlobalTasksView = ({ t, lang, data, go, tasks, onAddTask, onToggleTask, on
                     )}
                   </div>
                 </div>
-                {!task._isDup && (
+                {!task._isDup && !task._isData && (
                   <button
                     className="btn btn-sm btn-ghost"
                     style={{ padding: "1px 6px", color: "var(--ink-4)", flexShrink: 0 }}
