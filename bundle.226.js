@@ -10968,12 +10968,25 @@ const MergeEditor = ({
     }
     return p[key] || "";
   };
+
+  // Multi-value fields you can keep BOTH of (two phones, two emails, two webs).
+  const BOTH_FIELDS = new Set(["email", "phone", "website"]);
+  const getContactArr = (p, kind) => {
+    const arr = p[kind === "phone" ? "phones" : "emails"];
+    const valid = Array.isArray(arr) ? arr.filter(x => x && x.value) : [];
+    if (valid.length) return valid;
+    const single = p[kind];
+    return single ? [{
+      value: single,
+      label: "Personal"
+    }] : [];
+  };
   const [sels, setSels] = React.useState(() => {
     const s = {};
     FIELDS.forEach(f => {
       const av = getVal(pA, f.key),
         bv = getVal(pB, f.key);
-      s[f.key] = !bv && av ? "A" : !av && bv ? "B" : "A";
+      if (BOTH_FIELDS.has(f.key) && av && bv && av !== bv) s[f.key] = "AB";else s[f.key] = !bv && av ? "A" : !av && bv ? "B" : "A";
     });
     return s;
   });
@@ -10987,6 +11000,17 @@ const MergeEditor = ({
     FIELDS.forEach(f => n[f.key] = side);
     setSels(n);
   };
+  const toggleMulti = (key, side) => setSels(s => {
+    const cur = s[key] || "A";
+    const has = cur.includes(side);
+    let next = has ? cur.replace(side, "") : cur + side;
+    next = (next.includes("A") ? "A" : "") + (next.includes("B") ? "B" : "");
+    if (!next) next = cur;
+    return {
+      ...s,
+      [key]: next
+    };
+  });
   const pickVal = key => {
     if (key.includes(".")) {
       const [obj, k] = key.split(".");
@@ -10996,20 +11020,39 @@ const MergeEditor = ({
   };
   const handleConfirm = () => {
     const base = keepSide === "A" ? pA : pB;
+    const mergeArr = (kind, keyOf) => {
+      const sel = sels[kind] || "A";
+      const list = [];
+      if (sel.includes("A")) list.push(...getContactArr(pA, kind));
+      if (sel.includes("B")) list.push(...getContactArr(pB, kind));
+      const seen = new Set();
+      return list.filter(x => {
+        const k = keyOf(x.value);
+        if (!k || seen.has(k)) return false;
+        seen.add(k);
+        return true;
+      });
+    };
+    const phones = mergeArr("phone", v => (v || "").replace(/\D/g, ""));
+    const emails = mergeArr("email", v => (v || "").trim().toLowerCase());
+    const wSel = sels.website || "A";
+    const website = wSel === "AB" ? [getVal(pA, "website"), getVal(pB, "website")].filter(Boolean).join("  ·  ") : wSel === "B" ? getVal(pB, "website") : getVal(pA, "website");
     const merged = {
       ...base,
       first: pickVal("first"),
       last: pickVal("last"),
       role: pickVal("role"),
       roleOther: pickVal("role") === "otro" ? sels.role === "B" ? pB.roleOther : pA.roleOther : "",
-      email: pickVal("email"),
-      phone: pickVal("phone"),
+      email: emails[0] ? emails[0].value : "",
+      emails,
+      phone: phones[0] ? phones[0].value : "",
+      phones,
       address: pickVal("address"),
       zip: pickVal("zip"),
       city: pickVal("city"),
       state: pickVal("state"),
       country: pickVal("country"),
-      website: pickVal("website"),
+      website,
       birthday: pickVal("birthday"),
       lastContact: pickVal("lastContact"),
       language: pickVal("language"),
@@ -11188,6 +11231,8 @@ const MergeEditor = ({
       const aDisp = f.fmt ? f.fmt(aRaw) : aRaw;
       const bDisp = f.fmt ? f.fmt(bRaw) : bRaw;
       const same = aRaw === bRaw;
+      const isMulti = BOTH_FIELDS.has(f.key);
+      const bothDiffer = isMulti && !same && aRaw && bRaw;
       return /*#__PURE__*/React.createElement("div", {
         key: f.key,
         style: {
@@ -11204,9 +11249,21 @@ const MergeEditor = ({
           letterSpacing: ".05em",
           color: "var(--ink-4)",
           display: "flex",
-          alignItems: "center"
+          alignItems: "center",
+          flexWrap: "wrap"
         }
-      }, f.label), [{
+      }, f.label, bothDiffer && /*#__PURE__*/React.createElement("span", {
+        style: {
+          display: "block",
+          width: "100%",
+          fontSize: 8.5,
+          fontWeight: 500,
+          textTransform: "none",
+          letterSpacing: 0,
+          color: "var(--accent)",
+          marginTop: 1
+        }
+      }, lang === "es" ? "✓ puedes dejar los dos" : "✓ can keep both")), [{
         side: "A",
         disp: aDisp,
         raw: aRaw
@@ -11219,13 +11276,17 @@ const MergeEditor = ({
         disp,
         raw
       }) => {
-        const sel = sels[f.key] === side;
-        return /*#__PURE__*/React.createElement("div", {
-          key: side,
-          onClick: () => !same && setSels(s => ({
+        const sel = isMulti ? (sels[f.key] || "").includes(side) : sels[f.key] === side;
+        const onPick = () => {
+          if (same) return;
+          if (isMulti) toggleMulti(f.key, side);else setSels(s => ({
             ...s,
             [f.key]: side
-          })),
+          }));
+        };
+        return /*#__PURE__*/React.createElement("div", {
+          key: side,
+          onClick: onPick,
           style: {
             display: "flex",
             alignItems: "center",
@@ -11244,12 +11305,21 @@ const MergeEditor = ({
           style: {
             width: 14,
             height: 14,
-            borderRadius: "50%",
+            borderRadius: isMulti ? 4 : "50%",
             flexShrink: 0,
             border: "2px solid " + (sel ? "var(--accent)" : "var(--ink-4)"),
-            background: sel ? "var(--accent)" : "transparent"
+            background: sel ? "var(--accent)" : "transparent",
+            display: "grid",
+            placeItems: "center"
           }
-        }), /*#__PURE__*/React.createElement("span", null, disp || /*#__PURE__*/React.createElement("em", {
+        }, isMulti && sel && /*#__PURE__*/React.createElement("span", {
+          style: {
+            color: "#fff",
+            fontSize: 10,
+            fontWeight: 900,
+            lineHeight: 1
+          }
+        }, "\u2713")), /*#__PURE__*/React.createElement("span", null, disp || /*#__PURE__*/React.createElement("em", {
           style: {
             color: "var(--ink-5)",
             fontStyle: "italic",
@@ -11378,12 +11448,24 @@ const EntityMergeEditor = ({
     }
     return e[key] || "";
   };
+  // Multi-value fields: you can keep BOTH sides (two phones, two emails, two webs).
+  const BOTH_FIELDS = new Set(["email", "phone", "website"]);
+  const getContactArr = (e, kind) => {
+    const arr = e[kind === "phone" ? "phones" : "emails"];
+    const valid = Array.isArray(arr) ? arr.filter(x => x && x.value) : [];
+    if (valid.length) return valid;
+    const single = e[kind];
+    return single ? [{
+      value: single,
+      label: "Personal"
+    }] : [];
+  };
   const [sels, setSels] = React.useState(() => {
     const s = {};
     FIELDS.forEach(f => {
       const av = getVal(eA, f.key),
         bv = getVal(eB, f.key);
-      s[f.key] = !bv && av ? "A" : !av && bv ? "B" : "A";
+      if (BOTH_FIELDS.has(f.key) && av && bv && av !== bv) s[f.key] = "AB";else s[f.key] = !bv && av ? "A" : !av && bv ? "B" : "A";
     });
     return s;
   });
@@ -11393,6 +11475,18 @@ const EntityMergeEditor = ({
     FIELDS.forEach(f => n[f.key] = side);
     setSels(n);
   };
+  // Toggle a side for a multi-value field (checkbox behaviour, never empty).
+  const toggleMulti = (key, side) => setSels(s => {
+    const cur = s[key] || "A";
+    const has = cur.includes(side);
+    let next = has ? cur.replace(side, "") : cur + side;
+    next = (next.includes("A") ? "A" : "") + (next.includes("B") ? "B" : "");
+    if (!next) next = cur;
+    return {
+      ...s,
+      [key]: next
+    };
+  });
   const pickVal = key => {
     if (key.includes(".")) {
       const [o, k] = key.split(".");
@@ -11402,14 +11496,34 @@ const EntityMergeEditor = ({
   };
   const handleConfirm = () => {
     const base = keepSide === "A" ? eA : eB;
+    // Contact fields can keep both sides — union + dedupe.
+    const mergeArr = (kind, keyOf) => {
+      const sel = sels[kind] || "A";
+      const list = [];
+      if (sel.includes("A")) list.push(...getContactArr(eA, kind));
+      if (sel.includes("B")) list.push(...getContactArr(eB, kind));
+      const seen = new Set();
+      return list.filter(x => {
+        const k = keyOf(x.value);
+        if (!k || seen.has(k)) return false;
+        seen.add(k);
+        return true;
+      });
+    };
+    const phones = mergeArr("phone", v => (v || "").replace(/\D/g, ""));
+    const emails = mergeArr("email", v => (v || "").trim().toLowerCase());
+    const wSel = sels.website || "A";
+    const website = wSel === "AB" ? [getVal(eA, "website"), getVal(eB, "website")].filter(Boolean).join("  ·  ") : wSel === "B" ? getVal(eB, "website") : getVal(eA, "website");
     const merged = {
       ...base,
       name: pickVal("name"),
       type: pickVal("type"),
       denominacion: pickVal("denominacion"),
-      email: pickVal("email"),
-      phone: pickVal("phone"),
-      website: pickVal("website"),
+      email: emails[0] ? emails[0].value : "",
+      emails,
+      phone: phones[0] ? phones[0].value : "",
+      phones,
+      website,
       address: pickVal("address"),
       zip: pickVal("zip"),
       city: pickVal("city"),
@@ -11586,6 +11700,8 @@ const EntityMergeEditor = ({
       const aDisp = f.fmt ? f.fmt(aRaw) : aRaw,
         bDisp = f.fmt ? f.fmt(bRaw) : bRaw;
       const same = aRaw === bRaw;
+      const isMulti = BOTH_FIELDS.has(f.key);
+      const bothDiffer = isMulti && !same && aRaw && bRaw;
       return /*#__PURE__*/React.createElement("div", {
         key: f.key,
         style: {
@@ -11602,9 +11718,21 @@ const EntityMergeEditor = ({
           letterSpacing: ".05em",
           color: "var(--ink-4)",
           display: "flex",
-          alignItems: "center"
+          alignItems: "center",
+          flexWrap: "wrap"
         }
-      }, f.label), [{
+      }, f.label, bothDiffer && /*#__PURE__*/React.createElement("span", {
+        style: {
+          display: "block",
+          width: "100%",
+          fontSize: 8.5,
+          fontWeight: 500,
+          textTransform: "none",
+          letterSpacing: 0,
+          color: "var(--accent)",
+          marginTop: 1
+        }
+      }, es ? "✓ puedes dejar los dos" : "✓ can keep both")), [{
         side: "A",
         disp: aDisp,
         raw: aRaw
@@ -11617,13 +11745,17 @@ const EntityMergeEditor = ({
         disp,
         raw
       }) => {
-        const sel = sels[f.key] === side;
-        return /*#__PURE__*/React.createElement("div", {
-          key: side,
-          onClick: () => !same && setSels(s => ({
+        const sel = isMulti ? (sels[f.key] || "").includes(side) : sels[f.key] === side;
+        const onPick = () => {
+          if (same) return;
+          if (isMulti) toggleMulti(f.key, side);else setSels(s => ({
             ...s,
             [f.key]: side
-          })),
+          }));
+        };
+        return /*#__PURE__*/React.createElement("div", {
+          key: side,
+          onClick: onPick,
           style: {
             display: "flex",
             alignItems: "center",
@@ -11641,12 +11773,21 @@ const EntityMergeEditor = ({
           style: {
             width: 14,
             height: 14,
-            borderRadius: "50%",
+            borderRadius: isMulti ? 4 : "50%",
             flexShrink: 0,
             border: "2px solid " + (sel ? "var(--accent)" : "var(--ink-4)"),
-            background: sel ? "var(--accent)" : "transparent"
+            background: sel ? "var(--accent)" : "transparent",
+            display: "grid",
+            placeItems: "center"
           }
-        }), /*#__PURE__*/React.createElement("span", null, disp || /*#__PURE__*/React.createElement("em", {
+        }, isMulti && sel && /*#__PURE__*/React.createElement("span", {
+          style: {
+            color: "#fff",
+            fontSize: 10,
+            fontWeight: 900,
+            lineHeight: 1
+          }
+        }, "\u2713")), /*#__PURE__*/React.createElement("span", null, disp || /*#__PURE__*/React.createElement("em", {
           style: {
             color: "var(--ink-5)",
             fontStyle: "italic",
