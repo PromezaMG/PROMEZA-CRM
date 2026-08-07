@@ -301,6 +301,12 @@ const PersonProfile = ({ id, t, lang, data, go, goBack, addComment, onEditCommen
         <div className="meta">
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4, flexWrap: "wrap" }}>
             <h1 className="name" style={{ margin: 0, maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis" }}>{fullName(p)}</h1>
+            <button
+              title={p.favorite ? (lang === "es" ? "Quitar de favoritos" : "Remove from favorites") : (lang === "es" ? "Agregar a favoritos" : "Add to favorites")}
+              onClick={() => onUpdatePerson && onUpdatePerson(p.id, { favorite: !p.favorite })}
+              style={{ background: "none", border: "none", cursor: "pointer", padding: 2, fontSize: 22, lineHeight: 1, color: p.favorite ? "#f59e0b" : "var(--ink-4)", flexShrink: 0 }}>
+              {p.favorite ? "★" : "☆"}
+            </button>
             <span
               title={lang === "es" ? "Clic para copiar el código" : "Click to copy code"}
               onClick={() => { try { navigator.clipboard.writeText(p.id); setCopiedId(true); setTimeout(() => setCopiedId(false), 1200); } catch (e) {} }}
@@ -813,6 +819,12 @@ const EntityProfile = ({ id, t, lang, data, go, goBack, addComment, onEditCommen
         <div className="meta">
           <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
             <h1 className="name" style={{ margin: 0 }}>{e.name}</h1>
+            <button
+              title={e.favorite ? (lang === "es" ? "Quitar de favoritos" : "Remove from favorites") : (lang === "es" ? "Agregar a favoritos" : "Add to favorites")}
+              onClick={() => onUpdateEntity && onUpdateEntity(e.id, { favorite: !e.favorite })}
+              style={{ background: "none", border: "none", cursor: "pointer", padding: 2, fontSize: 22, lineHeight: 1, color: e.favorite ? "#f59e0b" : "var(--ink-4)", flexShrink: 0 }}>
+              {e.favorite ? "★" : "☆"}
+            </button>
             <span
               title={lang === "es" ? "Clic para copiar el código" : "Click to copy code"}
               onClick={() => { try { navigator.clipboard.writeText(e.id); setCopiedId(true); setTimeout(() => setCopiedId(false), 1200); } catch (err) {} }}

@@ -1839,7 +1839,8 @@ const App = () => {
   // manually (different name/email/phone).
   const dupPersonaIds = React.useMemo(() => { const s = new Set(); (dupPairs || []).forEach(p => { if (!p.dismissed) { s.add(p.idA); s.add(p.idB); } }); return s; }, [dupPairs]);
   const dupEntityIds = React.useMemo(() => { const s = new Set(); (entityDupPairs || []).forEach(p => { if (!p.dismissed) { s.add(p.idA); s.add(p.idB); } }); return s; }, [entityDupPairs]);
-  const counts = data ? { personas: data.personas.length, entities: data.entities.length, dups: totalDups, pendingTasks: pendingTasks || null, overdueCount, projects: (data.projects || []).length || null, completedGoals: completedGoals || null } : {};
+  const favCount = data ? ((data.personas || []).filter(p => p.favorite).length + (data.entities || []).filter(e => e.favorite).length) : 0;
+  const counts = data ? { personas: data.personas.length, entities: data.entities.length, dups: totalDups, pendingTasks: pendingTasks || null, overdueCount, projects: (data.projects || []).length || null, completedGoals: completedGoals || null, favorites: favCount || null } : {};
 
   const addComment = (targetId, text) => {
     setData(d => {
@@ -2538,6 +2539,7 @@ const App = () => {
     case "personas": view = <PersonasList t={t} lang={lang} data={data} go={go} route={route} onImportPersonas={handleImportPersonas} globalQ={query} onBulkDelete={handleBulkDeletePersonas} onBulkUpdateStatus={handleBulkUpdatePersonas} onBulkAddTag={handleBulkAddTagPersonas} onBulkAddTask={handleBulkAddTask} segments={data.segments || []} onAddSegment={addSegment} onDeleteSegment={deleteSegment} users={window.PROMEZA_USERS || []} currentUser={userEmail} />; break;
     case "pipeline": view = <PipelineView t={t} lang={lang} data={data} go={go} onUpdatePerson={handleUpdatePerson} />; break;
     case "entities": view = <EntitiesList t={t} lang={lang} data={data} go={go} route={route} onImportEntities={handleImportEntities} globalQ={query} />; break;
+    case "favorites": view = <FavoritesView t={t} lang={lang} data={data} go={go} onUpdatePerson={handleUpdatePerson} onUpdateEntity={handleUpdateEntity} />; break;
     case "person": view = <ViewErrorBoundary key={"person-" + route.id}><PersonProfile id={route.id} t={t} lang={lang} data={data} go={go} goBack={goBack} addComment={addComment} onEditComment={editComment} onDeleteComment={deleteComment}
       onUpdatePerson={handleUpdatePerson} onEditPerson={handleEditPerson} onDeletePerson={handleDeletePerson}
       interactions={data.interactions[route.id] || []}

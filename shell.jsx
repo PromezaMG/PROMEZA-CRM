@@ -6,6 +6,7 @@ const Sidebar = ({ route, go, t, counts, mobileOpen, onClose }) => {
     { id: "personas",  label: t.nav.personas,              icon: "users",    count: counts.personas },
     { id: "pipeline",  label: "Directorio",                 icon: "chart" },
     { id: "entities",  label: t.nav.entities,              icon: "building", count: counts.entities },
+    { id: "favorites", label: t.nav.favorites || "Favoritos", icon: "star", count: counts.favorites || null, countStyle: { background: "#f59e0b" } },
     { id: "projects",  label: t.nav.projects  || "Proyectos",  icon: "folder",   count: counts.projects  || null },
     { id: "tasks",     label: t.nav.tasks     || "Tareas",     icon: "check",    count: counts.pendingTasks || null, countStyle: counts.overdueCount > 0 ? { background: "#ef4444" } : null },
     { id: "my-tasks",  label: t.nav.myTasks   || "Mis tareas", icon: "clock" },

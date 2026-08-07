@@ -1241,6 +1241,14 @@ const Sidebar = ({
     icon: "building",
     count: counts.entities
   }, {
+    id: "favorites",
+    label: t.nav.favorites || "Favoritos",
+    icon: "star",
+    count: counts.favorites || null,
+    countStyle: {
+      background: "#f59e0b"
+    }
+  }, {
     id: "projects",
     label: t.nav.projects || "Proyectos",
     icon: "folder",
@@ -7097,6 +7105,200 @@ const EntitiesList = ({
 window.PersonasList = PersonasList;
 window.EntitiesList = EntitiesList;
 
+// ─── Favorites view — starred contacts & entities ───
+const FavoritesView = ({
+  t,
+  lang,
+  data,
+  go,
+  onUpdatePerson,
+  onUpdateEntity
+}) => {
+  const es = lang === "es";
+  const favP = (data.personas || []).filter(p => p.favorite);
+  const favE = (data.entities || []).filter(e => e.favorite);
+  const total = favP.length + favE.length;
+  const Row = ({
+    id,
+    route,
+    avatar,
+    title,
+    sub,
+    onUnfav
+  }) => /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      padding: "10px 14px",
+      borderBottom: "1px solid var(--line)"
+    }
+  }, /*#__PURE__*/React.createElement(GoLink, {
+    route: route,
+    className: "grow",
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      minWidth: 0
+    },
+    title: es ? "Abrir (clic derecho: nueva pestaña)" : "Open"
+  }, avatar, /*#__PURE__*/React.createElement("div", {
+    style: {
+      minWidth: 0
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontWeight: 600,
+      fontSize: 13.5,
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap"
+    }
+  }, title), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11.5,
+      color: "var(--ink-3)",
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap"
+    }
+  }, sub))), /*#__PURE__*/React.createElement("button", {
+    title: es ? "Quitar de favoritos" : "Remove from favorites",
+    onClick: onUnfav,
+    style: {
+      background: "none",
+      border: "none",
+      cursor: "pointer",
+      fontSize: 20,
+      lineHeight: 1,
+      color: "#f59e0b",
+      flexShrink: 0,
+      padding: 2
+    }
+  }, "\u2605"));
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      maxWidth: 760,
+      margin: "0 auto"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "page-head",
+    style: {
+      marginBottom: 16
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("h1", {
+    className: "page-title",
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 8
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: "#f59e0b"
+    }
+  }, "\u2605"), " ", es ? "Favoritos" : "Favorites"), /*#__PURE__*/React.createElement("div", {
+    className: "page-sub"
+  }, total, " ", es ? "guardado" + (total !== 1 ? "s" : "") : "saved"))), total === 0 && /*#__PURE__*/React.createElement("div", {
+    className: "empty",
+    style: {
+      padding: "60px 0"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 40,
+      marginBottom: 8,
+      color: "#f59e0b"
+    }
+  }, "\u2606"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontWeight: 600
+    }
+  }, es ? "Aún no tienes favoritos" : "No favorites yet"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      marginTop: 4
+    }
+  }, es ? "Abre un contacto o entidad y toca la estrella ☆ junto al nombre." : "Open a contact or entity and tap the star ☆ next to the name.")), favP.length > 0 && /*#__PURE__*/React.createElement("div", {
+    className: "section",
+    style: {
+      marginBottom: 18
+    }
+  }, /*#__PURE__*/React.createElement("h3", null, es ? "Contactos" : "Contacts", " ", /*#__PURE__*/React.createElement("span", {
+    className: "muted mono",
+    style: {
+      fontSize: 11
+    }
+  }, favP.length)), /*#__PURE__*/React.createElement("div", {
+    className: "section-body",
+    style: {
+      padding: 0
+    }
+  }, favP.map(p => /*#__PURE__*/React.createElement(Row, {
+    key: p.id,
+    id: p.id,
+    route: {
+      name: "person",
+      id: p.id
+    },
+    avatar: /*#__PURE__*/React.createElement("div", {
+      className: "av-circle",
+      style: {
+        background: p.color,
+        width: 34,
+        height: 34,
+        fontSize: 12,
+        flexShrink: 0
+      }
+    }, initials(fullName(p))),
+    title: fullName(p) || p.email || "—",
+    sub: [p.email, p.city].filter(Boolean).join(" · "),
+    onUnfav: () => onUpdatePerson && onUpdatePerson(p.id, {
+      favorite: false
+    })
+  })))), favE.length > 0 && /*#__PURE__*/React.createElement("div", {
+    className: "section"
+  }, /*#__PURE__*/React.createElement("h3", null, es ? "Entidades" : "Entities", " ", /*#__PURE__*/React.createElement("span", {
+    className: "muted mono",
+    style: {
+      fontSize: 11
+    }
+  }, favE.length)), /*#__PURE__*/React.createElement("div", {
+    className: "section-body",
+    style: {
+      padding: 0
+    }
+  }, favE.map(e => /*#__PURE__*/React.createElement(Row, {
+    key: e.id,
+    id: e.id,
+    route: {
+      name: "entity",
+      id: e.id
+    },
+    avatar: /*#__PURE__*/React.createElement("div", {
+      style: {
+        width: 34,
+        height: 34,
+        borderRadius: 8,
+        background: "var(--accent-50)",
+        display: "grid",
+        placeItems: "center",
+        flexShrink: 0
+      }
+    }, /*#__PURE__*/React.createElement(Icon, {
+      name: "building",
+      size: 16
+    })),
+    title: e.name,
+    sub: [t.types && t.types[e.type] || e.type, e.city].filter(Boolean).join(" · "),
+    onUnfav: () => onUpdateEntity && onUpdateEntity(e.id, {
+      favorite: false
+    })
+  })))));
+};
+window.FavoritesView = FavoritesView;
+
 ;/* ===== profile.jsx ===== */
 // PROMEZA CRM — Profile pages (Person + Entity)
 
@@ -7686,7 +7888,22 @@ const PersonProfile = ({
       overflow: "hidden",
       textOverflow: "ellipsis"
     }
-  }, fullName(p)), /*#__PURE__*/React.createElement("span", {
+  }, fullName(p)), /*#__PURE__*/React.createElement("button", {
+    title: p.favorite ? lang === "es" ? "Quitar de favoritos" : "Remove from favorites" : lang === "es" ? "Agregar a favoritos" : "Add to favorites",
+    onClick: () => onUpdatePerson && onUpdatePerson(p.id, {
+      favorite: !p.favorite
+    }),
+    style: {
+      background: "none",
+      border: "none",
+      cursor: "pointer",
+      padding: 2,
+      fontSize: 22,
+      lineHeight: 1,
+      color: p.favorite ? "#f59e0b" : "var(--ink-4)",
+      flexShrink: 0
+    }
+  }, p.favorite ? "★" : "☆"), /*#__PURE__*/React.createElement("span", {
     title: lang === "es" ? "Clic para copiar el código" : "Click to copy code",
     onClick: () => {
       try {
@@ -8734,7 +8951,22 @@ const EntityProfile = ({
     style: {
       margin: 0
     }
-  }, e.name), /*#__PURE__*/React.createElement("span", {
+  }, e.name), /*#__PURE__*/React.createElement("button", {
+    title: e.favorite ? lang === "es" ? "Quitar de favoritos" : "Remove from favorites" : lang === "es" ? "Agregar a favoritos" : "Add to favorites",
+    onClick: () => onUpdateEntity && onUpdateEntity(e.id, {
+      favorite: !e.favorite
+    }),
+    style: {
+      background: "none",
+      border: "none",
+      cursor: "pointer",
+      padding: 2,
+      fontSize: 22,
+      lineHeight: 1,
+      color: e.favorite ? "#f59e0b" : "var(--ink-4)",
+      flexShrink: 0
+    }
+  }, e.favorite ? "★" : "☆"), /*#__PURE__*/React.createElement("span", {
     title: lang === "es" ? "Clic para copiar el código" : "Click to copy code",
     onClick: () => {
       try {
@@ -23386,6 +23618,7 @@ const App = () => {
     });
     return s;
   }, [entityDupPairs]);
+  const favCount = data ? (data.personas || []).filter(p => p.favorite).length + (data.entities || []).filter(e => e.favorite).length : 0;
   const counts = data ? {
     personas: data.personas.length,
     entities: data.entities.length,
@@ -23393,7 +23626,8 @@ const App = () => {
     pendingTasks: pendingTasks || null,
     overdueCount,
     projects: (data.projects || []).length || null,
-    completedGoals: completedGoals || null
+    completedGoals: completedGoals || null,
+    favorites: favCount || null
   } : {};
   const addComment = (targetId, text) => {
     setData(d => {
@@ -24592,6 +24826,16 @@ const App = () => {
         route: route,
         onImportEntities: handleImportEntities,
         globalQ: query
+      });
+      break;
+    case "favorites":
+      view = /*#__PURE__*/React.createElement(FavoritesView, {
+        t: t,
+        lang: lang,
+        data: data,
+        go: go,
+        onUpdatePerson: handleUpdatePerson,
+        onUpdateEntity: handleUpdateEntity
       });
       break;
     case "person":

@@ -1309,3 +1309,77 @@ const EntitiesList = ({ t, lang, data, go, route, onImportEntities, globalQ = ""
 
 window.PersonasList = PersonasList;
 window.EntitiesList = EntitiesList;
+
+// ─── Favorites view — starred contacts & entities ───
+const FavoritesView = ({ t, lang, data, go, onUpdatePerson, onUpdateEntity }) => {
+  const es = lang === "es";
+  const favP = (data.personas || []).filter(p => p.favorite);
+  const favE = (data.entities || []).filter(e => e.favorite);
+  const total = favP.length + favE.length;
+
+  const Row = ({ id, route, avatar, title, sub, onUnfav }) => (
+    <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", borderBottom: "1px solid var(--line)" }}>
+      <GoLink route={route} className="grow" style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }} title={es ? "Abrir (clic derecho: nueva pestaña)" : "Open"}>
+        {avatar}
+        <div style={{ minWidth: 0 }}>
+          <div style={{ fontWeight: 600, fontSize: 13.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{title}</div>
+          <div style={{ fontSize: 11.5, color: "var(--ink-3)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{sub}</div>
+        </div>
+      </GoLink>
+      <button title={es ? "Quitar de favoritos" : "Remove from favorites"} onClick={onUnfav}
+        style={{ background: "none", border: "none", cursor: "pointer", fontSize: 20, lineHeight: 1, color: "#f59e0b", flexShrink: 0, padding: 2 }}>★</button>
+    </div>
+  );
+
+  return (
+    <div style={{ maxWidth: 760, margin: "0 auto" }}>
+      <div className="page-head" style={{ marginBottom: 16 }}>
+        <div>
+          <h1 className="page-title" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{ color: "#f59e0b" }}>★</span> {es ? "Favoritos" : "Favorites"}
+          </h1>
+          <div className="page-sub">{total} {es ? "guardado" + (total !== 1 ? "s" : "") : "saved"}</div>
+        </div>
+      </div>
+
+      {total === 0 && (
+        <div className="empty" style={{ padding: "60px 0" }}>
+          <div style={{ fontSize: 40, marginBottom: 8, color: "#f59e0b" }}>☆</div>
+          <div style={{ fontWeight: 600 }}>{es ? "Aún no tienes favoritos" : "No favorites yet"}</div>
+          <div style={{ fontSize: 12, marginTop: 4 }}>{es ? "Abre un contacto o entidad y toca la estrella ☆ junto al nombre." : "Open a contact or entity and tap the star ☆ next to the name."}</div>
+        </div>
+      )}
+
+      {favP.length > 0 && (
+        <div className="section" style={{ marginBottom: 18 }}>
+          <h3>{es ? "Contactos" : "Contacts"} <span className="muted mono" style={{ fontSize: 11 }}>{favP.length}</span></h3>
+          <div className="section-body" style={{ padding: 0 }}>
+            {favP.map(p => (
+              <Row key={p.id} id={p.id} route={{ name: "person", id: p.id }}
+                avatar={<div className="av-circle" style={{ background: p.color, width: 34, height: 34, fontSize: 12, flexShrink: 0 }}>{initials(fullName(p))}</div>}
+                title={fullName(p) || p.email || "—"}
+                sub={[p.email, p.city].filter(Boolean).join(" · ")}
+                onUnfav={() => onUpdatePerson && onUpdatePerson(p.id, { favorite: false })} />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {favE.length > 0 && (
+        <div className="section">
+          <h3>{es ? "Entidades" : "Entities"} <span className="muted mono" style={{ fontSize: 11 }}>{favE.length}</span></h3>
+          <div className="section-body" style={{ padding: 0 }}>
+            {favE.map(e => (
+              <Row key={e.id} id={e.id} route={{ name: "entity", id: e.id }}
+                avatar={<div style={{ width: 34, height: 34, borderRadius: 8, background: "var(--accent-50)", display: "grid", placeItems: "center", flexShrink: 0 }}><Icon name="building" size={16} /></div>}
+                title={e.name}
+                sub={[(t.types && t.types[e.type]) || e.type, e.city].filter(Boolean).join(" · ")}
+                onUnfav={() => onUpdateEntity && onUpdateEntity(e.id, { favorite: false })} />
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+window.FavoritesView = FavoritesView;
