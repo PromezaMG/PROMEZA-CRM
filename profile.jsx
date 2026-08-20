@@ -378,14 +378,25 @@ const PersonProfile = ({ id, t, lang, data, go, goBack, addComment, onEditCommen
                       Llamar a {p.first}
                     </div>
                     <div style={{ padding: 4, display: "flex", flexDirection: "column", gap: 2 }}>
-                      <button className="btn" style={{ justifyContent: "flex-start", gap: 8, padding: "9px 12px" }}
-                        onClick={() => { window.location.href = "tel:" + p.phone; setShowCallMenu(false); }}>
-                        <Icon name="phone" size={14} />
-                        <div style={{ textAlign: "left" }}>
-                          <div style={{ fontWeight: 600, fontSize: 12.5 }}>Teléfono</div>
-                          <div style={{ fontSize: 11, color: "var(--ink-3)", fontFamily: "var(--font-mono)" }}>{p.phone}</div>
-                        </div>
-                      </button>
+                      {[...new Set([...(p.phones || []).map(ph => ph && ph.value).filter(Boolean), p.phone].filter(Boolean))].map((num, i) => {
+                        const lbl = (p.phones || []).find(ph => ph && ph.value === num);
+                        return (
+                          <div key={i} style={{ display: "flex", gap: 4 }}>
+                            <button className="btn" style={{ flex: 1, justifyContent: "flex-start", gap: 8, padding: "9px 12px" }}
+                              onClick={() => { window.location.href = "tel:" + num; setShowCallMenu(false); }}>
+                              <Icon name="phone" size={14} />
+                              <div style={{ textAlign: "left" }}>
+                                <div style={{ fontWeight: 600, fontSize: 12.5 }}>{lbl && lbl.label ? lbl.label : (lang === "es" ? "Teléfono" : "Phone")}</div>
+                                <div style={{ fontSize: 11, color: "var(--ink-3)", fontFamily: "var(--font-mono)" }}>{num}</div>
+                              </div>
+                            </button>
+                            <button className="btn" title="WhatsApp" style={{ padding: "0 10px", color: "#25D366", borderColor: "#25D36640", background: "#f0fdf4" }}
+                              onClick={() => { window.open("https://wa.me/" + num.replace(/\D/g, ""), "_blank"); setShowCallMenu(false); }}>
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347"/></svg>
+                            </button>
+                          </div>
+                        );
+                      })}
                       <button className="btn" style={{ justifyContent: "flex-start", gap: 8, padding: "9px 12px", color: "#2D8CFF", borderColor: "#2D8CFF30", background: "#eff6ff" }}
                         onClick={() => { window.open(p.zoom || "https://zoom.us/", "_blank"); setShowCallMenu(false); }}>
                         <svg width="16" height="16" viewBox="0 0 40 40" fill="none">
