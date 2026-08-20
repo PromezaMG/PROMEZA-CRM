@@ -9140,11 +9140,54 @@ const EntityProfile = ({
     className: "section-body"
   }, /*#__PURE__*/React.createElement("dl", {
     className: "kv"
-  }, /*#__PURE__*/React.createElement("dt", null, "Email"), /*#__PURE__*/React.createElement("dd", null, e.email || /*#__PURE__*/React.createElement("span", {
-    className: "muted"
-  }, "\u2014")), /*#__PURE__*/React.createElement("dt", null, lang === "es" ? "Teléfono" : "Phone"), /*#__PURE__*/React.createElement("dd", null, e.phone || /*#__PURE__*/React.createElement("span", {
-    className: "muted"
-  }, "\u2014")), /*#__PURE__*/React.createElement("dt", null, t.common.web), /*#__PURE__*/React.createElement("dd", null, e.website ? /*#__PURE__*/React.createElement("a", {
+  }, /*#__PURE__*/React.createElement("dt", null, "Email"), /*#__PURE__*/React.createElement("dd", null, (() => {
+    const list = [...new Set([...(e.emails || []).map(x => x && x.value).filter(Boolean), e.email].filter(Boolean))];
+    return list.length ? list.map((v, i) => {
+      const lbl = (e.emails || []).find(x => x && x.value === v);
+      return /*#__PURE__*/React.createElement("div", {
+        key: i,
+        style: {
+          display: "flex",
+          alignItems: "center",
+          gap: 6,
+          marginBottom: 2
+        }
+      }, /*#__PURE__*/React.createElement("a", {
+        href: "mailto:" + v
+      }, v), lbl && lbl.label ? /*#__PURE__*/React.createElement("span", {
+        style: {
+          fontSize: 11,
+          color: "var(--ink-4)"
+        }
+      }, "\xB7 ", lbl.label) : null);
+    }) : /*#__PURE__*/React.createElement("span", {
+      className: "muted"
+    }, "\u2014");
+  })()), /*#__PURE__*/React.createElement("dt", null, lang === "es" ? "Teléfono" : "Phone"), /*#__PURE__*/React.createElement("dd", null, (() => {
+    const list = [...new Set([...(e.phones || []).map(x => x && x.value).filter(Boolean), e.phone].filter(Boolean))];
+    return list.length ? list.map((v, i) => {
+      const lbl = (e.phones || []).find(x => x && x.value === v);
+      return /*#__PURE__*/React.createElement("div", {
+        key: i,
+        style: {
+          display: "flex",
+          alignItems: "center",
+          gap: 6,
+          marginBottom: 2
+        }
+      }, /*#__PURE__*/React.createElement("a", {
+        href: "tel:" + v,
+        className: "mono"
+      }, v), lbl && lbl.label ? /*#__PURE__*/React.createElement("span", {
+        style: {
+          fontSize: 11,
+          color: "var(--ink-4)"
+        }
+      }, "\xB7 ", lbl.label) : null);
+    }) : /*#__PURE__*/React.createElement("span", {
+      className: "muted"
+    }, "\u2014");
+  })()), /*#__PURE__*/React.createElement("dt", null, t.common.web), /*#__PURE__*/React.createElement("dd", null, e.website ? /*#__PURE__*/React.createElement("a", {
     href: "https://" + e.website,
     target: "_blank",
     rel: "noopener"

@@ -901,8 +901,20 @@ const EntityProfile = ({ id, t, lang, data, go, goBack, addComment, onEditCommen
               <h3>{t.common.contact}</h3>
               <div className="section-body">
                 <dl className="kv">
-                  <dt>Email</dt><dd>{e.email || <span className="muted">—</span>}</dd>
-                  <dt>{lang === "es" ? "Teléfono" : "Phone"}</dt><dd>{e.phone || <span className="muted">—</span>}</dd>
+                  <dt>Email</dt><dd>{(() => {
+                    const list = [...new Set([...(e.emails || []).map(x => x && x.value).filter(Boolean), e.email].filter(Boolean))];
+                    return list.length ? list.map((v, i) => {
+                      const lbl = (e.emails || []).find(x => x && x.value === v);
+                      return <div key={i} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}><a href={"mailto:" + v}>{v}</a>{lbl && lbl.label ? <span style={{ fontSize: 11, color: "var(--ink-4)" }}>· {lbl.label}</span> : null}</div>;
+                    }) : <span className="muted">—</span>;
+                  })()}</dd>
+                  <dt>{lang === "es" ? "Teléfono" : "Phone"}</dt><dd>{(() => {
+                    const list = [...new Set([...(e.phones || []).map(x => x && x.value).filter(Boolean), e.phone].filter(Boolean))];
+                    return list.length ? list.map((v, i) => {
+                      const lbl = (e.phones || []).find(x => x && x.value === v);
+                      return <div key={i} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}><a href={"tel:" + v} className="mono">{v}</a>{lbl && lbl.label ? <span style={{ fontSize: 11, color: "var(--ink-4)" }}>· {lbl.label}</span> : null}</div>;
+                    }) : <span className="muted">—</span>;
+                  })()}</dd>
                   <dt>{t.common.web}</dt><dd>{e.website ? <a href={"https://" + e.website} target="_blank" rel="noopener">{e.website}</a> : <span className="muted">—</span>}</dd>
                   <dt>{t.common.social}</dt><dd><SocialRow social={e.social || {}} /></dd>
                 </dl>
