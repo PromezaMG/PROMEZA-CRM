@@ -99,6 +99,25 @@ window.AIRTABLE = (function () {
     return out;
   };
 
+  // Join ALL values (array of {value} + a legacy singular) into one string for the
+  // human-visible Airtable columns, deduped. e.g. two phones -> "p1 / p2".
+  const joinAll = (arr, single) => {
+    const vals = [];
+    (arr || []).forEach(x => { if (x && x.value && String(x.value).trim()) vals.push(String(x.value).trim()); });
+    if (single && String(single).trim()) vals.push(String(single).trim());
+    const seen = new Set(); const out = [];
+    vals.forEach(v => { const k = v.replace(/\s+/g, " ").toLowerCase(); if (!seen.has(k)) { seen.add(k); out.push(v); } });
+    return out.join(" / ");
+  };
+  // Primary address + any extra addresses, each fully formatted, for the Dirección column.
+  const joinAddresses = (p) => {
+    const fmt = (street, city, state, zip, country) => [street, [city, state, zip].filter(Boolean).join(", "), country].filter(Boolean).join(" ").trim();
+    const list = [];
+    if (p.address && String(p.address).trim()) list.push(String(p.address).trim());
+    (p.extraAddresses || []).forEach(a => { const s = fmt(a.address, a.city, a.state, a.zip, a.country); if (s) list.push(s); });
+    return list.join("  |  ");
+  };
+
   // Session cache: tables confirmed to have all required fields this session
   const _tablesReady = new Set();
 
@@ -526,9 +545,10 @@ window.AIRTABLE = (function () {
       "Apellido": persona.last,
       "Nombre completo": (persona.first || "") + " " + (persona.last || ""),
       "Cargo": persona.role === "otro" ? (persona.roleOther || "Otro") : persona.role,
-      "Email": persona.email,
-      "Teléfono": persona.phone,
-      "Dirección": persona.address,
+      // Human-visible columns show ALL values (the full structured data lives in _data).
+      "Email": joinAll(persona.emails, persona.email),
+      "Teléfono": joinAll(persona.phones, persona.phone),
+      "Dirección": joinAddresses(persona),
       "ZIP": persona.zip,
       "Ciudad": persona.city,
       "Estado/Provincia": persona.state,
@@ -590,8 +610,8 @@ window.AIRTABLE = (function () {
       "CRM_ID": entity.id,
       "Nombre": entity.name,
       "Tipo": entity.type,
-      "Email": entity.email,
-      "Teléfono": entity.phone,
+      "Email": joinAll(entity.emails, entity.email),
+      "Teléfono": joinAll(entity.phones, entity.phone),
       "Dirección": entity.address,
       "ZIP": entity.zip,
       "Ciudad": entity.city,
