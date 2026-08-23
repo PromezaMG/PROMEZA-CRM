@@ -22,7 +22,15 @@ CRM de la organización PROMEZA. Es una **app web (SPA en React)** servida por *
 
 ## Cómo desplegar un cambio (IMPORTANTE)
 1. Editar el/los `.jsx` (o `styles.css` / `airtable.js`).
-2. Si cambió un `.jsx` → **recompilar el bundle**. El método actual usa `_build.html` (Babel en el navegador) + `build_server.ps1` (servidor PowerShell en puerto 5177) que guarda `bundle.NNN.js`. **En Mac no hay PowerShell nativo**: instala `pwsh` (`brew install --cask powershell`) para usar el mismo flujo, O transpila con Babel/Node. VERIFICA siempre que el bundle pasa `new Function(text)` sin error de sintaxis ANTES de hacer push (no hay error boundary global: un `.jsx` malo = pantalla en blanco para todos).
+2. Si cambió un `.jsx` → **recompilar el bundle**. `_build.html` transpila con Babel en el navegador y hace `POST /save` para escribir `bundle.NNN.js` en el disco; necesita un servidor local que sirva la carpeta y acepte ese POST.
+   - **En Mac/Linux** (no hace falta PowerShell ni Node): `python3 build_server.py` (puerto 5177) y abrir `http://localhost:5177/_build.html`. Al terminar dice `POST /save -> 200`.
+   - **En Windows**: `build_server.ps1` (mismo puerto 5177) — ese script vive en la máquina Windows, no en el repo.
+   - VERIFICA siempre que el bundle pasa `new Function(text)` sin error de sintaxis ANTES de hacer push (no hay error boundary global: un `.jsx` malo = pantalla en blanco para todos). En la consola del navegador, con el servidor corriendo:
+     ```js
+     fetch('/bundle.229.js?c='+Date.now()).then(r=>r.text()).then(t=>{try{new Function(t);return 'OK '+t.length}catch(e){return 'ERROR: '+e.message}})
+     ```
+   - Ojo: el nombre del archivo sigue siendo `bundle.229.js` (está fijo en `_build.html` y en `index.html`); el cache-busting real lo hace `?v=NNN`.
+
 3. Subir versión: en `index.html` cambia `bundle.NNN.js` y todos los `?v=NNN`; en `sw.js` cambia `promeza-vNNN` y el nombre del bundle. (Convención: sube el número.)
 4. `git add` de lo cambiado, commit, y **push a `main` y a `gh-pages`**:
    ```
@@ -37,10 +45,10 @@ CRM de la organización PROMEZA. Es una **app web (SPA en React)** servida por *
 - **Puerto Rico es su propio país** en los datos.
 - Antes de operaciones masivas/destructivas en Airtable, respalda o verifica.
 - Los **comentarios** son locales por dispositivo (no se sincronizan). Los **favoritos**, cambios/historial, tareas-de-datos SÍ dependen de la base.
-- Ojo con PowerShell 5.1 (Windows): lee `.ps1` como ANSI (acentos con códigos `[char]`), y `@($null).Count` da 1 (no 0). En Mac con `pwsh` (7+) esto es distinto.
+- Ojo con PowerShell 5.1 (Windows): lee `.ps1` como ANSI (acentos con códigos `[char]`), y `@($null).Count` da 1 (no 0). En Mac ya no se usan los `.ps1` para compilar (ver `build_server.py`); los scripts de importación `.ps1` del repo siguen siendo de Windows.
 
 ## Token de GitHub
-El PAT clásico "PROMEZA CRM" **caducó** pero los deploys funcionan con otra credencial (el Git Credential Manager de la máquina, login de GitHub). En la Mac, `git push` pedirá autenticarse con GitHub la primera vez (navegador). Si algún deploy falla por auth, hay que crear un token nuevo en github.com/settings/tokens (scope `repo`, sin caducidad) — eso lo hace Vanessa o su jefe, Claude no maneja la llave.
+El PAT clásico "PROMEZA CRM" **caducó**. En Windows los deploys funcionaban con el Git Credential Manager (login de GitHub del sistema). **La MacBook no tiene ese componente**: el primer `git push` pide usuario y contraseña en la terminal, y GitHub ya no acepta contraseña — hay que pegar un **token** como contraseña. Se crea en github.com/settings/tokens (scope `repo`, sin caducidad); macOS lo guarda en el Llavero (`credential.helper=osxkeychain`) y no lo vuelve a pedir. **Eso lo hace Vanessa o su jefe; Claude no maneja la llave.** Alternativa más cómoda: instalar GitHub CLI (`brew install gh` y `gh auth login`), que autentica por navegador.
 
 ## Qué se hizo en la última sesión (v218 → v236)
 - Comentarios **editables/borrables** (con marca "editado"). Siguen siendo locales por dispositivo.
