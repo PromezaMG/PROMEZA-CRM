@@ -48,7 +48,9 @@ CRM de la organización PROMEZA. Es una **app web (SPA en React)** servida por *
 - Ojo con PowerShell 5.1 (Windows): lee `.ps1` como ANSI (acentos con códigos `[char]`), y `@($null).Count` da 1 (no 0). En Mac ya no se usan los `.ps1` para compilar (ver `build_server.py`); los scripts de importación `.ps1` del repo siguen siendo de Windows.
 
 ## Token de GitHub
-El PAT clásico "PROMEZA CRM" **caducó**. En Windows los deploys funcionaban con el Git Credential Manager (login de GitHub del sistema). **La MacBook no tiene ese componente**: el primer `git push` pide usuario y contraseña en la terminal, y GitHub ya no acepta contraseña — hay que pegar un **token** como contraseña. Se crea en github.com/settings/tokens (scope `repo`, sin caducidad); macOS lo guarda en el Llavero (`credential.helper=osxkeychain`) y no lo vuelve a pedir. **Eso lo hace Vanessa o su jefe; Claude no maneja la llave.** Alternativa más cómoda: instalar GitHub CLI (`brew install gh` y `gh auth login`), que autentica por navegador.
+**Ya NO se usan tokens.** Los tokens clásicos caducaron y dieron problemas. Desde 2026-09-07 la MacBook se autentica con una **llave SSH** (`~/.ssh/id_ed25519`, sin contraseña, registrada en la cuenta con el título "promeza mg"). El remoto es `git@github.com:PromezaMG/PROMEZA-CRM.git` — ojo con las mayúsculas, `promezamg` en minúsculas funciona pero GitHub avisa de redirección.
+
+`git push` funciona directo, sin pedir nada. Para comprobar la llave: `ssh -T git@github.com` debe contestar "Hi PromezaMG!". Si algún día hay que revocarla: github.com/settings/keys → Delete (y se genera otra con `ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519 -N ""`, pegando la parte `.pub` en esa misma página).
 
 ## Qué se hizo en la última sesión (v218 → v236)
 - Comentarios **editables/borrables** (con marca "editado"). Siguen siendo locales por dispositivo.
