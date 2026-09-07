@@ -31,7 +31,7 @@ CRM de la organización PROMEZA. Es una **app web (SPA en React)** servida por *
      ```
    - Ojo: el nombre del archivo sigue siendo `bundle.229.js` (está fijo en `_build.html` y en `index.html`); el cache-busting real lo hace `?v=NNN`.
 
-3. Subir versión: en `index.html` cambia `bundle.NNN.js` y todos los `?v=NNN`; en `sw.js` cambia `promeza-vNNN` y el nombre del bundle. (Convención: sube el número.)
+3. Subir versión: en `index.html` cambia todos los `?v=NNN` — **incluido el del `<script src="bundle.229.js?v=NNN">`**, que hasta la v237 iba sin `?v=` y hacía que los navegadores siguieran usando el bundle viejo (síntoma: despliegas y "no se ve el cambio"); en `sw.js` cambia `promeza-vNNN` y el nombre del bundle. (Convención: sube el número.)
 4. `git add` de lo cambiado, commit, y **push a `main` y a `gh-pages`**:
    ```
    git push origin main
