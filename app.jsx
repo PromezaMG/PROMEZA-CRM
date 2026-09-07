@@ -544,7 +544,7 @@ const PERSON_FIELD_LABELS = {
   role: "Cargo", status: "Estado", address: "DirecciÃ³n", city: "Ciudad",
   state: "Estado/Prov.", country: "PaÃ­s", zip: "ZIP", website: "Sitio web",
   birthday: "CumpleaÃ±os", lastContact: "Ãšltimo contacto", language: "Idioma",
-  tags: "Etiquetas", entities: "Entidades",
+  tags: "Etiquetas", entities: "Entidades", relations: "Parentesco",
   stage: "Etapa", source: "Fuente", nextAction: "PrÃ³xima acciÃ³n",
 };
 
@@ -562,7 +562,7 @@ const computeChanges = (oldObj, updates, fieldLabels) => {
     if (!label) continue;
     const oldVal = oldObj[key];
     const newVal = updates[key];
-    if (key === "tags" || key === "entities") {
+    if (key === "tags" || key === "entities" || key === "relations") {
       if (JSON.stringify(oldVal) !== JSON.stringify(newVal)) changes.push({ field: label, type: key });
     } else {
       const o = String(oldVal ?? ""), n = String(newVal ?? "");

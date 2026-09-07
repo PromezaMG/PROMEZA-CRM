@@ -52,6 +52,12 @@ CRM de la organización PROMEZA. Es una **app web (SPA en React)** servida por *
 
 `git push` funciona directo, sin pedir nada. Para comprobar la llave: `ssh -T git@github.com` debe contestar "Hi PromezaMG!". Si algún día hay que revocarla: github.com/settings/keys → Delete (y se genera otra con `ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519 -N ""`, pegando la parte `.pub` en esa misma página).
 
+## Qué se hizo en la última sesión (v237)
+- **Parentesco entre contactos** (`profile.jsx`): nueva pestaña "Parentesco" + tarjeta en Detalles. Se guarda en `relations: [{id, type, typeOther}]` dentro de `_data` (no hizo falta tocar Airtable). Se lee como "<el otro> es <tipo> de este contacto".
+  - **Se escribe en las DOS fichas** (con el tipo inverso: padre↔hijo, abuelo↔nieto, tío↔sobrino, suegro↔yerno; cónyuge/hermano/primo/cuñado son simétricos), así aparece desde cualquier lado. Borrar desde una ficha lo quita de las dos.
+  - Las **etiquetas se adaptan al campo "Sexo"** del otro contacto (Padre/Madre, Hijo/Hija, Esposo/Esposa…) y usan la forma neutra ("Padre / Madre") si el sexo no está puesto. No hay que escribir el género a mano.
+  - El buscador de familiares **exige 2 letras y muestra 10 resultados como mucho** (la base tiene ~18k personas).
+
 ## Qué se hizo en la última sesión (v218 → v236)
 - Comentarios **editables/borrables** (con marca "editado"). Siguen siendo locales por dispositivo.
 - **Móvil:** arreglado el desbordamiento horizontal (`@media ≤768px` en styles.css) + zonas seguras del notch (`viewport-fit=cover` + `env(safe-area-inset-*)`).

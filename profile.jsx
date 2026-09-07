@@ -191,6 +191,39 @@ const ChangelogTab = ({ changelog, lang }) => {
   );
 };
 
+// ─── Parentesco (family ties between contacts) ───
+// Stored on the contact as relations: [{ id, type, typeOther }] and read as
+// "<the other contact> is the <type> of this one". Both records are written, so the
+// tie shows up on either profile. Labels follow the OTHER contact's "Sexo" field when
+// it is set (Padre/Madre, Hijo/Hija…) and fall back to a neutral form when it is not.
+const RELATION_TYPES = [
+  { key: "conyuge",  inv: "conyuge",  es: { m: "Esposo", f: "Esposa", n: "Cónyuge" },              en: { m: "Husband", f: "Wife", n: "Spouse" } },
+  { key: "pareja",   inv: "pareja",   es: { m: "Pareja", f: "Pareja", n: "Pareja" },               en: { m: "Partner", f: "Partner", n: "Partner" } },
+  { key: "padre",    inv: "hijo",     es: { m: "Padre", f: "Madre", n: "Padre / Madre" },          en: { m: "Father", f: "Mother", n: "Parent" } },
+  { key: "hijo",     inv: "padre",    es: { m: "Hijo", f: "Hija", n: "Hijo / Hija" },              en: { m: "Son", f: "Daughter", n: "Child" } },
+  { key: "hermano",  inv: "hermano",  es: { m: "Hermano", f: "Hermana", n: "Hermano / Hermana" },  en: { m: "Brother", f: "Sister", n: "Sibling" } },
+  { key: "abuelo",   inv: "nieto",    es: { m: "Abuelo", f: "Abuela", n: "Abuelo / Abuela" },      en: { m: "Grandfather", f: "Grandmother", n: "Grandparent" } },
+  { key: "nieto",    inv: "abuelo",   es: { m: "Nieto", f: "Nieta", n: "Nieto / Nieta" },          en: { m: "Grandson", f: "Granddaughter", n: "Grandchild" } },
+  { key: "tio",      inv: "sobrino",  es: { m: "Tío", f: "Tía", n: "Tío / Tía" },                  en: { m: "Uncle", f: "Aunt", n: "Uncle / Aunt" } },
+  { key: "sobrino",  inv: "tio",      es: { m: "Sobrino", f: "Sobrina", n: "Sobrino / Sobrina" },  en: { m: "Nephew", f: "Niece", n: "Nephew / Niece" } },
+  { key: "primo",    inv: "primo",    es: { m: "Primo", f: "Prima", n: "Primo / Prima" },          en: { m: "Cousin", f: "Cousin", n: "Cousin" } },
+  { key: "suegro",   inv: "yerno",    es: { m: "Suegro", f: "Suegra", n: "Suegro / Suegra" },      en: { m: "Father-in-law", f: "Mother-in-law", n: "Parent-in-law" } },
+  { key: "yerno",    inv: "suegro",   es: { m: "Yerno", f: "Nuera", n: "Yerno / Nuera" },          en: { m: "Son-in-law", f: "Daughter-in-law", n: "Child-in-law" } },
+  { key: "cunado",   inv: "cunado",   es: { m: "Cuñado", f: "Cuñada", n: "Cuñado / Cuñada" },      en: { m: "Brother-in-law", f: "Sister-in-law", n: "Sibling-in-law" } },
+  { key: "familiar", inv: "familiar", es: { m: "Familiar", f: "Familiar", n: "Familiar" },         en: { m: "Relative", f: "Relative", n: "Relative" } },
+  { key: "otro",     inv: "otro",     es: { m: "Otro", f: "Otro", n: "Otro" },                     en: { m: "Other", f: "Other", n: "Other" } },
+];
+const RELATION_BY_KEY = {};
+RELATION_TYPES.forEach(r => { RELATION_BY_KEY[r.key] = r; });
+const relationLabel = (type, other, lang, typeOther) => {
+  const def = RELATION_BY_KEY[type];
+  if (!def) return typeOther || type || "";
+  if (type === "otro") return (typeOther || "").trim() || (lang === "es" ? "Otro" : "Other");
+  const set = def[lang === "es" ? "es" : "en"];
+  const g = (other && other.gender) || "";
+  return g === "F" ? set.f : g === "M" ? set.m : set.n;
+};
+
 const PersonProfile = ({ id, t, lang, data, go, goBack, addComment, onEditComment, onDeleteComment, onUpdatePerson, onEditPerson, onDeletePerson,
   interactions, onAddInteraction, onDeleteInteraction,
   tasks, onAddTask, onToggleTask, onDeleteTask, onResolveDuplicate, inDupPair, changelog, users, currentUser,
@@ -202,6 +235,13 @@ const PersonProfile = ({ id, t, lang, data, go, goBack, addComment, onEditCommen
   const [linkEntityId, setLinkEntityId] = React.useState("");
   const [linkRole, setLinkRole] = React.useState("miembro");
   const [entitySearch, setEntitySearch] = React.useState("");
+  const [addingRel, setAddingRel] = React.useState(false);
+  const [relSearch, setRelSearch] = React.useState("");
+  const [relPersonId, setRelPersonId] = React.useState("");
+  const [relPersonName, setRelPersonName] = React.useState("");
+  const [relType, setRelType] = React.useState("conyuge");
+  const [relTypeOther, setRelTypeOther] = React.useState("");
+  const [showRelDrop, setShowRelDrop] = React.useState(false);
   const [showEntityDrop, setShowEntityDrop] = React.useState(false);
   const [showCallMenu, setShowCallMenu] = React.useState(false);
   const [showAllTags, setShowAllTags] = React.useState(false);
@@ -232,6 +272,54 @@ const PersonProfile = ({ id, t, lang, data, go, goBack, addComment, onEditCommen
     link: le, entity: data.entities.find(e => e.id === le.id),
   })).filter(x => x.entity);
 
+  // ─── Parentesco ───
+  const pRelations = p.relations || [];
+  const relatives = pRelations
+    .map(r => ({ rel: r, person: data.personas.find(x => x.id === r.id) }))
+    .filter(x => x.person);
+  // The base has ~18k contacts, so the picker only searches once something is typed
+  // and never renders more than 10 rows.
+  const relCandidates = React.useMemo(() => {
+    const q = relSearch.trim().toLowerCase();
+    if (q.length < 2) return [];
+    const taken = new Set([p.id, ...pRelations.map(r => r.id)]);
+    const out = [];
+    for (const o of (data.personas || [])) {
+      if (taken.has(o.id)) continue;
+      const nm = window.fullName(o).toLowerCase();
+      if (nm.includes(q) || (o.email || "").toLowerCase().includes(q)) {
+        out.push(o);
+        if (out.length >= 60) break;
+      }
+    }
+    return out.sort((a, b) => window.nameCmp(window.fullName(a), window.fullName(b))).slice(0, 10);
+  }, [relSearch, data.personas, p.id, pRelations.length]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const resetRelForm = () => {
+    setAddingRel(false); setShowRelDrop(false); setRelSearch("");
+    setRelPersonId(""); setRelPersonName(""); setRelType("conyuge"); setRelTypeOther("");
+  };
+  const doAddRelation = () => {
+    const other = data.personas.find(x => x.id === relPersonId);
+    if (!other) return;
+    const def = RELATION_BY_KEY[relType] || RELATION_BY_KEY.familiar;
+    const extra = relType === "otro" ? relTypeOther.trim() : "";
+    onUpdatePerson && onUpdatePerson(p.id, {
+      relations: [...pRelations.filter(r => r.id !== other.id), { id: other.id, type: relType, typeOther: extra }],
+    });
+    // Mirror it on the other contact so the tie is visible from either side.
+    onUpdatePerson && onUpdatePerson(other.id, {
+      relations: [...(other.relations || []).filter(r => r.id !== p.id), { id: p.id, type: def.inv, typeOther: extra }],
+    });
+    resetRelForm();
+  };
+  const doRemoveRelation = (otherId) => {
+    const other = data.personas.find(x => x.id === otherId);
+    onUpdatePerson && onUpdatePerson(p.id, { relations: pRelations.filter(r => r.id !== otherId) });
+    if (other && (other.relations || []).some(r => r.id === p.id))
+      onUpdatePerson && onUpdatePerson(other.id, { relations: (other.relations || []).filter(r => r.id !== p.id) });
+  };
+
   // Does this contact have a real duplicate? Computed live (shares email or phone with
   // another contact) so it's always accurate and doesn't depend on a tag having synced.
   const hasDupRaw = React.useMemo(() => {
@@ -251,6 +339,7 @@ const PersonProfile = ({ id, t, lang, data, go, goBack, addComment, onEditCommen
   const tabs = [
     { id: "details", label: t.common.details },
     { id: "links", label: t.common.relatedEntities + " (" + linkedEntities.length + ")" },
+    { id: "family", label: (lang === "es" ? "Parentesco" : "Family") + (relatives.length > 0 ? " (" + relatives.length + ")" : "") },
     { id: "projects", label: (lang === "es" ? "Proyectos" : "Projects") + (personProjectCount > 0 ? " (" + personProjectCount + ")" : "") },
     { id: "interactions", label: (lang === "es" ? "Interacciones" : "Interactions") + " (" + (interactions || []).length + ")" },
     { id: "tasks", label: (lang === "es" ? "Tareas" : "Tasks") + (pendingTasks > 0 ? " (" + pendingTasks + ")" : "") },
@@ -593,6 +682,22 @@ const PersonProfile = ({ id, t, lang, data, go, goBack, addComment, onEditCommen
               </div>
             </div>
             <div className="section">
+              <h3>{lang === "es" ? "Parentesco" : "Family"} <span className="muted mono" style={{ fontSize: 11 }}>{relatives.length}</span></h3>
+              <div className="section-body">
+                {relatives.length === 0 && <div className="muted" style={{ fontSize: 13 }}>{lang === "es" ? "Sin familiares registrados" : "No family recorded"}</div>}
+                {relatives.map(({ rel, person }) => (
+                  <GoLink key={rel.id} route={{ name: "person", id: person.id }} className="link-row" style={{ cursor: "pointer" }} title={lang === "es" ? "Abrir (clic derecho: nueva pestaña)" : "Open"}>
+                    <div className="ent-icon"><Icon name="users" /></div>
+                    <div className="grow">
+                      <div className="title">{window.fullName(person)}</div>
+                      <div className="row-sub">{[person.city, person.phone || person.email].filter(Boolean).join(" · ")}</div>
+                    </div>
+                    <span className="role-pill">{relationLabel(rel.type, person, lang, rel.typeOther)}</span>
+                  </GoLink>
+                ))}
+              </div>
+            </div>
+            <div className="section">
               <h3>{t.common.map}</h3>
               <div className="mini-map" style={{ borderRadius: 0, borderLeft: 0, borderRight: 0, borderBottom: 0, height: 220 }}>
                 <MiniMap personas={[p]} entities={linkedEntities.map(x => x.entity)} focus={p.lat ? { lat: p.lat, lng: p.lng } : null} />
@@ -673,6 +778,102 @@ const PersonProfile = ({ id, t, lang, data, go, goBack, addComment, onEditCommen
                 </GoLink>
                 <span className="role-pill">{link.role === "otro" ? (link.roleOther || t.roles.otro) : t.roles[link.role]}</span>
                 <button className="btn btn-sm btn-ghost" style={{ color: "var(--bad)" }} onClick={() => doUnlinkEntity(entity.id)}>
+                  <Icon name="x" />
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {tab === "family" && (
+        <div className="section">
+          <h3>{lang === "es" ? "Parentesco" : "Family"}
+            {!addingRel && (
+              <button className="btn btn-sm" onClick={() => setAddingRel(true)}>
+                <Icon name="plus" /> {lang === "es" ? "Añadir familiar" : "Add relative"}
+              </button>
+            )}
+          </h3>
+          {addingRel && (
+            <div style={{ display: "flex", gap: 8, alignItems: "flex-end", padding: "12px 16px", background: "var(--bg-soft)", borderBottom: "1px solid var(--line)", flexWrap: "wrap" }}>
+              <div className="field" style={{ margin: 0, flex: "1 1 240px", position: "relative" }}>
+                <label style={{ fontSize: 11 }}>{lang === "es" ? "Buscar contacto" : "Search contact"}</label>
+                <input
+                  value={relSearch}
+                  onChange={e => { setRelSearch(e.target.value); setShowRelDrop(true); setRelPersonId(""); setRelPersonName(""); }}
+                  onFocus={() => setShowRelDrop(true)}
+                  placeholder={lang === "es" ? "Nombre del familiar…" : "Relative's name…"}
+                  style={{ width: "100%" }}
+                />
+                {showRelDrop && relSearch.trim().length >= 2 && (
+                  <div style={{ position: "absolute", top: "calc(100% + 2px)", left: 0, right: 0, background: "var(--bg)", border: "1px solid var(--line)", borderRadius: 8, boxShadow: "0 6px 20px rgba(0,0,0,.12)", zIndex: 200, maxHeight: 260, overflowY: "auto" }}>
+                    {relCandidates.map(o => (
+                      <div key={o.id}
+                        onClick={() => { setRelPersonId(o.id); setRelPersonName(window.fullName(o)); setRelSearch(window.fullName(o)); setShowRelDrop(false); }}
+                        style={{ padding: "10px 14px", cursor: "pointer", borderBottom: "1px solid var(--line)", transition: "background .1s" }}
+                        onMouseEnter={ev => ev.currentTarget.style.background = "var(--bg-soft)"}
+                        onMouseLeave={ev => ev.currentTarget.style.background = ""}>
+                        <div style={{ fontWeight: 600, fontSize: 13 }}>{window.fullName(o)}</div>
+                        <div style={{ fontSize: 11.5, color: "var(--ink-3)", display: "flex", gap: 8, flexWrap: "wrap", marginTop: 2 }}>
+                          {o.city && <span><Icon name="pin" size={10} /> {o.city}{o.state ? ", " + o.state : ""}</span>}
+                          {o.phone && <span><Icon name="phone" size={10} /> {o.phone}</span>}
+                          {o.email && <span><Icon name="mail" size={10} /> {o.email}</span>}
+                        </div>
+                      </div>
+                    ))}
+                    {relCandidates.length === 0 && (
+                      <div style={{ padding: "12px 14px", color: "var(--ink-4)", fontSize: 13 }}>
+                        {lang === "es" ? "Sin resultados" : "No results"}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+              <div className="field" style={{ margin: 0, flex: "1 1 160px" }}>
+                <label style={{ fontSize: 11 }}>
+                  {lang === "es"
+                    ? "Es " + (relPersonName ? "" : "…") + " de " + (window.fullName(p) || "este contacto")
+                    : "Is the … of " + (window.fullName(p) || "this contact")}
+                </label>
+                <select value={relType} onChange={e => setRelType(e.target.value)}>
+                  {RELATION_TYPES.map(rt => (
+                    <option key={rt.key} value={rt.key}>
+                      {relationLabel(rt.key, data.personas.find(x => x.id === relPersonId), lang, "")}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {relType === "otro" && (
+                <div className="field" style={{ margin: 0, flex: "1 1 140px" }}>
+                  <label style={{ fontSize: 11 }}>{lang === "es" ? "Especificar" : "Specify"}</label>
+                  <input value={relTypeOther} onChange={e => setRelTypeOther(e.target.value)} placeholder={lang === "es" ? "Ej: padrino" : "e.g. godparent"} style={{ width: "100%" }} />
+                </div>
+              )}
+              <div style={{ display: "flex", gap: 6, paddingBottom: 1 }}>
+                <button className="btn btn-sm btn-primary" disabled={!relPersonId} onClick={doAddRelation}><Icon name="check" /> {lang === "es" ? "Guardar" : "Save"}</button>
+                <button className="btn btn-sm" onClick={resetRelForm}>{lang === "es" ? "Cancelar" : "Cancel"}</button>
+              </div>
+              {relPersonId && (
+                <div style={{ flexBasis: "100%", fontSize: 12, color: "var(--ink-3)" }}>
+                  {lang === "es"
+                    ? relPersonName + " es " + relationLabel(relType, data.personas.find(x => x.id === relPersonId), lang, relTypeOther).toLowerCase() + " de " + (window.fullName(p) || "este contacto") + ". Se guarda en las dos fichas."
+                    : relPersonName + " is the " + relationLabel(relType, data.personas.find(x => x.id === relPersonId), lang, relTypeOther).toLowerCase() + " of " + (window.fullName(p) || "this contact") + ". Saved on both profiles."}
+                </div>
+              )}
+            </div>
+          )}
+          <div className="section-body">
+            {relatives.length === 0 && !addingRel && <div className="empty">{t.common.none}</div>}
+            {relatives.map(({ rel, person }) => (
+              <div key={rel.id} className="link-row">
+                <GoLink route={{ name: "person", id: person.id }} className="ent-icon" title={lang === "es" ? "Abrir (clic derecho: nueva pestaña)" : "Open"}><Icon name="users" /></GoLink>
+                <GoLink route={{ name: "person", id: person.id }} className="grow" title={lang === "es" ? "Abrir (clic derecho: nueva pestaña)" : "Open"}>
+                  <div className="title">{window.fullName(person)}</div>
+                  <div className="row-sub">{[person.city, person.phone || person.email].filter(Boolean).join(" · ")}</div>
+                </GoLink>
+                <span className="role-pill">{relationLabel(rel.type, person, lang, rel.typeOther)}</span>
+                <button className="btn btn-sm btn-ghost" style={{ color: "var(--bad)" }} onClick={() => doRemoveRelation(person.id)}>
                   <Icon name="x" />
                 </button>
               </div>
