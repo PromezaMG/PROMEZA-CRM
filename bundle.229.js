@@ -1227,6 +1227,10 @@ const Sidebar = ({
     label: t.nav.home,
     icon: "home"
   }, {
+    id: "links",
+    label: t.nav.links || "Accesos",
+    icon: "link"
+  }, {
     id: "personas",
     label: t.nav.personas,
     icon: "users",
@@ -3251,6 +3255,155 @@ window.MapPage = MapPage;
 ;/* ===== home.jsx ===== */
 // PROMEZA CRM — Dashboard / Home
 
+// ─── Accesos: directorio de sistemas y carpetas ───
+const ACCESOS = [{
+  grupo: "Sistemas y herramientas",
+  color: "#4f46e5",
+  items: [{
+    ic: "📝",
+    tt: "AidaForm",
+    ds: "Formularios de eventos y solicitudes",
+    u: "https://my.aidaform.com/"
+  }, {
+    ic: "📧",
+    tt: "GoDaddy Email Marketing",
+    ds: "Correos masivos y campañas",
+    u: "https://email.marketing.godaddy.com/"
+  }, {
+    ic: "📨",
+    tt: "Outlook — Correo",
+    ds: "Bandeja de entrada de Microsoft",
+    u: "https://outlook.cloud.microsoft/mail/inbox"
+  }]
+}, {
+  grupo: "Carpetas en Google Drive",
+  color: "#22a06b",
+  items: [{
+    ic: "📁",
+    tt: "PROMEZA",
+    ds: "Carpeta principal en Drive",
+    u: "https://drive.google.com/drive/folders/1CSoDyHpgK2cOqwI08qJyHPV8XrxFs3Ut?usp=drive_link"
+  }, {
+    ic: "🎵",
+    tt: "“Fui Hallado” — Daniel Olalla",
+    ds: "Materiales del proyecto",
+    u: "https://drive.google.com/drive/folders/13QALFFtiNypRftfIbyjP27F-4xWM_Bih?usp=drive_link"
+  }, {
+    ic: "📁",
+    tt: "Carpeta de Drive (3)",
+    ds: "Enlace compartido",
+    u: "https://drive.google.com/drive/folders/1i3A8bWsdNPDx9F9fJcJwQGmrLNeoZ1vE?usp=drive_link"
+  }]
+}];
+const AccesosView = ({
+  lang
+}) => {
+  const es = lang !== "en";
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      maxWidth: 900,
+      margin: "0 auto"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "page-head",
+    style: {
+      marginBottom: 18
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("h1", {
+    className: "page-title"
+  }, es ? "Accesos" : "Quick Links"), /*#__PURE__*/React.createElement("p", {
+    className: "page-sub"
+  }, es ? "Todos tus sistemas y carpetas en un solo lugar. Toca una tarjeta para abrir en una pestaña nueva." : "All your systems and folders in one place."))), ACCESOS.map(sec => /*#__PURE__*/React.createElement("div", {
+    key: sec.grupo,
+    style: {
+      marginBottom: 22
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 8,
+      margin: "0 0 10px"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 9,
+      height: 9,
+      borderRadius: "50%",
+      background: sec.color,
+      flex: "none"
+    }
+  }), /*#__PURE__*/React.createElement("h3", {
+    style: {
+      margin: 0,
+      fontSize: 14
+    }
+  }, sec.grupo)), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))",
+      gap: 11
+    }
+  }, sec.items.map(it => /*#__PURE__*/React.createElement("a", {
+    key: it.tt,
+    href: it.u,
+    target: "_blank",
+    rel: "noopener noreferrer",
+    style: {
+      display: "flex",
+      gap: 12,
+      alignItems: "flex-start",
+      textDecoration: "none",
+      background: "var(--bg-card, #fff)",
+      border: "1px solid var(--line)",
+      borderRadius: 14,
+      padding: "13px 14px",
+      color: "var(--ink)",
+      boxShadow: "0 1px 2px rgba(0,0,0,.04)"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 40,
+      height: 40,
+      borderRadius: 11,
+      flex: "none",
+      display: "grid",
+      placeItems: "center",
+      fontSize: 19,
+      background: sec.color + "1a"
+    }
+  }, it.ic), /*#__PURE__*/React.createElement("span", {
+    style: {
+      minWidth: 0,
+      flex: 1
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      display: "block",
+      fontWeight: 700,
+      fontSize: 14
+    }
+  }, it.tt), /*#__PURE__*/React.createElement("span", {
+    className: "muted",
+    style: {
+      display: "block",
+      fontSize: 12.5,
+      marginTop: 2
+    }
+  }, it.ds)), /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: "var(--ink-3)",
+      flex: "none",
+      alignSelf: "center"
+    }
+  }, "\u2197")))))), /*#__PURE__*/React.createElement("p", {
+    className: "muted",
+    style: {
+      fontSize: 12.5,
+      marginTop: 8
+    }
+  }, es ? "¿Falta un enlace? Pídeselo a quien administra el CRM y lo agrega aquí." : "Missing a link? Ask your CRM admin to add it."));
+};
 const DonutChart = ({
   segments,
   size = 110
@@ -25433,6 +25586,11 @@ const App = () => {
         go: go,
         onUpdatePerson: handleUpdatePerson,
         onUpdateEntity: handleUpdateEntity
+      });
+      break;
+    case "links":
+      view = /*#__PURE__*/React.createElement(AccesosView, {
+        lang: lang
       });
       break;
     case "person":

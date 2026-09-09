@@ -3,6 +3,7 @@
 const Sidebar = ({ route, go, t, counts, mobileOpen, onClose }) => {
   const items = [
     { id: "home",      label: t.nav.home,                  icon: "home" },
+    { id: "links",     label: t.nav.links || "Accesos",    icon: "link" },
     { id: "personas",  label: t.nav.personas,              icon: "users",    count: counts.personas },
     { id: "pipeline",  label: "Directorio",                 icon: "chart" },
     { id: "entities",  label: t.nav.entities,              icon: "building", count: counts.entities },

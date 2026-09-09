@@ -2540,6 +2540,7 @@ const App = () => {
     case "pipeline": view = <PipelineView t={t} lang={lang} data={data} go={go} onUpdatePerson={handleUpdatePerson} />; break;
     case "entities": view = <EntitiesList t={t} lang={lang} data={data} go={go} route={route} onImportEntities={handleImportEntities} globalQ={query} />; break;
     case "favorites": view = <FavoritesView t={t} lang={lang} data={data} go={go} onUpdatePerson={handleUpdatePerson} onUpdateEntity={handleUpdateEntity} />; break;
+    case "links": view = <AccesosView lang={lang} />; break;
     case "person": view = <ViewErrorBoundary key={"person-" + route.id}><PersonProfile id={route.id} t={t} lang={lang} data={data} go={go} goBack={goBack} addComment={addComment} onEditComment={editComment} onDeleteComment={deleteComment}
       onUpdatePerson={handleUpdatePerson} onEditPerson={handleEditPerson} onDeletePerson={handleDeletePerson}
       interactions={data.interactions[route.id] || []}
