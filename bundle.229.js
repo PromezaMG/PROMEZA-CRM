@@ -3276,6 +3276,39 @@ const ACCESOS = [{
     u: "https://outlook.cloud.microsoft/mail/inbox"
   }]
 }, {
+  grupo: "Flywheel",
+  color: "#2b7a9e",
+  items: [{
+    ic: "🎬",
+    tt: "Flywheel — Panel de equipo",
+    ds: "Administración del equipo (themoviescreener)",
+    u: "https://themoviescreener.com/flywheel/_admin/team"
+  }, {
+    ic: "📊",
+    tt: "Flywheel — Registros Unificados",
+    ds: "Hoja de cálculo con los registros",
+    u: "https://docs.google.com/spreadsheets/d/1DKgBrv-eZb8SN4a6RCsiSE8OQ2KHoViqv8yqM4MHKRo/edit"
+  }]
+}, {
+  grupo: "AMEA — Encuentro Especial",
+  color: "#b91c1c",
+  items: [{
+    ic: "📊",
+    tt: "Encuentro Especial — AMEA",
+    ds: "Registros (español)",
+    u: "https://docs.google.com/spreadsheets/d/10sgVI67RCcstRsKsJDhQpGMSSMZH4upZQjepIPci-rQ/edit"
+  }, {
+    ic: "📊",
+    tt: "Encuentro Especial — AMEA (Inglés)",
+    ds: "Registros en inglés",
+    u: "https://docs.google.com/spreadsheets/d/1ChlXUm9zGwcNKeqaBZ5bq1ATCcCjHAktRNr_LHztHns/edit"
+  }, {
+    ic: "📊",
+    tt: "Encuentro Especial — AMEA / Virtual",
+    ds: "Registros del evento virtual",
+    u: "https://docs.google.com/spreadsheets/d/1K67hs08cbhH4Fy5-JgLxlsM30WklsJaBfBrye8ERd40/edit"
+  }]
+}, {
   grupo: "Carpetas en Google Drive",
   color: "#22a06b",
   items: [{
