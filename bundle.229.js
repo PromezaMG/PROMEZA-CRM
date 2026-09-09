@@ -3309,6 +3309,15 @@ const ACCESOS = [{
     u: "https://docs.google.com/spreadsheets/d/1K67hs08cbhH4Fy5-JgLxlsM30WklsJaBfBrye8ERd40/edit"
   }]
 }, {
+  grupo: "Listas y eventos",
+  color: "#7c3aed",
+  items: [{
+    ic: "📋",
+    tt: "Pastores Invitados — Mottesi",
+    ds: "Lista de pastores del evento (Google Sheet)",
+    u: "https://docs.google.com/spreadsheets/d/1K2LOBGQMx5Jn2ih1QItDXT7K6HVtStVtaCQmS3f-wlA/edit"
+  }]
+}, {
   grupo: "Carpetas en Google Drive",
   color: "#22a06b",
   items: [{
