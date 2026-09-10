@@ -7497,6 +7497,17 @@ window.FavoritesView = FavoritesView;
 ;/* ===== profile.jsx ===== */
 // PROMEZA CRM — Profile pages (Person + Entity)
 
+// ─── WhatsApp: número en formato internacional para wa.me ───
+// wa.me exige el número CON código de país y sin símbolos. Muchos registros guardan
+// solo 10 dígitos (EE. UU. sin el "1"), lo que hacía que el enlace no abriera. Aquí,
+// si el número tiene 10 dígitos se asume EE. UU. (+1); si trae 11 con "1" inicial o ya
+// incluye código de país (más de 11 dígitos), se respeta tal cual.
+const waNum = v => {
+  let d = (v || "").replace(/\D/g, "");
+  if (d.length === 10) d = "1" + d;
+  return d;
+};
+
 // ─── Smart alerts ───
 const getPersonAlerts = (p, lang) => {
   const today = new Date().toISOString().slice(0, 10);
@@ -8656,7 +8667,7 @@ const PersonProfile = ({
         background: "#f0fdf4"
       },
       onClick: () => {
-        window.open("https://wa.me/" + num.replace(/\D/g, ""), "_blank");
+        window.open("https://wa.me/" + waNum(num), "_blank");
         setShowCallMenu(false);
       }
     }, /*#__PURE__*/React.createElement("svg", {
@@ -8720,7 +8731,7 @@ const PersonProfile = ({
       borderColor: "#25D36640",
       background: "#f0fdf4"
     },
-    onClick: () => window.open("https://wa.me/" + p.phone.replace(/\D/g, ""), "_blank")
+    onClick: () => window.open("https://wa.me/" + waNum(p.phone), "_blank")
   }, /*#__PURE__*/React.createElement("svg", {
     width: "14",
     height: "14",
