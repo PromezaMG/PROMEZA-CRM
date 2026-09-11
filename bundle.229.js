@@ -8657,19 +8657,22 @@ const PersonProfile = ({
         color: "var(--ink-3)",
         fontFamily: "var(--font-mono)"
       }
-    }, num))), /*#__PURE__*/React.createElement("button", {
+    }, num))), /*#__PURE__*/React.createElement("a", {
       className: "btn",
       title: "WhatsApp",
+      href: "https://wa.me/" + waNum(num),
+      target: "_blank",
+      rel: "noopener noreferrer",
       style: {
         padding: "0 10px",
         color: "#25D366",
         borderColor: "#25D36640",
-        background: "#f0fdf4"
+        background: "#f0fdf4",
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center"
       },
-      onClick: () => {
-        window.open("https://wa.me/" + waNum(num), "_blank");
-        setShowCallMenu(false);
-      }
+      onClick: () => setShowCallMenu(false)
     }, /*#__PURE__*/React.createElement("svg", {
       width: "14",
       height: "14",
@@ -8722,16 +8725,21 @@ const PersonProfile = ({
       fontSize: 11,
       color: "var(--ink-3)"
     }
-  }, p.zoom ? "Abrir enlace guardado" : "Abrir Zoom")))))), p.phone && /*#__PURE__*/React.createElement("button", {
+  }, p.zoom ? "Abrir enlace guardado" : "Abrir Zoom")))))), p.phone && /*#__PURE__*/React.createElement("a", {
     className: "btn",
     title: "WhatsApp",
+    href: "https://wa.me/" + waNum(p.phone),
+    target: "_blank",
+    rel: "noopener noreferrer",
     style: {
       padding: "0 10px",
       color: "#25D366",
       borderColor: "#25D36640",
-      background: "#f0fdf4"
-    },
-    onClick: () => window.open("https://wa.me/" + waNum(p.phone), "_blank")
+      background: "#f0fdf4",
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center"
+    }
   }, /*#__PURE__*/React.createElement("svg", {
     width: "14",
     height: "14",
