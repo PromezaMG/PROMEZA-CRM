@@ -1833,7 +1833,12 @@ const App = () => {
     const metric = GOAL_METRICS.find(m => m.id === g.metric);
     return metric && metric.compute(data) >= g.target;
   }).length : 0;
-  const totalDups = dupPairs.filter(p => !p.dismissed).length + entityDupPairs.filter(p => !p.dismissed).length;
+  // Count only pending pairs whose BOTH records still exist (a merged/deleted record
+  // leaves a stale pair that must not inflate the sidebar badge — see duplicates.jsx).
+  const _pIdSet = React.useMemo(() => { const s = new Set(); ((data && data.personas) || []).forEach(p => s.add(p.id)); return s; }, [data && data.personas]);
+  const _eIdSet = React.useMemo(() => { const s = new Set(); ((data && data.entities) || []).forEach(e => s.add(e.id)); return s; }, [data && data.entities]);
+  const totalDups = dupPairs.filter(p => !p.dismissed && _pIdSet.has(p.idA) && _pIdSet.has(p.idB)).length
+                  + entityDupPairs.filter(p => !p.dismissed && _eIdSet.has(p.idA) && _eIdSet.has(p.idB)).length;
   // Ids that are in a PENDING duplicate pair (auto-detected OR manually marked) — used
   // so the "Revisar duplicado" task shows on a profile even when the pair was flagged
   // manually (different name/email/phone).

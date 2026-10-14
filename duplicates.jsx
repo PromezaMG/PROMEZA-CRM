@@ -647,9 +647,16 @@ const DuplicatesPage = ({ pairs, entityPairs = [], data, onMerge, onMergeWithDat
     return recMatches(idx[pair.idA], isEnt) || recMatches(idx[pair.idB], isEnt);
   };
 
-  const active = pairs.filter(p => !p.dismissed && pairMatches(p, false));
-  const dismissed = pairs.filter(p => p.dismissed && pairMatches(p, false));
-  const entActive = entityPairs.filter(p => !p.dismissed && pairMatches(p, true));
+  // Only count/show pairs whose BOTH records still exist. A saved pair can go stale
+  // when one of its records was later merged/deleted — the old code still counted it
+  // ("394 pendientes") but the card did `if (!pA || !pB) return null`, so the list
+  // rendered BLANK. Guarding here keeps the counts honest and the cards visible.
+  const pExists = (p) => personaById[p.idA] && personaById[p.idB];
+  const eExists = (p) => entityById[p.idA] && entityById[p.idB];
+  const active = pairs.filter(p => !p.dismissed && pExists(p) && pairMatches(p, false));
+  const dismissed = pairs.filter(p => p.dismissed && pExists(p) && pairMatches(p, false));
+  const entActive = entityPairs.filter(p => !p.dismissed && eExists(p) && pairMatches(p, true));
+  const entDismissed = entityPairs.filter(p => p.dismissed && eExists(p));
 
   const toggle = (key) => setExpanded(k => k === key ? null : key);
 
@@ -1066,12 +1073,12 @@ const DuplicatesPage = ({ pairs, entityPairs = [], data, onMerge, onMergeWithDat
               </button>
             )}
           </div>
-          {entityPairs.filter(p => p.dismissed).length > 0 && (
+          {entDismissed.length > 0 && (
             <div style={{ marginTop: 16 }}>
               <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".06em", color: "var(--ink-4)", marginBottom: 8 }}>
-                {es ? "Revisados — medios distintos" : "Reviewed — different"} ({entityPairs.filter(p => p.dismissed).length})
+                {es ? "Revisados — medios distintos" : "Reviewed — different"} ({entDismissed.length})
               </div>
-              {entityPairs.filter(p => p.dismissed).map(pair => {
+              {entDismissed.map(pair => {
                 const eA = entityById[pair.idA];
                 const eB = entityById[pair.idB];
                 if (!eA || !eB) return null;

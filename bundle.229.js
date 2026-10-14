@@ -13240,9 +13240,17 @@ const DuplicatesPage = ({
     const idx = isEnt ? entityById : personaById;
     return recMatches(idx[pair.idA], isEnt) || recMatches(idx[pair.idB], isEnt);
   };
-  const active = pairs.filter(p => !p.dismissed && pairMatches(p, false));
-  const dismissed = pairs.filter(p => p.dismissed && pairMatches(p, false));
-  const entActive = entityPairs.filter(p => !p.dismissed && pairMatches(p, true));
+
+  // Only count/show pairs whose BOTH records still exist. A saved pair can go stale
+  // when one of its records was later merged/deleted — the old code still counted it
+  // ("394 pendientes") but the card did `if (!pA || !pB) return null`, so the list
+  // rendered BLANK. Guarding here keeps the counts honest and the cards visible.
+  const pExists = p => personaById[p.idA] && personaById[p.idB];
+  const eExists = p => entityById[p.idA] && entityById[p.idB];
+  const active = pairs.filter(p => !p.dismissed && pExists(p) && pairMatches(p, false));
+  const dismissed = pairs.filter(p => p.dismissed && pExists(p) && pairMatches(p, false));
+  const entActive = entityPairs.filter(p => !p.dismissed && eExists(p) && pairMatches(p, true));
+  const entDismissed = entityPairs.filter(p => p.dismissed && eExists(p));
   const toggle = key => setExpanded(k => k === key ? null : key);
   const ScoreBadge = ({
     score
@@ -14299,7 +14307,7 @@ const DuplicatesPage = ({
       marginTop: 4
     },
     onClick: () => setVisE(v => v + 40)
-  }, es ? `Ver más (${entActive.length - visE} restantes)` : `Show more`)), entityPairs.filter(p => p.dismissed).length > 0 && /*#__PURE__*/React.createElement("div", {
+  }, es ? `Ver más (${entActive.length - visE} restantes)` : `Show more`)), entDismissed.length > 0 && /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 16
     }
@@ -14312,7 +14320,7 @@ const DuplicatesPage = ({
       color: "var(--ink-4)",
       marginBottom: 8
     }
-  }, es ? "Revisados — medios distintos" : "Reviewed — different", " (", entityPairs.filter(p => p.dismissed).length, ")"), entityPairs.filter(p => p.dismissed).map(pair => {
+  }, es ? "Revisados — medios distintos" : "Reviewed — different", " (", entDismissed.length, ")"), entDismissed.map(pair => {
     const eA = entityById[pair.idA];
     const eB = entityById[pair.idB];
     if (!eA || !eB) return null;
@@ -24485,7 +24493,19 @@ const App = () => {
     const metric = GOAL_METRICS.find(m => m.id === g.metric);
     return metric && metric.compute(data) >= g.target;
   }).length : 0;
-  const totalDups = dupPairs.filter(p => !p.dismissed).length + entityDupPairs.filter(p => !p.dismissed).length;
+  // Count only pending pairs whose BOTH records still exist (a merged/deleted record
+  // leaves a stale pair that must not inflate the sidebar badge — see duplicates.jsx).
+  const _pIdSet = React.useMemo(() => {
+    const s = new Set();
+    (data && data.personas || []).forEach(p => s.add(p.id));
+    return s;
+  }, [data && data.personas]);
+  const _eIdSet = React.useMemo(() => {
+    const s = new Set();
+    (data && data.entities || []).forEach(e => s.add(e.id));
+    return s;
+  }, [data && data.entities]);
+  const totalDups = dupPairs.filter(p => !p.dismissed && _pIdSet.has(p.idA) && _pIdSet.has(p.idB)).length + entityDupPairs.filter(p => !p.dismissed && _eIdSet.has(p.idA) && _eIdSet.has(p.idB)).length;
   // Ids that are in a PENDING duplicate pair (auto-detected OR manually marked) — used
   // so the "Revisar duplicado" task shows on a profile even when the pair was flagged
   // manually (different name/email/phone).
