@@ -217,40 +217,70 @@ const AuthScreen = ({ onLogin }) => {
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState("");
 
+  // Shared post-sign-in steps (used by both popup success and redirect return).
+  const completeLogin = async (response, cfg) => {
+    const email = (response.account?.username || "").toLowerCase();
+    if (!email) { setError("No se pudo obtener el correo."); setLoading(false); return; }
+    if (!email.endsWith("@promeza.com")) {
+      setError("Solo se permiten cuentas @promeza.com.");
+      setLoading(false);
+      return;
+    }
+    const key = await deriveSharedKey(cfg.clientId, cfg.tenantId, cfg.extraKey || "");
+    await storeSessionKey(key);
+    saveSession(email);
+    if (window.AIRTABLE) window.AIRTABLE.logAccess(email, "Inicio de sesión");
+    onLogin(email);
+  };
+
+  // On every page load, finish a sign-in that came back via REDIRECT (the popup
+  // fallback below navigates the whole page to Microsoft and returns here).
+  // handleRedirectPromise MUST run on load before any other MSAL interaction.
+  React.useEffect(() => {
+    (async () => {
+      try {
+        const cfg = getMSALConfig();
+        const msalInstance = buildMSALInstance(cfg);
+        if (!msalInstance) return;
+        const resp = await msalInstance.handleRedirectPromise();
+        if (resp && resp.account) { setLoading(true); await completeLogin(resp, cfg); }
+      } catch (err) {
+        console.error("MSAL redirect error:", err);
+        const code = err.errorCode || err.name || "";
+        setError(`Error: ${code ? "[" + code + "] " : ""}${err.message || ""}`);
+      }
+    })();
+  }, []);
+
   const doMicrosoftLogin = async () => {
     setLoading(true);
     setError("");
+    const cfg = getMSALConfig();
+    const msalLib = window.msal || window.msalBrowser;
+    if (!msalLib) { setError("Error: librería MSAL no cargó. Recarga la página (Ctrl+Shift+R)."); setLoading(false); return; }
+    const msalInstance = buildMSALInstance(cfg);
+    if (!msalInstance) { setError("Error de configuración (clientId/tenantId inválido)."); setLoading(false); return; }
+    const scopes = ["User.Read", "openid", "profile", "email"];
     try {
-      const cfg = getMSALConfig();
-      const msalLib = window.msal || window.msalBrowser;
-      if (!msalLib) { setError("Error: librería MSAL no cargó. Recarga la página (Ctrl+Shift+R)."); setLoading(false); return; }
-      const msalInstance = buildMSALInstance(cfg);
-      if (!msalInstance) { setError("Error de configuración (clientId/tenantId inválido)."); setLoading(false); return; }
-
-      // Process any pending redirect (#code= in URL) and clear stale interaction locks
-      let response = null;
-      try { response = await msalInstance.handleRedirectPromise(); } catch {}
-      if (!response) {
-        response = await msalInstance.loginPopup({
-          scopes: ["User.Read", "openid", "profile", "email"],
-          prompt: "select_account",
-        });
+      // Clear any pending redirect state before starting a new interaction.
+      try { await msalInstance.handleRedirectPromise(); } catch {}
+      let response;
+      try {
+        response = await msalInstance.loginPopup({ scopes, prompt: "select_account" });
+      } catch (popupErr) {
+        const code = popupErr.errorCode || "";
+        const cancelled = code.includes("cancelled") || code.includes("user_cancelled") || (popupErr.message || "").includes("cancelled");
+        if (cancelled) { setLoading(false); return; }
+        // Popups fail in installed PWAs / when blocked (window.open returns null).
+        // Fall back to a full-page REDIRECT, which never uses window.open.
+        const popupBlocked = code.includes("popup") || code.includes("empty_window") || /popup|window\.open/i.test(popupErr.message || "");
+        if (popupBlocked) {
+          await msalInstance.loginRedirect({ scopes, prompt: "select_account" });
+          return; // page navigates away; completed on return by the useEffect above
+        }
+        throw popupErr;
       }
-
-      const email = (response.account?.username || "").toLowerCase();
-      if (!email) { setError("No se pudo obtener el correo."); setLoading(false); return; }
-
-      if (!email.endsWith("@promeza.com")) {
-        setError("Solo se permiten cuentas @promeza.com.");
-        setLoading(false);
-        return;
-      }
-
-      const key = await deriveSharedKey(cfg.clientId, cfg.tenantId, cfg.extraKey || "");
-      await storeSessionKey(key);
-      saveSession(email);
-      if (window.AIRTABLE) window.AIRTABLE.logAccess(email, "Inicio de sesión");
-      onLogin(email);
+      await completeLogin(response, cfg);
     } catch (err) {
       console.error("MSAL login error:", err);
       const cancelled = err.errorCode?.includes("cancelled") || err.message?.includes("cancelled") || err.errorCode?.includes("user_cancelled");
@@ -259,8 +289,8 @@ const AuthScreen = ({ onLogin }) => {
         const msg = err.message || "Inténtalo de nuevo.";
         setError(`Error: ${code ? "[" + code + "] " : ""}${msg}`);
       }
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (
@@ -298,36 +328,60 @@ const UnlockScreen = ({ email, onUnlock, onLogout }) => {
   const displayName = email || "usuario";
   const cfg = getMSALConfig();
 
+  const completeReauth = async (r) => {
+    const loggedEmail = (r?.account?.username || "").toLowerCase();
+    if (!loggedEmail || !loggedEmail.endsWith("@promeza.com")) {
+      setError("Solo se permiten cuentas @promeza.com.");
+      setLoading(false);
+      return;
+    }
+    const key = await deriveSharedKey(cfg.clientId, cfg.tenantId, cfg.extraKey || "");
+    await storeSessionKey(key);
+    // Update session to whoever just logged in (not necessarily same as stored email)
+    saveSession(loggedEmail);
+    onUnlock(loggedEmail);
+  };
+
+  // Finish a re-auth that returned via redirect (popup fallback).
+  React.useEffect(() => {
+    (async () => {
+      try {
+        const msalInstance = buildMSALInstance(cfg);
+        if (!msalInstance) return;
+        const r = await msalInstance.handleRedirectPromise();
+        if (r && r.account) { setLoading(true); await completeReauth(r); }
+      } catch (err) {
+        if (!err.errorCode?.includes("cancelled")) setError("Error al verificar: " + (err.message || err.errorCode || ""));
+      }
+    })();
+  }, []);
+
   const doReauth = async () => {
     setLoading(true);
     setError("");
+    const msalInstance = buildMSALInstance(cfg);
+    if (!msalInstance) { setError("Error de configuración (clientId/tenantId inválido)."); setLoading(false); return; }
+    const scopes = ["User.Read", "openid"];
     try {
-      const msalInstance = buildMSALInstance(cfg);
-      if (!msalInstance) { setError("Error de configuración (clientId/tenantId inválido)."); setLoading(false); return; }
-      // Process any pending redirect and clear stale interaction locks before popup
-      let r = null;
-      try { r = await msalInstance.handleRedirectPromise(); } catch {}
-      if (!r) {
-        r = await msalInstance.loginPopup({ scopes: ["User.Read", "openid"], prompt: "select_account" });
+      try { await msalInstance.handleRedirectPromise(); } catch {}
+      let r;
+      try {
+        r = await msalInstance.loginPopup({ scopes, prompt: "select_account" });
+      } catch (popupErr) {
+        const code = popupErr.errorCode || "";
+        const cancelled = code.includes("cancelled") || code.includes("user_cancelled") || (popupErr.message || "").includes("cancelled");
+        if (cancelled) { setLoading(false); return; }
+        const popupBlocked = code.includes("popup") || code.includes("empty_window") || /popup|window\.open/i.test(popupErr.message || "");
+        if (popupBlocked) { await msalInstance.loginRedirect({ scopes, prompt: "select_account" }); return; }
+        throw popupErr;
       }
-      const account = r?.account;
-      const loggedEmail = (account?.username || "").toLowerCase();
-      if (!loggedEmail || !loggedEmail.endsWith("@promeza.com")) {
-        setError("Solo se permiten cuentas @promeza.com.");
-        setLoading(false);
-        return;
-      }
-      const key = await deriveSharedKey(cfg.clientId, cfg.tenantId, cfg.extraKey || "");
-      await storeSessionKey(key);
-      // Update session to whoever just logged in (not necessarily same as stored email)
-      saveSession(loggedEmail);
-      onUnlock(loggedEmail);
+      await completeReauth(r);
     } catch (err) {
       if (!err.errorCode?.includes("cancelled") && !err.message?.includes("cancelled")) {
         setError("Error al verificar: " + (err.message || err.errorCode));
       }
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (
