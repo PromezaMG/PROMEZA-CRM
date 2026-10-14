@@ -700,10 +700,13 @@ const App = () => {
   const [showReminders, setShowReminders] = useState(false);
   const [remindersShown, setRemindersShown] = useState(false);
 
-  // Compute stable 7-digit UID from internal ID string
+  // Compute stable 7-digit UID from internal ID string. Guard against a missing id
+  // (a record saved without one) — a single bad record used to throw here and break
+  // the ENTIRE data load (blank app / only static data).
   const computeUID = (id) => {
+    const s = id == null ? "" : String(id);
     let h = 0;
-    for (let i = 0; i < id.length; i++) h = (Math.imul(31, h) + id.charCodeAt(i)) | 0;
+    for (let i = 0; i < s.length; i++) h = (Math.imul(31, h) + s.charCodeAt(i)) | 0;
     return String((Math.abs(h) % 9000000) + 1000000);
   };
   const withUIDs = (arr) => arr.map(x => x.uid ? x : { ...x, uid: computeUID(x.id) });

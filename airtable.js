@@ -392,7 +392,11 @@ window.AIRTABLE = (function () {
   // Parse an Airtable record back to internal persona format
   const parsePersonaRecord = (r) => {
     if (r.fields._data) {
-      try { return { ...JSON.parse(r.fields._data), _atId: r.id }; } catch {}
+      try {
+        const o = JSON.parse(r.fields._data);
+        if (!o.id) o.id = r.fields["CRM_ID"] || ("at_" + r.id); // never leave id empty (breaks computeUID / the whole load)
+        return { ...o, _atId: r.id };
+      } catch {}
     }
     const f = r.fields;
     const tagsRaw = f["Etiquetas"] || "";
@@ -428,6 +432,7 @@ window.AIRTABLE = (function () {
     if (r.fields._data) {
       try {
         const parsed = JSON.parse(r.fields._data);
+        if (!parsed.id) parsed.id = r.fields["CRM_ID"] || ("at_" + r.id); // never leave id empty
         // Recover schedule from Horarios if _data was saved by old code without schedule
         if ((!parsed.schedule || parsed.schedule.length === 0) && r.fields["Horarios"]) {
           try { parsed.schedule = JSON.parse(r.fields["Horarios"]); } catch {}
