@@ -247,10 +247,16 @@ const MapPage = ({ t, lang, data, go }) => {
   // every click). Uses the cached collator (window.nameCmp); per-element
   // localeCompare on thousands of rows froze the page.
   const cmp = window.nameCmp || ((a, b) => (a || "").localeCompare(b || ""));
+  // Many contacts have no first/last (imported churches, media, etc.). Show a
+  // readable fallback so the row is never blank, and keep the nameless ones at
+  // the END of the list instead of letting their empty names dominate the top.
+  const _trim = (v) => (v == null ? "" : String(v).trim());
+  const labelPerson = (p) => _trim(fullName(p)) || _trim(p.org) || _trim(p.church) || _trim(p.email) || _trim(p.city);
+  const labelEntity = (e) => _trim(e.name) || _trim(e.org) || _trim(e.city);
   const items = React.useMemo(() => [
-    ...entitiesFiltered.map(e => ({ kind: "entity", id: e.id, name: e.name, sub: [e.city, e.county].filter(Boolean).join(" · "), lat: e.lat, lng: e.lng, color: (countyColorMap && e.county) ? countyColorMap[e.county] : "#0ea5e9", county: e.county })),
-    ...personasFiltered.map(p => ({ kind: "person", id: p.id, name: fullName(p), sub: [p.city, p.county].filter(Boolean).join(" · "), lat: p.lat, lng: p.lng, color: (countyColorMap && p.county) ? countyColorMap[p.county] : p.color, county: p.county })),
-  ].sort((a, b) => cmp(a.name, b.name)), [entitiesFiltered, personasFiltered, countyColorMap]);
+    ...entitiesFiltered.map(e => { const nm = labelEntity(e); return { kind: "entity", id: e.id, name: nm, named: !!nm, sub: [e.city, e.county].filter(Boolean).join(" · "), lat: e.lat, lng: e.lng, color: (countyColorMap && e.county) ? countyColorMap[e.county] : "#0ea5e9", county: e.county }; }),
+    ...personasFiltered.map(p => { const nm = labelPerson(p); return { kind: "person", id: p.id, name: nm, named: !!nm, sub: [p.city, p.county].filter(Boolean).join(" · "), lat: p.lat, lng: p.lng, color: (countyColorMap && p.county) ? countyColorMap[p.county] : p.color, county: p.county }; }),
+  ].sort((a, b) => (a.named === b.named) ? cmp(a.name, b.name) : (a.named ? -1 : 1)), [entitiesFiltered, personasFiltered, countyColorMap]);
 
   // Stable point arrays for the map — without memoizing, the inline .filter() made
   // a new array each render, so the map rebuilt all ~7000 markers on every click.
@@ -363,7 +369,7 @@ const MapPage = ({ t, lang, data, go }) => {
                     <div className="av-circle" style={{ width: 28, height: 28, fontSize: 11, background: it.color }}>{initials(it.name)}</div>
                   )}
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontWeight: 600, fontSize: 13, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{it.name}</div>
+                    <div style={{ fontWeight: 600, fontSize: 13, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", color: it.named ? undefined : "var(--ink-4)", fontStyle: it.named ? undefined : "italic" }}>{it.name || (es ? "(sin nombre)" : "(no name)")}</div>
                     <div className="muted" style={{ fontSize: 11 }}>{it.sub || "—"}</div>
                   </div>
                   <button className="icon-btn" title={es ? "Abrir perfil" : "Open profile"}
