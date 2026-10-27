@@ -2796,9 +2796,12 @@ const useLeafletMap = (ref, opts) => {
       scrollWheelZoom: true,
       attributionControl: false
     });
-    _L().tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
+    // OpenStreetMap standard tiles — free and keyless. (CartoDB's basemaps now
+    // return an "API KEY REQUIRED" watermark, which left the map blank.)
+    _L().tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       maxZoom: 19,
-      attribution: "© OpenStreetMap, © CartoDB"
+      subdomains: "abc",
+      attribution: "© OpenStreetMap"
     }).addTo(map);
     mapRef.current = map;
     return () => {
