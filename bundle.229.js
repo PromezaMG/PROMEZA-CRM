@@ -2705,6 +2705,85 @@ window.Topbar = Topbar;
 
 const _L = () => window.L;
 const COUNTY_COLORS = ["#6366f1", "#0ea5e9", "#10b981", "#f59e0b", "#ec4899", "#8b5cf6", "#14b8a6", "#f97316", "#ef4444", "#06b6d4"];
+
+// State names in the data are inconsistent ("California" vs "CA" vs "Ca",
+// "Texas" vs "TX", "Tennessee" vs "Tennesse"). Normalize them so grouping by
+// state collapses all spellings into one canonical name.
+const US_STATES = {
+  AL: "Alabama",
+  AK: "Alaska",
+  AZ: "Arizona",
+  AR: "Arkansas",
+  CA: "California",
+  CO: "Colorado",
+  CT: "Connecticut",
+  DE: "Delaware",
+  FL: "Florida",
+  GA: "Georgia",
+  HI: "Hawaii",
+  ID: "Idaho",
+  IL: "Illinois",
+  IN: "Indiana",
+  IA: "Iowa",
+  KS: "Kansas",
+  KY: "Kentucky",
+  LA: "Louisiana",
+  ME: "Maine",
+  MD: "Maryland",
+  MA: "Massachusetts",
+  MI: "Michigan",
+  MN: "Minnesota",
+  MS: "Mississippi",
+  MO: "Missouri",
+  MT: "Montana",
+  NE: "Nebraska",
+  NV: "Nevada",
+  NH: "New Hampshire",
+  NJ: "New Jersey",
+  NM: "New Mexico",
+  NY: "New York",
+  NC: "North Carolina",
+  ND: "North Dakota",
+  OH: "Ohio",
+  OK: "Oklahoma",
+  OR: "Oregon",
+  PA: "Pennsylvania",
+  RI: "Rhode Island",
+  SC: "South Carolina",
+  SD: "South Dakota",
+  TN: "Tennessee",
+  TX: "Texas",
+  UT: "Utah",
+  VT: "Vermont",
+  VA: "Virginia",
+  WA: "Washington",
+  WV: "West Virginia",
+  WI: "Wisconsin",
+  WY: "Wyoming",
+  DC: "District of Columbia",
+  PR: "Puerto Rico"
+};
+const _STATE_BY_NAME = {};
+Object.keys(US_STATES).forEach(ab => {
+  _STATE_BY_NAME[US_STATES[ab].toLowerCase()] = US_STATES[ab];
+});
+// Common misspellings seen in the data.
+const _STATE_TYPOS = {
+  "tennesse": "Tennessee",
+  "califronia": "California",
+  "n jersey": "New Jersey",
+  "n york": "New York"
+};
+const normState = raw => {
+  let s = String(raw == null ? "" : raw).trim().replace(/\s+/g, " ");
+  if (!s) return "";
+  const up = s.toUpperCase();
+  if (US_STATES[up]) return US_STATES[up]; // CA, TX, tn…
+  const low = s.toLowerCase();
+  if (_STATE_BY_NAME[low]) return _STATE_BY_NAME[low]; // california, TEXAS…
+  if (_STATE_TYPOS[low]) return _STATE_TYPOS[low]; // tennesse…
+  return s.replace(/\S+/g, w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
+};
 const useLeafletMap = (ref, opts) => {
   const mapRef = React.useRef(null);
   React.useEffect(() => {
@@ -2891,11 +2970,29 @@ const MapPage = ({
   const [showPersonas, setShowPersonas] = React.useState(true);
   const [showEntities, setShowEntities] = React.useState(true);
   const [sideTab, setSideTab] = React.useState("lista");
-  const [selectedCounty, setSelectedCounty] = React.useState(null);
+  // Unified geographic filter: null | { type:"county"|"state", value }
+  const [geo, setGeo] = React.useState(null);
   const [focusItem, setFocusItem] = React.useState(null); // {kind,id} clicked in the list → center map
   const es = lang === "es";
 
-  // Build county map
+  // Pick a county/state: toggles the filter and jumps to the list so the
+  // specific contacts of that place appear right away.
+  const pickGeo = (type, value) => {
+    setFocusItem(null);
+    setGeo(g => g && g.type === type && g.value === value ? null : {
+      type,
+      value
+    });
+    setSideTab("lista");
+  };
+  const geoMatch = x => {
+    if (!geo) return true;
+    if (geo.type === "county") return x.county === geo.value;
+    return normState(x.state) === geo.value;
+  };
+  const geoLabel = geo ? geo.value : null;
+
+  // Build county + state groupings
   const allCounties = React.useMemo(() => {
     const set = new Set();
     data.personas.forEach(p => {
@@ -2906,6 +3003,24 @@ const MapPage = ({
     });
     return [...set].sort();
   }, [data.personas, data.entities]);
+
+  // One pass: group every record by normalized state.
+  const byState = React.useMemo(() => {
+    const m = {};
+    const push = (key, rec, kind) => {
+      const s = normState(rec.state);
+      if (!s) return;
+      if (!m[s]) m[s] = {
+        personas: [],
+        entities: []
+      };
+      m[s][kind].push(rec);
+    };
+    data.personas.forEach(p => push(null, p, "personas"));
+    data.entities.forEach(e => push(null, e, "entities"));
+    return m;
+  }, [data.personas, data.entities]);
+  const allStates = React.useMemo(() => Object.keys(byState).sort(), [byState]);
   const countyColorMap = React.useMemo(() => {
     const map = {};
     allCounties.forEach((c, i) => {
@@ -2913,20 +3028,23 @@ const MapPage = ({
     });
     return map;
   }, [allCounties]);
+  const stateColorMap = React.useMemo(() => {
+    const map = {};
+    allStates.forEach((s, i) => {
+      map[s] = COUNTY_COLORS[i % COUNTY_COLORS.length];
+    });
+    return map;
+  }, [allStates]);
 
-  // Filter by county selection
+  // Filter by the active county/state selection
   const personasFiltered = React.useMemo(() => {
-    let p = data.personas;
     if (!showPersonas) return [];
-    if (selectedCounty) p = p.filter(x => x.county === selectedCounty);
-    return p;
-  }, [data.personas, showPersonas, selectedCounty]);
+    return geo ? data.personas.filter(geoMatch) : data.personas;
+  }, [data.personas, showPersonas, geo]);
   const entitiesFiltered = React.useMemo(() => {
-    let e = data.entities;
     if (!showEntities) return [];
-    if (selectedCounty) e = e.filter(x => x.county === selectedCounty);
-    return e;
-  }, [data.entities, showEntities, selectedCounty]);
+    return geo ? data.entities.filter(geoMatch) : data.entities;
+  }, [data.entities, showEntities, geo]);
 
   // Sidebar list — memoized so it is NOT rebuilt+resorted on every render (e.g. on
   // every click). Uses the cached collator (window.nameCmp); per-element
@@ -2957,37 +3075,59 @@ const MapPage = ({
   const mapPersonas = React.useMemo(() => personasFiltered.filter(p => p.lat && p.lng), [personasFiltered]);
   const mapEntities = React.useMemo(() => entitiesFiltered.filter(e => e.lat && e.lng), [entitiesFiltered]);
 
+  // Top 3 cities for a set of people — shared by county and state cards.
+  const topCitiesOf = personas => {
+    const c = {};
+    personas.forEach(p => {
+      if (p.city) c[p.city] = (c[p.city] || 0) + 1;
+    });
+    return Object.keys(c).sort((a, b) => c[b] - c[a]).slice(0, 3);
+  };
+
   // County stats
   const countyStats = React.useMemo(() => {
     return allCounties.map((county, i) => {
       const personas = data.personas.filter(p => p.county === county);
       const entities = data.entities.filter(e => e.county === county);
-      const cityCounts = {};
-      personas.forEach(p => {
-        if (p.city) cityCounts[p.city] = (cityCounts[p.city] || 0) + 1;
-      });
-      const topCities = Object.entries(cityCounts).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([c]) => c);
       return {
-        county,
+        key: county,
         personas,
         entities,
-        topCities,
+        topCities: topCitiesOf(personas),
         color: COUNTY_COLORS[i % COUNTY_COLORS.length]
       };
     }).sort((a, b) => b.personas.length + b.entities.length - (a.personas.length + a.entities.length));
   }, [allCounties, data.personas, data.entities]);
+
+  // State stats (from the single-pass byState grouping)
+  const stateStats = React.useMemo(() => {
+    return allStates.map(s => {
+      const g = byState[s];
+      return {
+        key: s,
+        personas: g.personas,
+        entities: g.entities,
+        topCities: topCitiesOf(g.personas),
+        color: stateColorMap[s]
+      };
+    }).sort((a, b) => b.personas.length + b.entities.length - (a.personas.length + a.entities.length));
+  }, [allStates, byState, stateColorMap]);
+
+  // Cards shown in whichever grouping tab is active.
+  const groupTab = sideTab === "estados" ? "state" : sideTab === "condados" ? "county" : null;
+  const groupStats = groupTab === "state" ? stateStats : countyStats;
   return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
     className: "page-head"
   }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("h1", {
     className: "page-title"
   }, t.nav.map), /*#__PURE__*/React.createElement("div", {
     className: "page-sub"
-  }, selectedCounty ? /*#__PURE__*/React.createElement("span", {
+  }, geo ? /*#__PURE__*/React.createElement("span", {
     style: {
       color: "var(--accent)",
       fontWeight: 600
     }
-  }, selectedCounty, " \xB7 ", items.length, " ", es ? "registros" : "records") : `${personasFiltered.length + entitiesFiltered.length} ${es ? "ubicaciones" : "locations"}`)), /*#__PURE__*/React.createElement("div", {
+  }, geo.type === "state" ? es ? "Estado: " : "State: " : es ? "Condado: " : "County: ", geoLabel, " \xB7 ", personasFiltered.length, " ", es ? "personas" : "people", " \xB7 ", entitiesFiltered.length, " ", es ? "entidades" : "entities") : `${personasFiltered.length + entitiesFiltered.length} ${es ? "ubicaciones" : "locations"}`)), /*#__PURE__*/React.createElement("div", {
     className: "page-actions"
   }, /*#__PURE__*/React.createElement("button", {
     className: "chip " + (showEntities ? "on" : ""),
@@ -2999,13 +3139,13 @@ const MapPage = ({
     onClick: () => setShowPersonas(v => !v)
   }, /*#__PURE__*/React.createElement(Icon, {
     name: "users"
-  }), " ", t.nav.personas), selectedCounty && /*#__PURE__*/React.createElement("button", {
+  }), " ", t.nav.personas), geo && /*#__PURE__*/React.createElement("button", {
     className: "btn btn-sm",
     style: {
       color: "var(--accent)",
       borderColor: "var(--accent)"
     },
-    onClick: () => setSelectedCounty(null)
+    onClick: () => setGeo(null)
   }, "\xD7 ", es ? "Quitar filtro" : "Clear filter"))), /*#__PURE__*/React.createElement("div", {
     className: "map-page"
   }, /*#__PURE__*/React.createElement("div", {
@@ -3018,6 +3158,10 @@ const MapPage = ({
   }, [{
     id: "lista",
     label: es ? "Lista" : "List"
+  }, {
+    id: "estados",
+    label: es ? "Estados" : "States",
+    badge: allStates.length
   }, {
     id: "condados",
     label: es ? "Condados" : "Counties",
@@ -3052,7 +3196,63 @@ const MapPage = ({
     }
   }, tb.badge)))), sideTab === "lista" && /*#__PURE__*/React.createElement("div", {
     className: "list"
-  }, items.length === 0 && /*#__PURE__*/React.createElement("div", {
+  }, geo && /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "sticky",
+      top: 0,
+      zIndex: 2,
+      display: "flex",
+      alignItems: "center",
+      gap: 8,
+      padding: "9px 14px",
+      background: "var(--accent-50)",
+      borderBottom: "1px solid var(--line)"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 10,
+      height: 10,
+      borderRadius: "50%",
+      background: (geo.type === "state" ? stateColorMap[geo.value] : countyColorMap[geo.value]) || "var(--accent)",
+      flexShrink: 0
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontWeight: 700,
+      fontSize: 13,
+      color: "var(--accent)",
+      whiteSpace: "nowrap",
+      overflow: "hidden",
+      textOverflow: "ellipsis"
+    }
+  }, geoLabel), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 10.5,
+      color: "var(--ink-3)"
+    }
+  }, personasFiltered.length, " ", es ? "personas" : "people", " \xB7 ", entitiesFiltered.length, " ", es ? "entidades" : "entities")), /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-sm",
+    style: {
+      flexShrink: 0,
+      padding: "3px 8px",
+      fontSize: 11
+    },
+    onClick: () => setSideTab(geo.type === "state" ? "estados" : "condados")
+  }, es ? "Cambiar" : "Change"), /*#__PURE__*/React.createElement("button", {
+    className: "icon-btn",
+    title: es ? "Quitar filtro" : "Clear filter",
+    style: {
+      flexShrink: 0,
+      width: 26,
+      height: 26
+    },
+    onClick: () => setGeo(null)
+  }, "\xD7")), items.length === 0 && /*#__PURE__*/React.createElement("div", {
     style: {
       padding: 20,
       textAlign: "center",
@@ -3142,53 +3342,35 @@ const MapPage = ({
       color: "var(--ink-4)",
       fontSize: 11
     }
-  }, es ? `Mostrando 400 de ${items.length}. Usa el filtro de condado o la búsqueda para afinar.` : `Showing 400 of ${items.length}. Filter by county to narrow.`)), sideTab === "condados" && /*#__PURE__*/React.createElement("div", {
+  }, es ? `Mostrando 400 de ${items.length}. Filtra por estado o condado para afinar.` : `Showing 400 of ${items.length}. Filter by state or county to narrow.`)), groupTab && /*#__PURE__*/React.createElement("div", {
     className: "list",
     style: {
       padding: "8px 0"
     }
-  }, allCounties.length === 0 && /*#__PURE__*/React.createElement("div", {
+  }, groupStats.length === 0 && /*#__PURE__*/React.createElement("div", {
     style: {
       padding: "20px 16px",
       color: "var(--ink-4)",
       fontSize: 12,
       textAlign: "center"
     }
-  }, es ? "Sin datos de condado. Edita una persona y escribe la ciudad para auto-detectar." : "No county data. Edit a contact and enter a city to auto-detect."), selectedCounty && /*#__PURE__*/React.createElement("div", {
-    className: "row",
+  }, groupTab === "state" ? es ? "Sin datos de estado." : "No state data." : es ? "Sin datos de condado. Edita una persona y escribe la ciudad para auto-detectar." : "No county data. Edit a contact and enter a city to auto-detect."), /*#__PURE__*/React.createElement("div", {
     style: {
-      cursor: "pointer",
-      borderBottom: "1px solid var(--line)",
-      background: "var(--accent-50)",
-      padding: "8px 14px"
-    },
-    onClick: () => setSelectedCounty(null)
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      width: 10,
-      height: 10,
-      borderRadius: "50%",
-      background: "var(--ink-4)",
-      flexShrink: 0
+      padding: "6px 14px 8px",
+      fontSize: 11,
+      color: "var(--ink-4)"
     }
-  }), /*#__PURE__*/React.createElement("div", {
-    style: {
-      flex: 1,
-      fontSize: 12.5,
-      fontWeight: 600,
-      color: "var(--ink-3)"
-    }
-  }, es ? "← Mostrar todos" : "← Show all")), countyStats.map(({
-    county,
+  }, es ? "Toca un " : "Tap a ", groupTab === "state" ? es ? "estado" : "state" : es ? "condado" : "county", es ? " para ver su lista" : " to see its list"), groupStats.map(({
+    key,
     personas,
     entities,
     topCities,
     color
   }) => {
-    const isSelected = selectedCounty === county;
+    const isSelected = geo && geo.type === groupTab && geo.value === key;
     const total = personas.length + entities.length;
     return /*#__PURE__*/React.createElement("div", {
-      key: county,
+      key: key,
       style: {
         padding: "10px 14px",
         borderBottom: "1px solid var(--line)",
@@ -3197,7 +3379,7 @@ const MapPage = ({
         borderLeft: isSelected ? "3px solid " + color : "3px solid transparent",
         transition: "all .15s"
       },
-      onClick: () => setSelectedCounty(isSelected ? null : county)
+      onClick: () => pickGeo(groupTab, key)
     }, /*#__PURE__*/React.createElement("div", {
       style: {
         display: "flex",
@@ -3220,7 +3402,7 @@ const MapPage = ({
         flex: 1,
         color: isSelected ? color : "var(--ink)"
       }
-    }, county), /*#__PURE__*/React.createElement("span", {
+    }, key), /*#__PURE__*/React.createElement("span", {
       style: {
         fontSize: 18,
         fontWeight: 800,
@@ -3271,7 +3453,7 @@ const MapPage = ({
     go: go,
     countyColorMap: countyColorMap,
     selected: focusItem
-  }), sideTab === "condados" && allCounties.length > 0 && /*#__PURE__*/React.createElement("div", {
+  }), groupTab && groupStats.length > 0 && /*#__PURE__*/React.createElement("div", {
     style: {
       position: "absolute",
       bottom: 16,
@@ -3293,20 +3475,20 @@ const MapPage = ({
       letterSpacing: ".06em",
       marginBottom: 7
     }
-  }, es ? "Leyenda" : "Legend"), countyStats.slice(0, 6).map(({
-    county,
+  }, groupTab === "state" ? es ? "Estados" : "States" : es ? "Condados" : "Counties"), groupStats.slice(0, 6).map(({
+    key,
     color
   }) => /*#__PURE__*/React.createElement("div", {
-    key: county,
+    key: key,
     style: {
       display: "flex",
       alignItems: "center",
       gap: 6,
       marginBottom: 4,
       cursor: "pointer",
-      opacity: selectedCounty && selectedCounty !== county ? 0.4 : 1
+      opacity: geo && geo.value !== key ? 0.4 : 1
     },
-    onClick: () => setSelectedCounty(selectedCounty === county ? null : county)
+    onClick: () => pickGeo(groupTab, key)
   }, /*#__PURE__*/React.createElement("span", {
     style: {
       width: 8,
@@ -3321,13 +3503,13 @@ const MapPage = ({
       fontWeight: 500,
       color: "var(--ink-2)"
     }
-  }, county))), countyStats.length > 6 && /*#__PURE__*/React.createElement("div", {
+  }, key))), groupStats.length > 6 && /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 10,
       color: "var(--ink-4)",
       marginTop: 3
     }
-  }, "+", countyStats.length - 6, " m\xE1s")))));
+  }, "+", groupStats.length - 6, " ", es ? "más" : "more")))));
 };
 window.MiniMap = MiniMap;
 window.MapPage = MapPage;

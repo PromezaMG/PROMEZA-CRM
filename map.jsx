@@ -7,6 +7,36 @@ const COUNTY_COLORS = [
   "#8b5cf6","#14b8a6","#f97316","#ef4444","#06b6d4",
 ];
 
+// State names in the data are inconsistent ("California" vs "CA" vs "Ca",
+// "Texas" vs "TX", "Tennessee" vs "Tennesse"). Normalize them so grouping by
+// state collapses all spellings into one canonical name.
+const US_STATES = {
+  AL:"Alabama",AK:"Alaska",AZ:"Arizona",AR:"Arkansas",CA:"California",CO:"Colorado",
+  CT:"Connecticut",DE:"Delaware",FL:"Florida",GA:"Georgia",HI:"Hawaii",ID:"Idaho",
+  IL:"Illinois",IN:"Indiana",IA:"Iowa",KS:"Kansas",KY:"Kentucky",LA:"Louisiana",
+  ME:"Maine",MD:"Maryland",MA:"Massachusetts",MI:"Michigan",MN:"Minnesota",
+  MS:"Mississippi",MO:"Missouri",MT:"Montana",NE:"Nebraska",NV:"Nevada",
+  NH:"New Hampshire",NJ:"New Jersey",NM:"New Mexico",NY:"New York",NC:"North Carolina",
+  ND:"North Dakota",OH:"Ohio",OK:"Oklahoma",OR:"Oregon",PA:"Pennsylvania",
+  RI:"Rhode Island",SC:"South Carolina",SD:"South Dakota",TN:"Tennessee",TX:"Texas",
+  UT:"Utah",VT:"Vermont",VA:"Virginia",WA:"Washington",WV:"West Virginia",
+  WI:"Wisconsin",WY:"Wyoming",DC:"District of Columbia",PR:"Puerto Rico",
+};
+const _STATE_BY_NAME = {};
+Object.keys(US_STATES).forEach(ab => { _STATE_BY_NAME[US_STATES[ab].toLowerCase()] = US_STATES[ab]; });
+// Common misspellings seen in the data.
+const _STATE_TYPOS = { "tennesse":"Tennessee", "califronia":"California", "n jersey":"New Jersey", "n york":"New York" };
+const normState = (raw) => {
+  let s = String(raw == null ? "" : raw).trim().replace(/\s+/g, " ");
+  if (!s) return "";
+  const up = s.toUpperCase();
+  if (US_STATES[up]) return US_STATES[up];                 // CA, TX, tn…
+  const low = s.toLowerCase();
+  if (_STATE_BY_NAME[low]) return _STATE_BY_NAME[low];     // california, TEXAS…
+  if (_STATE_TYPOS[low]) return _STATE_TYPOS[low];         // tennesse…
+  return s.replace(/\S+/g, w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
+};
+
 const useLeafletMap = (ref, opts) => {
   const mapRef = React.useRef(null);
   React.useEffect(() => {
@@ -147,11 +177,26 @@ const MapPage = ({ t, lang, data, go }) => {
   const [showPersonas, setShowPersonas] = React.useState(true);
   const [showEntities, setShowEntities] = React.useState(true);
   const [sideTab, setSideTab] = React.useState("lista");
-  const [selectedCounty, setSelectedCounty] = React.useState(null);
+  // Unified geographic filter: null | { type:"county"|"state", value }
+  const [geo, setGeo] = React.useState(null);
   const [focusItem, setFocusItem] = React.useState(null); // {kind,id} clicked in the list → center map
   const es = lang === "es";
 
-  // Build county map
+  // Pick a county/state: toggles the filter and jumps to the list so the
+  // specific contacts of that place appear right away.
+  const pickGeo = (type, value) => {
+    setFocusItem(null);
+    setGeo(g => (g && g.type === type && g.value === value) ? null : { type, value });
+    setSideTab("lista");
+  };
+  const geoMatch = (x) => {
+    if (!geo) return true;
+    if (geo.type === "county") return x.county === geo.value;
+    return normState(x.state) === geo.value;
+  };
+  const geoLabel = geo ? geo.value : null;
+
+  // Build county + state groupings
   const allCounties = React.useMemo(() => {
     const set = new Set();
     data.personas.forEach(p => { if (p.county) set.add(p.county); });
@@ -159,26 +204,44 @@ const MapPage = ({ t, lang, data, go }) => {
     return [...set].sort();
   }, [data.personas, data.entities]);
 
+  // One pass: group every record by normalized state.
+  const byState = React.useMemo(() => {
+    const m = {};
+    const push = (key, rec, kind) => {
+      const s = normState(rec.state);
+      if (!s) return;
+      if (!m[s]) m[s] = { personas: [], entities: [] };
+      m[s][kind].push(rec);
+    };
+    data.personas.forEach(p => push(null, p, "personas"));
+    data.entities.forEach(e => push(null, e, "entities"));
+    return m;
+  }, [data.personas, data.entities]);
+
+  const allStates = React.useMemo(() => Object.keys(byState).sort(), [byState]);
+
   const countyColorMap = React.useMemo(() => {
     const map = {};
     allCounties.forEach((c, i) => { map[c] = COUNTY_COLORS[i % COUNTY_COLORS.length]; });
     return map;
   }, [allCounties]);
 
-  // Filter by county selection
+  const stateColorMap = React.useMemo(() => {
+    const map = {};
+    allStates.forEach((s, i) => { map[s] = COUNTY_COLORS[i % COUNTY_COLORS.length]; });
+    return map;
+  }, [allStates]);
+
+  // Filter by the active county/state selection
   const personasFiltered = React.useMemo(() => {
-    let p = data.personas;
     if (!showPersonas) return [];
-    if (selectedCounty) p = p.filter(x => x.county === selectedCounty);
-    return p;
-  }, [data.personas, showPersonas, selectedCounty]);
+    return geo ? data.personas.filter(geoMatch) : data.personas;
+  }, [data.personas, showPersonas, geo]);
 
   const entitiesFiltered = React.useMemo(() => {
-    let e = data.entities;
     if (!showEntities) return [];
-    if (selectedCounty) e = e.filter(x => x.county === selectedCounty);
-    return e;
-  }, [data.entities, showEntities, selectedCounty]);
+    return geo ? data.entities.filter(geoMatch) : data.entities;
+  }, [data.entities, showEntities, geo]);
 
   // Sidebar list — memoized so it is NOT rebuilt+resorted on every render (e.g. on
   // every click). Uses the cached collator (window.nameCmp); per-element
@@ -194,17 +257,33 @@ const MapPage = ({ t, lang, data, go }) => {
   const mapPersonas = React.useMemo(() => personasFiltered.filter(p => p.lat && p.lng), [personasFiltered]);
   const mapEntities = React.useMemo(() => entitiesFiltered.filter(e => e.lat && e.lng), [entitiesFiltered]);
 
+  // Top 3 cities for a set of people — shared by county and state cards.
+  const topCitiesOf = (personas) => {
+    const c = {};
+    personas.forEach(p => { if (p.city) c[p.city] = (c[p.city] || 0) + 1; });
+    return Object.keys(c).sort((a, b) => c[b] - c[a]).slice(0, 3);
+  };
+
   // County stats
   const countyStats = React.useMemo(() => {
     return allCounties.map((county, i) => {
       const personas = data.personas.filter(p => p.county === county);
       const entities = data.entities.filter(e => e.county === county);
-      const cityCounts = {};
-      personas.forEach(p => { if (p.city) cityCounts[p.city] = (cityCounts[p.city] || 0) + 1; });
-      const topCities = Object.entries(cityCounts).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([c]) => c);
-      return { county, personas, entities, topCities, color: COUNTY_COLORS[i % COUNTY_COLORS.length] };
+      return { key: county, personas, entities, topCities: topCitiesOf(personas), color: COUNTY_COLORS[i % COUNTY_COLORS.length] };
     }).sort((a, b) => (b.personas.length + b.entities.length) - (a.personas.length + a.entities.length));
   }, [allCounties, data.personas, data.entities]);
+
+  // State stats (from the single-pass byState grouping)
+  const stateStats = React.useMemo(() => {
+    return allStates.map(s => {
+      const g = byState[s];
+      return { key: s, personas: g.personas, entities: g.entities, topCities: topCitiesOf(g.personas), color: stateColorMap[s] };
+    }).sort((a, b) => (b.personas.length + b.entities.length) - (a.personas.length + a.entities.length));
+  }, [allStates, byState, stateColorMap]);
+
+  // Cards shown in whichever grouping tab is active.
+  const groupTab = sideTab === "estados" ? "state" : (sideTab === "condados" ? "county" : null);
+  const groupStats = groupTab === "state" ? stateStats : countyStats;
 
   return (
     <div>
@@ -212,8 +291,11 @@ const MapPage = ({ t, lang, data, go }) => {
         <div>
           <h1 className="page-title">{t.nav.map}</h1>
           <div className="page-sub">
-            {selectedCounty
-              ? <span style={{ color: "var(--accent)", fontWeight: 600 }}>{selectedCounty} · {items.length} {es ? "registros" : "records"}</span>
+            {geo
+              ? <span style={{ color: "var(--accent)", fontWeight: 600 }}>
+                  {geo.type === "state" ? (es ? "Estado: " : "State: ") : (es ? "Condado: " : "County: ")}
+                  {geoLabel} · {personasFiltered.length} {es ? "personas" : "people"} · {entitiesFiltered.length} {es ? "entidades" : "entities"}
+                </span>
               : `${personasFiltered.length + entitiesFiltered.length} ${es ? "ubicaciones" : "locations"}`}
           </div>
         </div>
@@ -224,8 +306,8 @@ const MapPage = ({ t, lang, data, go }) => {
           <button className={"chip " + (showPersonas ? "on" : "")} onClick={() => setShowPersonas(v => !v)}>
             <Icon name="users" /> {t.nav.personas}
           </button>
-          {selectedCounty && (
-            <button className="btn btn-sm" style={{ color: "var(--accent)", borderColor: "var(--accent)" }} onClick={() => setSelectedCounty(null)}>
+          {geo && (
+            <button className="btn btn-sm" style={{ color: "var(--accent)", borderColor: "var(--accent)" }} onClick={() => setGeo(null)}>
               × {es ? "Quitar filtro" : "Clear filter"}
             </button>
           )}
@@ -238,6 +320,7 @@ const MapPage = ({ t, lang, data, go }) => {
           <div style={{ display: "flex", borderBottom: "1px solid var(--line)" }}>
             {[
               { id: "lista", label: es ? "Lista" : "List" },
+              { id: "estados", label: es ? "Estados" : "States", badge: allStates.length },
               { id: "condados", label: es ? "Condados" : "Counties", badge: allCounties.length },
             ].map(tb => (
               <button key={tb.id} onClick={() => setSideTab(tb.id)}
@@ -251,6 +334,20 @@ const MapPage = ({ t, lang, data, go }) => {
           {/* Lista tab */}
           {sideTab === "lista" && (
             <div className="list">
+              {geo && (
+                <div style={{ position: "sticky", top: 0, zIndex: 2, display: "flex", alignItems: "center", gap: 8, padding: "9px 14px", background: "var(--accent-50)", borderBottom: "1px solid var(--line)" }}>
+                  <span style={{ width: 10, height: 10, borderRadius: "50%", background: (geo.type === "state" ? stateColorMap[geo.value] : countyColorMap[geo.value]) || "var(--accent)", flexShrink: 0 }} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 700, fontSize: 13, color: "var(--accent)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{geoLabel}</div>
+                    <div style={{ fontSize: 10.5, color: "var(--ink-3)" }}>{personasFiltered.length} {es ? "personas" : "people"} · {entitiesFiltered.length} {es ? "entidades" : "entities"}</div>
+                  </div>
+                  <button className="btn btn-sm" style={{ flexShrink: 0, padding: "3px 8px", fontSize: 11 }}
+                    onClick={() => setSideTab(geo.type === "state" ? "estados" : "condados")}>
+                    {es ? "Cambiar" : "Change"}
+                  </button>
+                  <button className="icon-btn" title={es ? "Quitar filtro" : "Clear filter"} style={{ flexShrink: 0, width: 26, height: 26 }} onClick={() => setGeo(null)}>×</button>
+                </div>
+              )}
               {items.length === 0 && <div style={{ padding: 20, textAlign: "center", color: "var(--ink-4)", fontSize: 12 }}>{es ? "Sin ubicaciones" : "No locations"}</div>}
               {items.slice(0, 400).map(it => {
                 const isSel = focusItem && focusItem.kind === it.kind && focusItem.id === it.id;
@@ -279,37 +376,35 @@ const MapPage = ({ t, lang, data, go }) => {
               })}
               {items.length > 400 && (
                 <div style={{ padding: "10px 14px", textAlign: "center", color: "var(--ink-4)", fontSize: 11 }}>
-                  {es ? `Mostrando 400 de ${items.length}. Usa el filtro de condado o la búsqueda para afinar.` : `Showing 400 of ${items.length}. Filter by county to narrow.`}
+                  {es ? `Mostrando 400 de ${items.length}. Filtra por estado o condado para afinar.` : `Showing 400 of ${items.length}. Filter by state or county to narrow.`}
                 </div>
               )}
             </div>
           )}
 
-          {/* Condados tab */}
-          {sideTab === "condados" && (
+          {/* Estados / Condados tabs — same card layout, different grouping */}
+          {groupTab && (
             <div className="list" style={{ padding: "8px 0" }}>
-              {allCounties.length === 0 && (
+              {groupStats.length === 0 && (
                 <div style={{ padding: "20px 16px", color: "var(--ink-4)", fontSize: 12, textAlign: "center" }}>
-                  {es ? "Sin datos de condado. Edita una persona y escribe la ciudad para auto-detectar." : "No county data. Edit a contact and enter a city to auto-detect."}
+                  {groupTab === "state"
+                    ? (es ? "Sin datos de estado." : "No state data.")
+                    : (es ? "Sin datos de condado. Edita una persona y escribe la ciudad para auto-detectar." : "No county data. Edit a contact and enter a city to auto-detect.")}
                 </div>
               )}
-              {/* "All" option when one is selected */}
-              {selectedCounty && (
-                <div className="row" style={{ cursor: "pointer", borderBottom: "1px solid var(--line)", background: "var(--accent-50)", padding: "8px 14px" }} onClick={() => setSelectedCounty(null)}>
-                  <div style={{ width: 10, height: 10, borderRadius: "50%", background: "var(--ink-4)", flexShrink: 0 }} />
-                  <div style={{ flex: 1, fontSize: 12.5, fontWeight: 600, color: "var(--ink-3)" }}>{es ? "← Mostrar todos" : "← Show all"}</div>
-                </div>
-              )}
-              {countyStats.map(({ county, personas, entities, topCities, color }) => {
-                const isSelected = selectedCounty === county;
+              <div style={{ padding: "6px 14px 8px", fontSize: 11, color: "var(--ink-4)" }}>
+                {es ? "Toca un " : "Tap a "}{groupTab === "state" ? (es ? "estado" : "state") : (es ? "condado" : "county")}{es ? " para ver su lista" : " to see its list"}
+              </div>
+              {groupStats.map(({ key, personas, entities, topCities, color }) => {
+                const isSelected = geo && geo.type === groupTab && geo.value === key;
                 const total = personas.length + entities.length;
                 return (
-                  <div key={county}
+                  <div key={key}
                     style={{ padding: "10px 14px", borderBottom: "1px solid var(--line)", cursor: "pointer", background: isSelected ? color + "12" : "transparent", borderLeft: isSelected ? "3px solid " + color : "3px solid transparent", transition: "all .15s" }}
-                    onClick={() => setSelectedCounty(isSelected ? null : county)}>
+                    onClick={() => pickGeo(groupTab, key)}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
                       <span style={{ width: 10, height: 10, borderRadius: "50%", background: color, flexShrink: 0 }} />
-                      <span style={{ fontWeight: 700, fontSize: 13, flex: 1, color: isSelected ? color : "var(--ink)" }}>{county}</span>
+                      <span style={{ fontWeight: 700, fontSize: 13, flex: 1, color: isSelected ? color : "var(--ink)" }}>{key}</span>
                       <span style={{ fontSize: 18, fontWeight: 800, color, letterSpacing: "-.02em" }}>{total}</span>
                     </div>
                     <div style={{ paddingLeft: 18, display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -338,18 +433,20 @@ const MapPage = ({ t, lang, data, go }) => {
             countyColorMap={countyColorMap}
             selected={focusItem}
           />
-          {/* County legend overlay */}
-          {sideTab === "condados" && allCounties.length > 0 && (
+          {/* Legend overlay (top places in the active grouping) */}
+          {groupTab && groupStats.length > 0 && (
             <div style={{ position: "absolute", bottom: 16, right: 16, background: "rgba(255,255,255,.95)", backdropFilter: "blur(8px)", borderRadius: 10, padding: "10px 14px", boxShadow: "0 4px 20px rgba(0,0,0,.12)", zIndex: 1000, maxWidth: 200 }}>
-              <div style={{ fontSize: 10, fontWeight: 700, color: "var(--ink-4)", textTransform: "uppercase", letterSpacing: ".06em", marginBottom: 7 }}>{es ? "Leyenda" : "Legend"}</div>
-              {countyStats.slice(0, 6).map(({ county, color }) => (
-                <div key={county} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4, cursor: "pointer", opacity: selectedCounty && selectedCounty !== county ? 0.4 : 1 }}
-                  onClick={() => setSelectedCounty(selectedCounty === county ? null : county)}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: "var(--ink-4)", textTransform: "uppercase", letterSpacing: ".06em", marginBottom: 7 }}>
+                {groupTab === "state" ? (es ? "Estados" : "States") : (es ? "Condados" : "Counties")}
+              </div>
+              {groupStats.slice(0, 6).map(({ key, color }) => (
+                <div key={key} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4, cursor: "pointer", opacity: geo && geo.value !== key ? 0.4 : 1 }}
+                  onClick={() => pickGeo(groupTab, key)}>
                   <span style={{ width: 8, height: 8, borderRadius: "50%", background: color, flexShrink: 0 }} />
-                  <span style={{ fontSize: 11, fontWeight: 500, color: "var(--ink-2)" }}>{county}</span>
+                  <span style={{ fontSize: 11, fontWeight: 500, color: "var(--ink-2)" }}>{key}</span>
                 </div>
               ))}
-              {countyStats.length > 6 && <div style={{ fontSize: 10, color: "var(--ink-4)", marginTop: 3 }}>+{countyStats.length - 6} más</div>}
+              {groupStats.length > 6 && <div style={{ fontSize: 10, color: "var(--ink-4)", marginTop: 3 }}>+{groupStats.length - 6} {es ? "más" : "more"}</div>}
             </div>
           )}
         </div>
