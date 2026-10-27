@@ -153,8 +153,17 @@ const MiniMap = ({ personas = [], entities = [], focus = null, go = null, county
     if (focus) {
       mapRef.current.setView([focus.lat, focus.lng], 13);
     } else if (points.length > 0) {
-      const bounds = L.latLngBounds(points);
-      mapRef.current.fitBounds(bounds.pad(0.2), { animate: false });
+      // Fit to where the contacts actually are. A handful of mis-geocoded points
+      // (e.g. coordinates near 0,0) would otherwise stretch the view to the whole
+      // world, so trim the furthest ~5% on each edge before fitting. With few
+      // points, use them all.
+      const lats = points.map(p => p[0]).sort((a, b) => a - b);
+      const lngs = points.map(p => p[1]).sort((a, b) => a - b);
+      const q = (arr, f) => arr[Math.min(arr.length - 1, Math.max(0, Math.round(f * (arr.length - 1))))];
+      const lo = points.length >= 8 ? 0.05 : 0;
+      const hi = points.length >= 8 ? 0.95 : 1;
+      const bounds = L.latLngBounds([[q(lats, lo), q(lngs, lo)], [q(lats, hi), q(lngs, hi)]]);
+      mapRef.current.fitBounds(bounds.pad(0.2), { animate: false, maxZoom: 13 });
     }
   }, [personas, entities, focus, countyColorMap]);
 
